@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profile — নাগরিক</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<!-- ================= HEADER ================= -->
+<header class="site-header">
+  <div class="header-inner">
+    <a href="../index.html" class="logo" aria-label="নাগরিক home">
+      <img src="../assets/images/logo_for_dark_mode.png" alt="নাগরিক">
+    </a>
+
+    <a href="browse_feed.html" class="nav-btn inactive">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+      <span class="label">HOME</span>
+    </a>
+
+    <button class="nav-btn active">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+      <span class="label">PROFILE</span>
+    </button>
+
+    <div class="header-search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <div class="divider"></div>
+      <input type="text" placeholder="SEARCH CIVIC ISSUES">
+    </div>
+
+    <div class="header-right">
+      <a href="report.html" class="report-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+        REPORT ISSUE
+      </a>
+      <a href="user.html" class="avatar" aria-label="My profile">
+        <svg viewBox="0 0 24 24" fill="var(--muted)"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<!-- ================= PROFILE ================= -->
+<div class="profile-wrap">
+
+  <section class="profile-card">
+    <div class="profile-banner">
+      <button class="banner-edit">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>
+        EDIT PROFILE
+      </button>
+    </div>
+    <div class="profile-id">
+      <div class="avatar-lg" id="profileAvatar">N</div>
+      <div class="profile-id-info">
+        <h1 id="profileName">Nagorik User</h1>
+        <div class="profile-meta">
+          <span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            Dhanmondi, Dhaka
+          </span>
+          <span id="profileEmail">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg>
+            citizen@nagorik.bd
+          </span>
+          <span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+            Joined Jan 2026
+          </span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="profile-stats-row">
+    <div class="pstat"><div class="num red">03</div><div class="label">Reports</div></div>
+    <div class="pstat"><div class="num amber">01</div><div class="label">In progress</div></div>
+    <div class="pstat"><div class="num green">01</div><div class="label">Resolved</div></div>
+    <div class="pstat"><div class="num">36</div><div class="label">Upvotes received</div></div>
+  </div>
+
+  <!-- ================= TABS ================= -->
+  <div class="tabs" style="padding:26px 0 0;">
+    <button class="tab-btn active" data-tab="reports">My Reports</button>
+    <button class="tab-btn" data-tab="upvoted">Upvoted</button>
+    <button class="tab-btn" data-tab="settings">Settings</button>
+  </div>
+
+  <!-- MY REPORTS -->
+  <div class="panel-section active" id="panel-reports">
+    <div class="section-head-sm"><h2>Reports submitted by you</h2><span>3 total</span></div>
+    <div class="issues-list" id="reportsList"></div>
+  </div>
+
+  <!-- UPVOTED -->
+  <div class="panel-section" id="panel-upvoted">
+    <div class="section-head-sm"><h2>Issues you upvoted</h2><span>3 total</span></div>
+    <div class="issues-list" id="upvotedList"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="panel-section" id="panel-settings">
+    <div class="settings-grid">
+      <div class="setting-card">
+        <h3>Notifications</h3>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Email notifications</span>
+            <span class="setting-desc">Updates on your reports and followed issues</span>
+          </div>
+          <button class="toggle active" data-setting="email" aria-label="Email notifications"></button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Push notifications</span>
+            <span class="setting-desc">Real-time alerts on your device</span>
+          </div>
+          <button class="toggle active" data-setting="push" aria-label="Push notifications"></button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Weekly digest</span>
+            <span class="setting-desc">Trending issues in your area</span>
+          </div>
+          <button class="toggle" data-setting="digest" aria-label="Weekly digest"></button>
+        </div>
+      </div>
+
+      <div class="setting-card">
+        <h3>Privacy &amp; Account</h3>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Public profile</span>
+            <span class="setting-desc">Others can see your reports and activity</span>
+          </div>
+          <button class="toggle active" data-setting="public" aria-label="Public profile"></button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Show upvotes</span>
+            <span class="setting-desc">Display upvoted issues on your profile</span>
+          </div>
+          <button class="toggle active" data-setting="showUpvotes" aria-label="Show upvotes"></button>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-label">Delete account</span>
+            <span class="setting-desc">Permanently remove your account and data</span>
+          </div>
+          <button class="danger-btn">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Fill profile info from stored session (if logged in)
+  const userData = JSON.parse(localStorage.getItem('nagorik_user') || '{}');
+  if (userData.name) {
+    document.getElementById('profileName').textContent = userData.name;
+    document.getElementById('profileAvatar').textContent = userData.name.charAt(0).toUpperCase();
+  }
+  if (userData.email) {
+    document.getElementById('profileEmail').innerHTML =
+      '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/></svg> ' + userData.email;
+  }
+
+  // Tab switching
+  const tabs = document.querySelectorAll('.tab-btn');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('active'));
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Report row template (profile list design)
+  function issueCard(issue, statusClass, statusLabel) {
+    return `
+    <article class="report-row">
+      <div class="report-thumb">
+        <img src="${issue.img}" alt="${issue.title}">
+      </div>
+      <div class="report-info">
+        <h3>${issue.title}</h3>
+        <div class="report-metaline">
+          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${issue.area}</span>
+          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>${issue.time}</span>
+        </div>
+        <div class="report-statsline">
+          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>${issue.up} upvotes</span>
+          <span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5H3l2-4a8.5 8.5 0 1 1 16-4.5z"/></svg>${issue.comments} comments</span>
+        </div>
+      </div>
+      <div class="report-side">
+        <span class="badge-sm ${statusClass}"><span class="dot"></span>${statusLabel}</span>
+        <div class="row-actions">
+          <button class="mini-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>View</button>
+          <button class="mini-pill ghost"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>Edit</button>
+          <button class="mini-pill ghost"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>Delete</button>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  // Demo data — same issues as the homepage feed
+  const myReports = [
+    { title: 'Large pothole on Mirpur Road causing accidents', area: 'Mirpur 10', by: 'You', time: '2 days ago', up: 342, down: 11, comments: 47, img: 'https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=400&h=300&fit=crop' },
+    { title: 'Street lights out on entire Green Road stretch', area: 'Dhanmondi', by: 'You', time: '1 week ago', up: 215, down: 8, comments: 31, img: 'https://images.unsplash.com/photo-1518481852452-9415b262eba4?w=400&h=300&fit=crop' },
+    { title: 'Sewage overflow near Hatirjheel lake inlet', area: 'Hatirjheel', by: 'You', time: '2 weeks ago', up: 489, down: 21, comments: 62, img: 'https://images.unsplash.com/photo-1523867574650-fd3ee4b32e8f?w=400&h=300&fit=crop' }
+  ];
+  document.getElementById('reportsList').innerHTML =
+    issueCard(myReports[0], 'st-progress', 'In progress') +
+    issueCard(myReports[1], '', 'Open') +
+    issueCard(myReports[2], 'st-done', 'Resolved');
+
+  const upvotedIssues = [
+    { title: 'Noise pollution from construction in Bnasree', area: 'Bnasree', by: 'Abrar Bin Patwary', time: '1 week ago', up: 12, down: 2, comments: 233, img: 'https://images.unsplash.com/photo-1541976590-713941681591?w=400&h=300&fit=crop' },
+    { title: 'Stealing cases are gradually increasing', area: 'Mohammadpur', by: 'Farhana Rahman', time: '1 week ago', up: 12, down: 2, comments: 233, img: 'https://images.unsplash.com/photo-1590644365607-1c5a4b0f6f0e?w=400&h=300&fit=crop' },
+    { title: 'Price hike of daily commodities in Dhaka city', area: 'Dhanmondi', by: 'Farhana Rahman', time: '2 days ago', up: 12, down: 2, comments: 233, img: 'https://images.unsplash.com/photo-1541976590-713941681591?w=400&h=300&fit=crop' }
+  ];
+  document.getElementById('upvotedList').innerHTML = upvotedIssues
+    .map(i => issueCard(i, '', 'Open')).join('');
+
+  // Settings toggles (persisted)
+  const savedSettings = JSON.parse(localStorage.getItem('nagorik_settings') || '{}');
+  document.querySelectorAll('.toggle').forEach(toggle => {
+    const key = toggle.dataset.setting;
+    if (savedSettings[key] !== undefined) toggle.classList.toggle('active', savedSettings[key]);
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('active');
+      savedSettings[key] = toggle.classList.contains('active');
+      localStorage.setItem('nagorik_settings', JSON.stringify(savedSettings));
+    });
+  });
+</script>
+
+</body>
+</html>
