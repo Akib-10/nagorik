@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>
+  // Guard: this page requires a logged-in session. Redirect before paint if missing.
+  if (localStorage.getItem('nagorik_auth') !== 'true') {
+    window.location.replace('login.html?next=' + encodeURIComponent('report.html'));
+  }
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report an Issue — নাগরিক</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/landing.css">
+</head>
+<body>
+
+<header class="site-header" id="top">
+  <div class="header-inner">
+    <a href="index.html" class="brand" aria-label="নাগরিক home">
+      <img src="assets/images/logo_for_dark_mode.png" alt="নাগরিক logo">
+    </a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <a href="browse_feed.html">Browse feed</a>
+      <a href="report.html" class="active">Report issue</a>
+    </nav>
+    <div class="header-search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search civic issues" aria-label="Search">
+    </div>
+    <div class="header-actions">
+      <a href="browse_feed.html" class="btn btn-ghost">My reports</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow">New report</span>
+      <h1>Spot it. Report it.</h1>
+      <p>Give as much detail as you can — sharper reports get resolved faster.</p>
+    </div>
+  </section>
+
+  <section class="section" style="padding-top:0;">
+    <div class="wrap">
+      <form class="panel" data-demo-form data-success-message="Thanks — your report has been submitted for review.">
+        <div class="form-row">
+          <label for="title">Issue title</label>
+          <input id="title" type="text" placeholder="e.g. Broken streetlight near bus stop" required>
+        </div>
+
+        <div class="form-row">
+          <label for="category">Category</label>
+          <select id="category" required>
+            <option value="">Select a category</option>
+            <option>Road</option>
+            <option>Electricity</option>
+            <option>Water</option>
+            <option>Garbage</option>
+            <option>Safety</option>
+            <option>Environment</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="location">Location</label>
+          <input id="location" type="text" placeholder="Area, road, or nearby landmark" required>
+        </div>
+
+        <div class="form-row">
+          <label for="desc">Description</label>
+          <textarea id="desc" rows="4" placeholder="What's going on, and since when?" required></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="photo">Photo (optional)</label>
+          <input id="photo" type="file" accept="image/*">
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Submit report</button>
+          <a href="browse_feed.html" class="btn btn-ghost">Cancel</a>
+        </div>
+        <p class="form-note" style="margin-top:14px; font-size:13.5px; color:var(--muted);"></p>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer" style="margin-top:0;">
+  <div class="wrap">
+    <div class="footer-bottom" style="border-top:0; padding-top:0;">
+      <span>© 2026 Nagorik. Made with ♥ for Dhaka.</span>
+      <a href="browse_feed.html" class="btn btn-ghost" style="color:#fff; border-color:rgba(255,255,255,.25);">← Back to feed</a>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>
