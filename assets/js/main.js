@@ -34,6 +34,31 @@ document.addEventListener('DOMContentLoaded', () => {
     sections.forEach(sec => observer.observe(sec));
   }
 
+  // "Home" link (#top) needs special handling:
+  // 1. Browsers skip re-scrolling if the URL hash doesn't change (e.g. clicking
+  //    Home twice in a row when the URL is already "...#top" does nothing by
+  //    default) — so we intercept the click and scroll manually every time.
+  // 2. The IntersectionObserver above only watches sections inside <main>,
+  //    so it never re-activates "Home" on its own when scrolling back up —
+  //    a plain scroll listener handles that instead.
+  const homeLink = document.querySelector('.main-nav a[href="#top"]');
+  if (homeLink && navLinks.length) {
+    homeLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      history.replaceState(null, '', window.location.pathname);
+      navLinks.forEach(link => link.classList.remove('active'));
+      homeLink.classList.add('active');
+    });
+
+    window.addEventListener('scroll', () => {
+      if (window.scrollY < 80) {
+        navLinks.forEach(link => link.classList.remove('active'));
+        homeLink.classList.add('active');
+      }
+    });
+  }
+
   // Any element marked data-requires-auth needs a logged-in session before
   // it's allowed to reach its destination (e.g. "Report an issue").
   document.querySelectorAll('[data-requires-auth]').forEach(el => {
