@@ -17,6 +17,26 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Show/hide profile button based on auth state
+  const loginBtn = document.getElementById('loginBtn');
+  const profileBtn = document.getElementById('profileBtn');
+  const isAuth = localStorage.getItem('nagorik_auth') === 'true';
+  const userData = JSON.parse(localStorage.getItem('nagorik_user') || '{}');
+
+  if (loginBtn && profileBtn) {
+    if (isAuth) {
+      loginBtn.style.display = 'none';
+      profileBtn.style.display = 'flex';
+      // Update avatar with user initial
+      if (userData.name) {
+        profileBtn.innerHTML = `<span style="font-weight:700;font-size:14px;color:var(--red);">${userData.name.charAt(0).toUpperCase()}</span>`;
+      }
+    } else {
+      loginBtn.style.display = 'inline-flex';
+      profileBtn.style.display = 'none';
+    }
+  }
+
   // Highlight in-page nav links while scrolling (index page only)
   const sections = document.querySelectorAll('main [id]');
   const navLinks = document.querySelectorAll('.main-nav a[href^="#"]');
@@ -103,7 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('form[data-auth-form]').forEach(form => {
     form.addEventListener('submit', (e) => {
       e.preventDefault();
+      // Get user name from form
+      const nameInput = form.querySelector('#regName') || form.querySelector('#loginEmail');
+      const userName = nameInput ? nameInput.value : 'Nagorik User';
       localStorage.setItem('nagorik_auth', 'true');
+      localStorage.setItem('nagorik_user', JSON.stringify({ name: userName, email: form.querySelector('#loginEmail, #regEmail')?.value || '' }));
       const note = form.querySelector('.form-note');
       if (note) {
         note.textContent = 'Signed in — redirecting…';
@@ -111,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       const next = new URLSearchParams(window.location.search).get('next');
       setTimeout(() => {
-        window.location.href = next || 'browse_feed.html';
+        window.location.href = next || 'user.html';
       }, 500);
     });
   });

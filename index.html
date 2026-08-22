@@ -34,7 +34,10 @@
     </div>
 
     <div class="header-actions">
-      <a href="login.html" class="btn btn-ghost">Log in</a>
+      <a href="login.html" class="btn btn-ghost" id="loginBtn">Log in</a>
+      <a href="Pages/user.html" class="avatar" id="profileBtn" style="display:none;width:38px;height:38px;border-radius:50%;background:var(--surface-2);border:2px solid var(--red);overflow:hidden;align-items:center;justify-content:center;" aria-label="Profile">
+        <svg viewBox="0 0 24 24" fill="var(--muted)" style="width:24px;height:24px;"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>
+      </a>
       <a href="report.html" class="btn btn-primary" data-requires-auth data-auth-target="report.html">Report an issue</a>
     </div>
   </div>
