@@ -3,166 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>নাগরিক - Civic Issues Homepage</title>
+    <title>নাগরিক — Civic Issues</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- Navbar -->
+    <!-- Navbar (glassmorphism) -->
     <nav class="navbar">
-        <div class="navbar-container">
-            <a href="#" class="navbar-brand">নাগরিক</a>
-            <ul class="navbar-nav">
-                <li><a href="#" class="nav-link active">Home</a></li>
-                <li><a href="#" class="nav-link">Map</a></li>
-                <li><a href="#" class="nav-link">Search</a></li>
-                <li><a href="#" class="nav-link">Report Issue</a></li>
-                <li><a href="#" class="nav-link">Notifications</a></li>
-                <li><a href="#" class="nav-link">Settings</a></li>
+        <div class="container navbar-inner">
+            <a href="#" class="navbar-brand" aria-label="নাগরিক home">
+                <img src="assets/LOGO-NAGORIK.png" alt="নাগরিক logo">
+            </a>
+
+            <ul class="nav-links">
+                <li><a href="#" class="active">Home</a></li>
+                <li><a href="#">Map</a></li>
+                <li><a href="#">Search</a></li>
+                <li><a href="#">Notifications</a></li>
+                <li><a href="#">Settings</a></li>
             </ul>
+
+            <div class="nav-actions">
+                <button class="btn btn-outline" type="button">Login</button>
+                <button class="btn btn-solid" type="button">+ Report Issue</button>
+                <img class="avatar" src="https://i.pravatar.cc/72?img=12" alt="Your profile">
+            </div>
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Hero -->
     <header class="hero-section">
-        <div class="hero-container">
-            <div class="hero-content">
+        <div class="container">
+            <section class="hero-panel">
                 <h1>Dhaka Civic Issues</h1>
                 <p>Report local problems, vote on urgent issues, track resolution progress.</p>
-            </div>
-            <div class="hero-stats">
-                <div class="stat-item">
-                    <span class="stat-number">1,247</span>
-                    <span class="stat-label">Open</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">892</span>
-                    <span class="stat-label">In progress</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">431</span>
-                    <span class="stat-label">Received</span>
-                </div>
-            </div>
-        </div>
-        <div class="hero-search">
-            <input type="text" placeholder="Search issues by title, area, category">
-            <button class="search-btn">Search</button>
+                <form class="hero-search" role="search" action="#">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="21" y1="21" x2="16.5" y2="16.5"></line>
+                    </svg>
+                    <label class="visually-hidden" for="issue-search">Search issues</label>
+                    <input id="issue-search" type="text" placeholder="Search issues by title, area, category">
+                    <button type="submit">Search</button>
+                </form>
+            </section>
         </div>
     </header>
 
-    <!-- Filter Tabs -->
-    <div class="filter-tabs">
-        <button class="tab-btn active">Latest</button>
-        <button class="tab-btn">Ongoing</button>
-        <button class="tab-btn">Trending</button>
-        <button class="tab-btn">All</button>
+    <!-- Content: feed + sidebar -->
+    <div class="container content-layout">
+
+        <div class="main-column">
+
+            <!-- Filter Tabs -->
+            <div class="filter-tabs" role="tablist" aria-label="Filter issues">
+                <button class="tab-btn active" role="tab" aria-selected="true">Latest</button>
+                <button class="tab-btn" role="tab" aria-selected="false">Ongoing</button>
+                <button class="tab-btn" role="tab" aria-selected="false">Trending</button>
+                <button class="tab-btn" role="tab" aria-selected="false">All</button>
+            </div>
+
+            <!-- Issue Feed -->
+            <main class="issue-feed">
+                <article class="issue-card">
+                    <div class="card-media">
+                        <img src="https://images.unsplash.com/photo-1451187521238-7a16b5b18b1e?w=800&h=450&fit=crop" alt="Construction site" loading="lazy">
+                    </div>
+                    <div class="card-body">
+                        <span class="card-status">Ongoing</span>
+                        <h3 class="card-title">Noise pollution from construction</h3>
+                        <p class="card-meta"><span>Banasree</span><span class="dot">·</span><time datetime="2024-01-15">Jan 15, 2024</time></p>
+                        <div class="card-actions">
+                            <button class="action-pill" type="button">👍 245</button>
+                            <button class="action-pill" type="button">💬 38</button>
+                            <button class="action-pill me-too" type="button">Me Too</button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="issue-card">
+                    <div class="card-media">
+                        <img src="https://images.unsplash.com/photo-1554221617-6a03b8abaa4a?w=800&h=450&fit=crop" alt="City street" loading="lazy">
+                    </div>
+                    <div class="card-body">
+                        <span class="card-status">Ongoing</span>
+                        <h3 class="card-title">Stealing cases are gradually increasing</h3>
+                        <p class="card-meta"><span>Mohammadpur</span><span class="dot">·</span><time datetime="2024-01-14">Jan 14, 2024</time></p>
+                        <div class="card-actions">
+                            <button class="action-pill" type="button">👍 189</button>
+                            <button class="action-pill" type="button">💬 24</button>
+                            <button class="action-pill me-too" type="button">Me Too</button>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="issue-card">
+                    <div class="card-media">
+                        <img src="https://images.unsplash.com/photo-1518717758536-abcf0b2f1f3e?w=800&h=450&fit=crop" alt="Daily commodities" loading="lazy">
+                    </div>
+                    <div class="card-body">
+                        <span class="card-status">Ongoing</span>
+                        <h3 class="card-title">Price hike of daily commodities in Dhaka city</h3>
+                        <p class="card-meta"><span>Dhanmondi</span><span class="dot">·</span><time datetime="2024-01-13">Jan 13, 2024</time></p>
+                        <div class="card-actions">
+                            <button class="action-pill" type="button">👍 312</button>
+                            <button class="action-pill" type="button">💬 56</button>
+                            <button class="action-pill me-too" type="button">Me Too</button>
+                        </div>
+                    </div>
+                </article>
+            </main>
+        </div>
+
+        <!-- Sidebar -->
+        <aside class="trending-sidebar">
+            <section class="side-panel panel-trending">
+                <h4>Trending Issues</h4>
+                <ul class="trend-list">
+                    <li class="trend-item">
+                        <img src="https://images.unsplash.com/photo-1451187521238-7a16b5b18b1e?w=120&h=120&fit=crop" alt="" loading="lazy">
+                        <div>
+                            <p class="trend-title">Noise pollution from construction</p>
+                            <span class="trend-time">4h ago</span>
+                        </div>
+                    </li>
+                    <li class="trend-item">
+                        <img src="https://images.unsplash.com/photo-1554221617-6a03b8abaa4a?w=120&h=120&fit=crop" alt="" loading="lazy">
+                        <div>
+                            <p class="trend-title">Stealing cases are gradually increasing</p>
+                            <span class="trend-time">6h ago</span>
+                        </div>
+                    </li>
+                    <li class="trend-item">
+                        <img src="https://images.unsplash.com/photo-1518717758536-abcf0b2f1f3e?w=120&h=120&fit=crop" alt="" loading="lazy">
+                        <div>
+                            <p class="trend-title">Price hike of daily commodities</p>
+                            <span class="trend-time">8h ago</span>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="side-panel panel-report">
+                <p>Help your community by reporting civic issues in your neighbourhood.</p>
+                <button class="report-btn" type="button">+ Report Issue</button>
+            </section>
+        </aside>
+
     </div>
-
-    <!-- Issue Feed -->
-    <main class="issue-feed">
-        <div class="cards-grid">
-            <!-- Card 1 -->
-            <article class="issue-card">
-                <div class="card-image">
-                    <img src="https://images.unsplash.com/photo-1451187521238-7a16b5b18b1e?w=800&h=450&fit=crop" alt="Construction site" loading="lazy">
-                </div>
-                <div class="card-body">
-                    <div class="card-status">Ongoing</div>
-                    <h3 class="card-title">Noise pollution from construction</h3>
-                    <div class="card-meta">
-                        <span>Banasree</span>
-                        <span>·</span>
-                        <time datetime="2024-01-15">Jan 15, 2024</time>
-                    </div>
-                    <div class="card-actions">
-                        <div class="action-group">
-                            <button class="action-btn">👍 245</button>
-                            <button class="action-btn">💬 38</button>
-                        </div>
-                        <button class="action-btn me-too">Me Too</button>
-                    </div>
-                </div>
-            </article>
-
-            <!-- Card 2 -->
-            <article class="issue-card">
-                <div class="card-image">
-                    <img src="https://images.unsplash.com/photo-1554221617-6a03b8abaa4a?w=800&h=450&fit=crop" alt="City street" loading="lazy">
-                </div>
-                <div class="card-body">
-                    <div class="card-status">Ongoing</div>
-                    <h3 class="card-title">Stealing cases are gradually increasing</h3>
-                    <div class="card-meta">
-                        <span>Mohammadpur</span>
-                        <span>·</span>
-                        <time datetime="2024-01-14">Jan 14, 2024</time>
-                    </div>
-                    <div class="card-actions">
-                        <div class="action-group">
-                            <button class="action-btn">👍 189</button>
-                            <button class="action-btn">💬 24</button>
-                        </div>
-                        <button class="action-btn me-too">Me Too</button>
-                    </div>
-                </div>
-            </article>
-
-            <!-- Card 3 -->
-            <article class="issue-card">
-                <div class="card-image">
-                    <img src="https://images.unsplash.com/photo-1518717758536-abcf0b2f1f3e?w=800&h=450&fit=crop" alt="Daily commodities" loading="lazy">
-                </div>
-                <div class="card-body">
-                    <div class="card-status">Ongoing</div>
-                    <h3 class="card-title">Price hike of daily commodities in Dhaka city</h3>
-                    <div class="card-meta">
-                        <span>Dhanmondi</span>
-                        <span>·</span>
-                        <time datetime="2024-01-13">Jan 13, 2024</time>
-                    </div>
-                    <div class="card-actions">
-                        <div class="action-group">
-                            <button class="action-btn">👍 312</button>
-                            <button class="action-btn">💬 56</button>
-                        </div>
-                        <button class="action-btn me-too">Me Too</button>
-                    </div>
-                </div>
-            </article>
-        </div>
-    </main>
-
-    <!-- Trending Sidebar -->
-    <aside class="trending-sidebar">
-        <div class="sidebar-wrapper">
-            <div class="sidebar-section">
-                <h4>Trending issues</h4>
-                <div class="sidebar-items">
-                    <div class="sidebar-item">
-                        <img src="https://images.unsplash.com/photo-1451187521238-7a16b5b18b1e?w=200&h=120&fit=crop" alt="thumbnail" loading="lazy">
-                        <span>Noise pollution from construction</span>
-                        <span>· 4h ago</span>
-                    </div>
-                    <div class="sidebar-item">
-                        <img src="https://images.unsplash.com/photo-1554221617-6a03b8abaa4a?w=200&h=120&fit=crop" alt="thumbnail" loading="lazy">
-                        <span>Stealing cases are gradually increasing</span>
-                        <span>· 6h ago</span>
-                    </div>
-                    <div class="sidebar-item">
-                        <img src="https://images.unsplash.com/photo-1518717758536-abcf0b2f1f3e?w=200&h=120&fit=crop" alt="thumbnail" loading="lazy">
-                        <span>Price hike of daily commodities</span>
-                        <span>· 8h ago</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar-section report-section">
-                <p>Help your community by reporting civic issue in your neighbourhood.</p>
-                <button class="report-btn">+ REPORT ISSUE</button>
-            </div>
-        </div>
-    </aside>
 
 </body>
 </html>
