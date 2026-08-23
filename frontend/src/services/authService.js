@@ -34,3 +34,20 @@ export function getSettings() {
 export function saveSettings(settings) {
   localStorage.setItem('nagorik_settings', JSON.stringify(settings))
 }
+
+// Theme ("light" | "dark") persisted in "nagorik_theme"; the dark look is
+// applied by setting data-theme="dark" on <html>, which both stylesheets
+// react to via their [data-theme="dark"] token overrides.
+export function getTheme() {
+  return localStorage.getItem('nagorik_theme') === 'dark' ? 'dark' : 'light'
+}
+
+export function setTheme(theme) {
+  const value = theme === 'dark' ? 'dark' : 'light'
+  localStorage.setItem('nagorik_theme', value)
+  if (value === 'dark') {
+    document.documentElement.dataset.theme = 'dark'
+  } else {
+    delete document.documentElement.dataset.theme
+  }
+}

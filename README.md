@@ -39,6 +39,7 @@ nagorik/
 | `/browse_feed`  | Civic issues feed (search, tabs, voting) |
 | `/user`         | Profile (reports / upvoted / settings) |
 | `/report`       | Report-an-issue wizard (3 steps, edit supported via profile) |
+| `/settings`     | Settings (appearance/dark mode, notifications, privacy) |
 
 ## Run the frontend
 

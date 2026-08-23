@@ -57,7 +57,14 @@ export default function AppHeader({ logoHref = '/', navItems = [], showIconButto
           {showIconButtons && (
             <>
               <button type="button" className="icon-btn"><BellIconApp /></button>
-              <button type="button" className="icon-btn"><GearIcon /></button>
+              <button
+                type="button"
+                className="icon-btn"
+                aria-label="Settings"
+                onClick={() => navigate('/settings')}
+              >
+                <GearIcon />
+              </button>
             </>
           )}
           <Link to="/user" className="avatar" aria-label="My profile">

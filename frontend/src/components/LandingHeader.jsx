@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import logo from '../assets/images/logo_for_dark_mode.png'
 import { isAuthenticated, getUser } from '../services/authService'
 import AuthLink from './AuthLink.jsx'
-import { MenuIcon, SearchIcon, AvatarGlyph } from './icons'
+import { MenuIcon, SearchIcon, AvatarGlyph, GearIcon } from './icons'
 
 // Landing site header — identical DOM to index.html <header class="site-header">.
 // Behaviour ported from assets/js/main.js: mobile nav toggle, scroll-spy,
@@ -100,6 +100,9 @@ export default function LandingHeader() {
         </div>
 
         <div className="header-actions">
+          <Link to="/settings" className="icon-btn" aria-label="Settings">
+            <GearIcon />
+          </Link>
           <Link
             to="/login"
             className="btn btn-ghost"
