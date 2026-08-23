@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import usePageStyles from '../hooks/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import { getFeedIssues, getTrendingIssues } from '../services/issuesService'
@@ -13,12 +13,19 @@ function formatDown(value) {
   return Number.isNaN(n) ? value : String(n).padStart(2, '0')
 }
 
-function IssueCard({ issue, myVote, onVote }) {
+function IssueCard({ issue, myVote, onVote, onOpen }) {
   const upCount = issue.up + (myVote === 'up' ? 1 : 0)
   const downCount = formatDown(Number(issue.down) + (myVote === 'down' ? 1 : 0))
 
+  // Any click on the card opens the post, except the action buttons below
+  // (they call stopPropagation so voting/commenting doesn't also navigate).
+  const stop = (fn) => (e) => {
+    e.stopPropagation()
+    fn()
+  }
+
   return (
-    <article className="issue-card">
+    <article className="issue-card" onClick={() => onOpen(issue.id)} style={{ cursor: 'pointer' }}>
       <div className="issue-thumb">
         <img src={issue.img} alt={issue.alt} />
       </div>
@@ -35,18 +42,18 @@ function IssueCard({ issue, myVote, onVote }) {
             <button
               type="button"
               className={myVote === 'up' ? 'active' : undefined}
-              onClick={() => onVote(issue.id, 'up')}
+              onClick={stop(() => onVote(issue.id, 'up'))}
             ><VoteUpIcon size={14} />{upCount}</button>
             <div className="sep"></div>
             <button
               type="button"
               className={myVote === 'down' ? 'active' : undefined}
-              onClick={() => onVote(issue.id, 'down')}
+              onClick={stop(() => onVote(issue.id, 'down'))}
             ><VoteDownIcon size={14} />{downCount}</button>
           </div>
-          <button type="button" className="pill-action"><CommentIcon size={14} />{issue.comments}</button>
-          <button type="button" className="icon-pill"><RepostIcon /></button>
-          <button type="button" className="pill-action"><ShareNodesIcon />share</button>
+          <button type="button" className="pill-action" onClick={stop(() => onOpen(issue.id))}><CommentIcon size={14} />{issue.comments}</button>
+          <button type="button" className="icon-pill" onClick={stop(() => {})}><RepostIcon /></button>
+          <button type="button" className="pill-action" onClick={stop(() => {})}><ShareNodesIcon />share</button>
         </div>
       </div>
     </article>
@@ -61,6 +68,7 @@ export default function BrowseFeed() {
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('q') || '')
   const [votes, setVotes] = useState({})
+  const navigate = useNavigate()
 
   useEffect(() => {
     document.title = 'নাগরিক | Civic Issues'
@@ -87,6 +95,10 @@ export default function BrowseFeed() {
 
   const handleVote = (id, dir) => {
     setVotes((prev) => ({ ...prev, [id]: prev[id] === dir ? null : dir }))
+  }
+
+  const openPost = (id) => {
+    navigate(`/post/${id}`)
   }
 
   return (
@@ -160,6 +172,7 @@ export default function BrowseFeed() {
                 issue={issue}
                 myVote={votes[issue.id] || null}
                 onVote={handleVote}
+                onOpen={openPost}
               />
             ))
           ) : (
@@ -175,7 +188,12 @@ export default function BrowseFeed() {
             <h3>🔥 Trending issues</h3>
 
             {trendingIssues.map((item, index) => (
-              <div className="trending-item" key={`${item.id}-${index}`}>
+              <div
+                className="trending-item"
+                key={`${item.id}-${index}`}
+                onClick={() => openPost(item.id)}
+                style={{ cursor: 'pointer' }}
+              >
                 <div className="trending-thumb"><img src={item.img} alt="" /></div>
                 <div className="trending-info">
                   <p>{item.title}</p>
