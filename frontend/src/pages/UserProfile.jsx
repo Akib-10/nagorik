@@ -4,7 +4,7 @@ import usePageStyles from '../hooks/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import { getMyReports, getUpvotedIssues, deleteReport } from '../services/issuesService'
 import { getUser, getSettings, saveSettings } from '../services/authService'
-import { HomeGlyph, PinIcon, ClockIcon, MailIcon, VoteUpIcon, CommentIcon, EyeIcon, EditPenIcon, TrashIcon } from '../components/icons'
+import { HomeGlyph, PinIcon, ClockIcon, VoteUpIcon, CommentIcon, EyeIcon, EditPenIcon, TrashIcon, ShieldIcon } from '../components/icons'
 
 const SETTING_DEFAULTS = {
   email: true,
@@ -13,8 +13,6 @@ const SETTING_DEFAULTS = {
   public: true,
   showUpvotes: true,
 }
-
-const pad2 = (n) => String(n).padStart(2, '0')
 
 function ReportRow({ issue, expanded, onView, onEdit, onDelete }) {
   return (
@@ -67,7 +65,6 @@ export default function UserProfile() {
   const upvotedIssues = getUpvotedIssues()
   const userData = getUser()
   const displayName = userData.name || 'Nagorik User'
-  const displayEmail = userData.email || 'citizen@nagorik.bd'
 
   useEffect(() => {
     document.title = 'Profile — নাগরিক'
@@ -95,7 +92,6 @@ export default function UserProfile() {
     if (expandedId === id) setExpandedId(null)
   }
 
-  const inProgressCount = reports.filter((r) => r.statusLabel === 'In progress').length
   const resolvedCount = reports.filter((r) => r.statusLabel === 'Resolved').length
 
   return (
@@ -104,7 +100,6 @@ export default function UserProfile() {
         logoHref="/"
         navItems={[
           { label: 'HOME', variant: 'inactive', to: '/browse_feed', icon: <HomeGlyph /> },
-          { label: 'PROFILE', variant: 'active' },
         ]}
       />
 
@@ -112,40 +107,45 @@ export default function UserProfile() {
       <div className="profile-wrap">
 
         <section className="profile-card">
-          <div className="profile-banner">
-            <button type="button" className="banner-edit">
+          <div className="profile-head">
+            <div className="profile-id">
+              <div className="avatar-lg">{displayName.charAt(0).toUpperCase()}</div>
+              <div className="profile-id-info">
+                <h1>{displayName}</h1>
+                <span className="joined-line">
+                  <ClockIcon size={13} />
+                  Joined Date: 04 Nov, 2024
+                </span>
+              </div>
+            </div>
+            <button type="button" className="banner-edit" onClick={() => navigate('/report')}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></svg>
               EDIT PROFILE
             </button>
           </div>
-          <div className="profile-id">
-            <div className="avatar-lg">{displayName.charAt(0).toUpperCase()}</div>
-            <div className="profile-id-info">
-              <h1>{displayName}</h1>
-              <div className="profile-meta">
-                <span>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
-                  Dhanmondi, Dhaka
-                </span>
-                <span>
-                  <MailIcon />
-                  {displayEmail}
-                </span>
-                <span>
-                  <ClockIcon size={13} />
-                  Joined Jan 2026
-                </span>
+
+          <div className="contributions">
+            <h2>Contributions</h2>
+            <div className="contrib-grid">
+              <div className="contrib-card">
+                <span className="label">Issues Reported</span>
+                <span className="numrow"><EditPenIcon size={17} /><span className="num">{reports.length}</span></span>
+              </div>
+              <div className="contrib-card">
+                <span className="label">Upvotes Given</span>
+                <span className="numrow"><VoteUpIcon size={17} /><span className="num">{upvotedIssues.length}</span></span>
+              </div>
+              <div className="contrib-card">
+                <span className="label">Comments made</span>
+                <span className="numrow"><CommentIcon size={17} /><span className="num">123</span></span>
+              </div>
+              <div className="contrib-card">
+                <span className="label">Issues resolved</span>
+                <span className="numrow"><ShieldIcon size={17} /><span className="num">{resolvedCount}</span></span>
               </div>
             </div>
           </div>
         </section>
-
-        <div className="profile-stats-row">
-          <div className="pstat"><div className="num red">{pad2(reports.length)}</div><div className="label">Reports</div></div>
-          <div className="pstat"><div className="num amber">{pad2(inProgressCount)}</div><div className="label">In progress</div></div>
-          <div className="pstat"><div className="num green">{pad2(resolvedCount)}</div><div className="label">Resolved</div></div>
-          <div className="pstat"><div className="num">36</div><div className="label">Upvotes received</div></div>
-        </div>
 
         {/* ================= TABS ================= */}
         <div className="tabs" style={{ padding: '26px 0 0' }}>
