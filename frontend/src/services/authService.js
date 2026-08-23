@@ -13,9 +13,30 @@ export function getUser() {
   }
 }
 
-export function signIn({ name, email }) {
+export function signIn({ name = '', email, isAdmin = false }) {
   localStorage.setItem('nagorik_auth', 'true')
-  localStorage.setItem('nagorik_user', JSON.stringify({ name, email }))
+
+  localStorage.setItem(
+    'nagorik_user',
+    JSON.stringify({
+      name,
+      email,
+      isAdmin
+    })
+  )
+}
+
+export function register({ name, email }) {
+  localStorage.setItem('nagorik_auth', 'true')
+
+  localStorage.setItem(
+    'nagorik_user',
+    JSON.stringify({
+      name,
+      email,
+      isAdmin: false
+    })
+  )
 }
 
 export function signOut() {
@@ -32,19 +53,24 @@ export function getSettings() {
 }
 
 export function saveSettings(settings) {
-  localStorage.setItem('nagorik_settings', JSON.stringify(settings))
+  localStorage.setItem(
+    'nagorik_settings',
+    JSON.stringify(settings)
+  )
 }
 
-// Theme ("light" | "dark") persisted in "nagorik_theme"; the dark look is
-// applied by setting data-theme="dark" on <html>, which both stylesheets
-// react to via their [data-theme="dark"] token overrides.
+// Theme ("light" | "dark") persisted in "nagorik_theme".
 export function getTheme() {
-  return localStorage.getItem('nagorik_theme') === 'dark' ? 'dark' : 'light'
+  return localStorage.getItem('nagorik_theme') === 'dark'
+    ? 'dark'
+    : 'light'
 }
 
 export function setTheme(theme) {
   const value = theme === 'dark' ? 'dark' : 'light'
+
   localStorage.setItem('nagorik_theme', value)
+
   if (value === 'dark') {
     document.documentElement.dataset.theme = 'dark'
   } else {
