@@ -3,16 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import usePageStyles from '../hooks/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import { getMyReports, getUpvotedIssues, deleteReport } from '../services/issuesService'
-import { getUser, getSettings, saveSettings } from '../services/authService'
+import { getUser } from '../services/authService'
 import { HomeGlyph, PinIcon, ClockIcon, VoteUpIcon, CommentIcon, EyeIcon, EditPenIcon, TrashIcon, ShieldIcon } from '../components/icons'
-
-const SETTING_DEFAULTS = {
-  email: true,
-  push: true,
-  digest: false,
-  public: true,
-  showUpvotes: true,
-}
 
 function ReportRow({ issue, expanded, onView, onEdit, onDelete }) {
   return (
@@ -58,10 +50,6 @@ export default function UserProfile() {
   const [activeTab, setActiveTab] = useState('reports')
   const [reports, setReports] = useState(() => getMyReports())
   const [expandedId, setExpandedId] = useState(null)
-  const [settings, setSettings] = useState(() => ({
-    ...SETTING_DEFAULTS,
-    ...getSettings(),
-  }))
   const upvotedIssues = getUpvotedIssues()
   const userData = getUser()
   const displayName = userData.name || 'Nagorik User'
@@ -70,16 +58,6 @@ export default function UserProfile() {
     document.title = 'Profile — নাগরিক'
     document.documentElement.lang = 'bn'
   }, [])
-
-  const toggleSetting = (key) => {
-    setSettings((prev) => {
-      const next = { ...prev, [key]: !prev[key] }
-      saveSettings(next)
-      return next
-    })
-  }
-
-  const toggleButton = (key) => `toggle${settings[key] ? ' active' : ''}`
 
   const handleView = (id) => setExpandedId((prev) => (prev === id ? null : id))
 
@@ -153,7 +131,7 @@ export default function UserProfile() {
         <div className="tabs" style={{ padding: '26px 0 0' }}>
           <button type="button" className={`tab-btn${activeTab === 'reports' ? ' active' : ''}`} onClick={() => setActiveTab('reports')}>My Reports</button>
           <button type="button" className={`tab-btn${activeTab === 'upvoted' ? ' active' : ''}`} onClick={() => setActiveTab('upvoted')}>Upvoted</button>
-          <button type="button" className={`tab-btn${activeTab === 'settings' ? ' active' : ''}`} onClick={() => setActiveTab('settings')}>Settings</button>
+          <button type="button" className="tab-btn" onClick={() => navigate('/settings')}>Settings</button>
         </div>
 
         {/* MY REPORTS */}
@@ -186,61 +164,6 @@ export default function UserProfile() {
             {upvotedIssues.map((issue) => (
               <ReportRow key={issue.id} issue={{ ...issue, statusClass: '', statusLabel: 'Open' }} expanded={false} onView={() => {}} onEdit={() => {}} onDelete={() => {}} />
             ))}
-          </div>
-        </div>
-
-        {/* SETTINGS */}
-        <div className={`panel-section${activeTab === 'settings' ? ' active' : ''}`}>
-          <div className="settings-grid">
-            <div className="setting-card">
-              <h3>Notifications</h3>
-              <div className="setting-row">
-                <div className="setting-info">
-                  <span className="setting-label">Email notifications</span>
-                  <span className="setting-desc">Updates on your reports and followed issues</span>
-                </div>
-                <button type="button" className={toggleButton('email')} onClick={() => toggleSetting('email')} aria-label="Email notifications"></button>
-              </div>
-              <div className="setting-row">
-                <div className="setting-info">
-                  <span className="setting-label">Push notifications</span>
-                  <span className="setting-desc">Real-time alerts on your device</span>
-                </div>
-                <button type="button" className={toggleButton('push')} onClick={() => toggleSetting('push')} aria-label="Push notifications"></button>
-              </div>
-              <div className="setting-row">
-                <div className="setting-info">
-                  <span className="setting-label">Weekly digest</span>
-                  <span className="setting-desc">Trending issues in your area</span>
-                </div>
-                <button type="button" className={toggleButton('digest')} onClick={() => toggleSetting('digest')} aria-label="Weekly digest"></button>
-              </div>
-            </div>
-
-            <div className="setting-card">
-              <h3>Privacy &amp; Account</h3>
-              <div className="setting-row">
-                <div className="setting-info">
-                  <span className="setting-label">Public profile</span>
-                  <span className="setting-desc">Others can see your reports and activity</span>
-                </div>
-                <button type="button" className={toggleButton('public')} onClick={() => toggleSetting('public')} aria-label="Public profile"></button>
-              </div>
-              <div className="setting-row">
-                <div className="setting-info">
-                  <span className="setting-label">Show upvotes</span>
-                  <span className="setting-desc">Display upvoted issues on your profile</span>
-                </div>
-                <button type="button" className={toggleButton('showUpvotes')} onClick={() => toggleSetting('showUpvotes')} aria-label="Show upvotes"></button>
-              </div>
-              <div className="setting-row">
-                <div className="setting-info">
-                  <span className="setting-label">Delete account</span>
-                  <span className="setting-desc">Permanently remove your account and data</span>
-                </div>
-                <button type="button" className="danger-btn">Delete</button>
-              </div>
-            </div>
           </div>
         </div>
 
