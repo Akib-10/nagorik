@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import usePageStyles from '../hooks/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import { getUser, getSettings, saveSettings, getTheme, setTheme } from '../services/authService'
@@ -85,15 +86,15 @@ export default function Settings() {
           <p>Personalise how Nagorik looks and notifies you. Changes are saved automatically.</p>
         </div>
 
-        {/* ---------- ACCOUNT SUMMARY ---------- */}
-        <section className="setting-card account-card">
+        {/* ---------- ACCOUNT SUMMARY — click through to the profile page ---------- */}
+        <Link to="/user" className="setting-card account-card" aria-label="Go to your profile">
           <div className="avatar-md">{displayName.charAt(0).toUpperCase()}</div>
           <div className="account-info">
             <h2>{displayName}</h2>
             <span><MailIcon /> {userData.email || 'demo@nagorik.bd'}</span>
           </div>
-          <UserGlyph size={18} />
-        </section>
+          <span className="account-go">View profile →</span>
+        </Link>
 
         <div className="settings-grid settings-page-grid">
           {savedFlash && (
