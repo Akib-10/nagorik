@@ -8,6 +8,7 @@ import UserProfile from './pages/UserProfile.jsx'
 import ProfileEdit from './pages/ProfileEdit.jsx'
 import ReportIssue from './pages/ReportIssue.jsx'
 import Settings from './pages/Settings.jsx'
+import ScrollToTop from './components/ScrollToTop.jsx'
 import { getTheme, setTheme } from './services/authService'
 
 export default function App() {
@@ -17,16 +18,19 @@ export default function App() {
   }, [])
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/browse_feed" element={<BrowseFeed />} />
-      <Route path="/post/:id" element={<PostDetails />} />
-      <Route path="/user" element={<UserProfile />} />
-      <Route path="/edit_profile" element={<ProfileEdit />} />
-      <Route path="/report" element={<ReportIssue />} />
-      <Route path="/settings" element={<Settings />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/browse_feed" element={<BrowseFeed />} />
+        <Route path="/post/:id" element={<PostDetails />} />
+        <Route path="/user" element={<UserProfile />} />
+        <Route path="/edit_profile" element={<ProfileEdit />} />
+        <Route path="/report" element={<ReportIssue />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }
