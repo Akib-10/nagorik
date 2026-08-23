@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import usePageStyles from '../hooks/usePageStyles'
 import AppHeader from '../components/AppHeader'
-import { getUser, getSettings, saveSettings, getTheme, setTheme } from '../services/authService'
+import { getUser, getSettings, saveSettings, getTheme, setTheme, signOut } from '../services/authService'
 import { HomeGlyph, GearIcon, BellIconApp, ShieldIcon, UserGlyph, MailIcon } from '../components/icons'
 
 // Same keys the profile page's Settings tab uses — both stay in sync
@@ -29,6 +29,7 @@ function CardHead({ icon, title, sub }) {
 
 export default function Settings() {
   usePageStyles('app')
+  const navigate = useNavigate()
 
   const userData = getUser()
   const displayName = userData.name || 'Nagorik User'
@@ -69,6 +70,11 @@ export default function Settings() {
   }
 
   const toggleButton = (key) => `toggle${settings[key] ? ' active' : ''}`
+
+  const handleLogout = () => {
+    signOut()
+    navigate('/')
+  }
 
   return (
     <>
@@ -166,7 +172,16 @@ export default function Settings() {
 
           {/* ---------- DANGER ZONE ---------- */}
           <section className="setting-card danger-zone">
-            <CardHead icon={<UserGlyph size={16} />} title="Account actions" sub="These actions cannot be undone." />
+            <CardHead icon={<UserGlyph size={16} />} title="Account actions" sub="Manage your session and account." />
+            <div className="setting-row">
+              <div className="setting-info">
+                <span className="setting-label">Log out</span>
+                <span className="setting-desc">End your session on this device</span>
+              </div>
+              <button type="button" className="ghost-btn" onClick={handleLogout}>
+                Log out
+              </button>
+            </div>
             <div className="setting-row">
               <div className="setting-info">
                 <span className="setting-label">Delete account</span>
