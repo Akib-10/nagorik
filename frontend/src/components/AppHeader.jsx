@@ -88,7 +88,7 @@ function LogoutButton({ visible }) {
 
   const handleLogout = () => {
     signOut()
-    navigate('/')
+    navigate('/login', { replace: true })
   }
 
   return (
