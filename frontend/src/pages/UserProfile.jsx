@@ -95,6 +95,8 @@ export default function UserProfile() {
     if (expandedId === id) setExpandedId(null)
   }
 
+  const handleEditProfile = () => navigate('/edit_profile')
+
   const inProgressCount = reports.filter((r) => r.statusLabel === 'In progress').length
   const resolvedCount = reports.filter((r) => r.statusLabel === 'Resolved').length
 
@@ -113,7 +115,7 @@ export default function UserProfile() {
 
         <section className="profile-card">
           <div className="profile-banner">
-            <button type="button" className="banner-edit">
+            <button type="button" className="banner-edit" onClick={handleEditProfile}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z" /></svg>
               EDIT PROFILE
             </button>
