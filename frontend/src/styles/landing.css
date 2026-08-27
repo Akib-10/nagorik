@@ -185,11 +185,14 @@ a:focus-visible, button:focus-visible, input:focus-visible{
 }
 
 /* ============================================================
-   HERO — light, flat, no glow/motion. Calm gradient + one badge.
+   HERO — background image (replaces flat gradient)
    ============================================================ */
 .hero{
   position:relative;
-  background:linear-gradient(180deg, #FBEAE6 0%, var(--cream) 78%, var(--cream) 100%);
+  background-image:url('../assets/images/landing-page-background2.png');
+  background-size:cover;
+  background-position:bottom;
+  background-repeat:no-repeat;
   border-bottom:1px solid var(--line);
 }
 .hero-inner{
@@ -490,7 +493,10 @@ a:focus-visible, button:focus-visible, input:focus-visible{
   border-bottom-color:var(--line);
 }
 :root[data-theme="dark"] .hero{
-  background:linear-gradient(180deg, #261614 0%, var(--cream) 78%, var(--cream) 100%);
+  background-image:url('../assets/images/landing-page-background2.png');
+  background-size:cover;
+  background-position:bottom;
+  background-repeat:no-repeat;
 }
 :root[data-theme="dark"] .hero p.lead{ color:var(--muted); }
 :root[data-theme="dark"] .stats{ background:#100B0C; }
