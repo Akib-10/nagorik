@@ -171,6 +171,7 @@ img {
   padding: 11px 22px;
   border-radius: 999px;
   white-space: nowrap;
+  flex-shrink: 0;
   transition: background 0.15s ease;
 }
 
@@ -2513,12 +2514,12 @@ img {
 
 .signin-logo {
   display: block;
-  width: 190px;
+  width: 250px;
   height: auto;
   max-height: 100px;
   object-fit: contain;
   object-position: center;
-  margin-top: 235px;
+  margin-top: 80px;
   margin-bottom: 105px;
 }
 
@@ -2526,13 +2527,13 @@ img {
 
 .signin-desc {
   width: 100%;
-  max-width: 500px;
-  margin: 0;
+  max-width: 475px;
+  margin: -85px auto 0;
   text-align: center;
   font-family: Arial, sans-serif;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.2;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: -0.1px;
   color: #151515;
 }
@@ -2540,15 +2541,16 @@ img {
 /* ---------- BOTTOM STATS ---------- */
 
 .signin-stats {
-  width: 100%;
-  max-width: 430px;
+  width: 110%;
+  max-width: 500px;
   margin-top: auto;
-  padding-top: 40px;
+  padding-top: 20px;
 
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   align-items: end;
   text-align: center;
+  padding: 0 70px 60px;
 }
 
 .signin-stat {
@@ -2574,6 +2576,38 @@ img {
   color: #111;
 }
 
+
+/* ---------- BROWSE WITHOUT ACCOUNT LINK ---------- */
+
+.signin-browse-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-top: 90px;
+
+  font-family: Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+
+  color: var(--primary-red);
+  transition: color 0.15s ease;
+}
+
+.signin-browse-link::before {
+  content: "";
+  width: 16px;
+  height: 1px;
+  background: var(--primary-red);
+  display: inline-block;
+}
+
+.signin-browse-link:hover {
+  color: var(--hover-red);
+}
+
 /* ---------- RIGHT LOGIN PANEL ---------- */
 
 .signin-main {
@@ -2587,7 +2621,8 @@ img {
   overflow: hidden;
 
   background:
-    url("../assets/images/grey-container.png") center bottom / cover no-repeat,
+    url("../assets/images/sign-in-background.png") 
+    center bottom / 160% auto no-repeat,
     #fff;
 }
 
@@ -2595,22 +2630,22 @@ img {
    Very subtle red glow behind the login card.
 */
 
-.signin-main::before {
+/*.signin-main::before {
   content: "";
   position: absolute;
-  width: 500px;
-  height: 500px;
-  left: 50%;
-  top: 40%;
-  transform: translate(-50%, -50%);
+  width: 700px;
+  height: 700px;
+  left: 15%;
+  top: 45%;
+  transform: translate(0%, -50%);
 
-  background: rgba(200, 16, 46, 0.055);
-  filter: blur(70px);
+  background: rgba(200, 16, 46, 0.09);
+  filter: blur(90px);
   border-radius: 50%;
 
   pointer-events: none;
 }
-
+*/
 /* ---------- LOGIN CARD ---------- */
 
 .signin-card {
@@ -2620,7 +2655,7 @@ img {
   width: 405px;
   max-width: calc(100% - 40px);
 
-  padding: 31px 35px 40px;
+  padding: 24px 35px 28px;   /* was 31px 35px 40px */
 
   background: rgba(255, 255, 255, 0.95);
   border-radius: 18px;
@@ -2654,7 +2689,7 @@ img {
 /* ---------- LOGIN FIELDS ---------- */
 
 .signin-card .field {
-  margin-bottom: 21px;
+  margin-bottom: 14px;  
 }
 
 .signin-card .field label {
@@ -2671,7 +2706,7 @@ img {
 
 .signin-card .field input {
   width: 100%;
-  height: 42px;
+  height: 36px;   /* was 42px */
 
   padding: 0 14px;
 
@@ -2864,18 +2899,24 @@ img {
     min-height: 100vh;
     padding: 50px 20px;
   }
+  
 }
 
 @media (max-width: 760px) {
   .header-inner {
     flex-wrap: wrap;
     padding: 12px 16px;
+    gap: 10px;
   }
 
   .header-search {
     order: 3;
     max-width: 100%;
     flex-basis: 100%;
+  }
+
+  .header-right {
+    gap: 10px;
   }
 
   .hero-wrap,
@@ -2901,6 +2942,15 @@ img {
 
   .nav-btn span.label {
     display: none;
+  }
+
+  /* keep the "Report issue" pill from wrapping/blobbing on narrow headers */
+  .report-btn span.label {
+    display: none;
+  }
+
+  .report-btn {
+    padding: 11px 14px;
   }
 
   .profile-id {
@@ -2974,5 +3024,17 @@ img {
 
   .signin-card h1 {
     font-size: 28px;
+  }
+}
+
+@media (max-width: 420px) {
+  .icon-btn,
+  .avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .header-right {
+    gap: 8px;
   }
 }

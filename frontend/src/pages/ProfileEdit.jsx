@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import usePageStyles from '../hooks/usePageStyles'
+import { setPageStyles } from '../styles/usePageStyles'
 
 const FIELD_DEFAULTS = {
   fullName: 'Abrar Bin Patwary',
@@ -16,8 +16,8 @@ const SETTING_DEFAULTS = {
   showPhone: false,
 }
 
-export default function ProfileEdit() {
-  usePageStyles('app')
+export default function PostDetails() {
+   useLayoutEffect(() => setPageStyles('app'))
 
   useEffect(() => {
     document.title = 'Edit Profile — নাগরিক'

@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import usePageStyles from '../hooks/usePageStyles'
+import { setPageStyles } from '../styles/usePageStyles';
 import AppHeader from '../components/AppHeader'
 import { getFeedIssues } from '../services/issuesService'
 import {
@@ -123,8 +123,8 @@ function CommentItem({ comment, votes, onVote, depth = 0 }) {
   )
 }
 
-export default function PostDetails() {
-  usePageStyles('app')
+export default function Login() {
+  useLayoutEffect(() => setPageStyles('app'))
 
   const { id } = useParams()
   const navigate = useNavigate()
@@ -182,7 +182,7 @@ export default function PostDetails() {
       <>
         <AppHeader
           logoHref="/"
-          navItems={[{ label: 'HOME', variant: 'active', icon: <HomeGlyph /> }]}
+          navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]}
           showIconButtons
           showLogout
         />
@@ -201,7 +201,7 @@ export default function PostDetails() {
     <>
       <AppHeader
         logoHref="/"
-        navItems={[{ label: 'HOME', variant: 'active', icon: <HomeGlyph /> }]}
+        navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]}
         showIconButtons
         showLogout
       />

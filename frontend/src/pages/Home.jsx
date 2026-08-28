@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useLayoutEffect } from 'react'
 import { Link } from 'react-router-dom'
-import usePageStyles from '../hooks/usePageStyles'
+import { setPageStyles } from '../styles/usePageStyles';
 import LandingHeader from '../components/LandingHeader'
 import LandingFooter from '../components/LandingFooter'
 import AuthLink from '../components/AuthLink'
@@ -87,7 +87,7 @@ const issues = [
 ]
 
 export default function Home() {
-  usePageStyles('landing')
+  useLayoutEffect(() => setPageStyles('landing'))
 
   useEffect(() => {
     document.title = 'নাগরিক — Nagorik | Report civic issues, get them fixed'
