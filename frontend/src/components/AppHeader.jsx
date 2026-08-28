@@ -52,7 +52,7 @@ export default function AppHeader({ logoHref = '/', navItems = [], showIconButto
         <div className="header-right">
           <Link to="/report" className="report-btn">
             <PlusIcon />
-            REPORT ISSUE
+            <span className="label">REPORT ISSUE</span>
           </Link>
           {showIconButtons && (
             <>
@@ -99,7 +99,7 @@ function LogoutButton({ visible }) {
       style={{ display: visible ? 'inline-flex' : 'none', fontSize: '12px', padding: '8px 12px' }}
       onClick={handleLogout}
     >
-      Log out
+      <span className="label">Log out</span>
     </button>
   )
 }

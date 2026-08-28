@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import usePageStyles from '../hooks/usePageStyles'
+import { setPageStyles } from '../styles/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import { getUser, getSettings, saveSettings, getTheme, setTheme, signOut } from '../services/authService'
 import { HomeGlyph, GearIcon, BellIconApp, ShieldIcon, UserGlyph, MailIcon } from '../components/icons'
@@ -28,7 +28,8 @@ function CardHead({ icon, title, sub }) {
 }
 
 export default function Settings() {
-  usePageStyles('app')
+    useLayoutEffect(() => setPageStyles('app'))
+
   const navigate = useNavigate()
 
   const userData = getUser()

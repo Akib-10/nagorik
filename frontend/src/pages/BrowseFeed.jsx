@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import usePageStyles from '../hooks/usePageStyles'
+import { useLayoutEffect } from 'react';
+import { setPageStyles } from '../styles/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import { getFeedIssues, getTrendingIssues } from '../services/issuesService'
 import { HomeGlyph, SearchIcon, PinIcon, UserGlyph, ClockIcon, VoteUpIcon, VoteDownIcon, CommentIcon, RepostIcon, ShareNodesIcon, PlusIcon } from '../components/icons'
@@ -61,7 +62,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
 }
 
 export default function BrowseFeed() {
-  usePageStyles('app')
+   useLayoutEffect(() => setPageStyles('app'))
 
   // Tab switching is visual-only in the original page as well.
   const [activeTab, setActiveTab] = useState('latest')
@@ -106,7 +107,7 @@ export default function BrowseFeed() {
       <AppHeader
         logoHref="/"
         navItems={[
-          { label: 'HOME', variant: 'active', icon: <HomeGlyph /> },
+          { label: 'HOME', to: '/browse_feed', variant: 'active', icon: <HomeGlyph /> },
         ]}
         showIconButtons
         showLogout

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import usePageStyles from '../hooks/usePageStyles'
+import { setPageStyles } from '../styles/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import mapImg from '../assets/images/dhaka_map.png'
 import { findReport, submitReport, updateReport } from '../services/issuesService'
@@ -15,7 +15,7 @@ const STEP_TITLES = {
 const DEFAULT_COORDS = 'Dhanmondi, Dhaka (23.81° N, 90.41° E)'
 
 export default function ReportIssue() {
-  usePageStyles('app')
+  useLayoutEffect(() => setPageStyles('app'))
 
   const navigate = useNavigate()
   // Edit mode: /report opened from the profile page with { editId } in
