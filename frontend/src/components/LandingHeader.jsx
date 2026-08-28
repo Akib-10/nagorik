@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/images/logo_for_dark_mode.png";
 import { isAuthenticated, getUser } from "../services/authService";
-import AuthLink from "./AuthLink.jsx";
 import { MenuIcon, SearchIcon, AvatarGlyph, GearIcon } from "./icons";
 
 // Landing site header — identical DOM to index.html <header class="site-header">.
@@ -83,7 +82,16 @@ export default function LandingHeader() {
   return (
     <header className="site-header" id="top">
       <div className="header-inner">
-        <Link to="/" className="brand" aria-label="নাগরিক home">
+        <Link
+          to="/"
+          className="brand"
+          aria-label="নাগরিক home"
+          onClick={() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            setActiveId("#top");
+            setNavOpen(false);
+          }}
+        >
           <img src={logo} alt="নাগরিক logo" />
         </Link>
 
@@ -172,9 +180,19 @@ export default function LandingHeader() {
               <AvatarGlyph size={24} />
             )}
           </Link>
-          <AuthLink to="/report" className="btn btn-primary">
-            <span className="btn-label">Report an issue</span>
-          </AuthLink>
+          {isAuth ? (
+            <Link to="/report" className="btn btn-primary">
+              <span className="btn-label">Report an issue</span>
+            </Link>
+          ) : (
+            <Link
+              to="/login"
+              state={{ mode: "register", from: "/report" }}
+              className="btn btn-primary"
+            >
+              <span className="btn-label">Sign up</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>

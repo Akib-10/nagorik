@@ -2519,7 +2519,7 @@ img {
   max-height: 100px;
   object-fit: contain;
   object-position: center;
-  margin-top: 80px;
+  margin-top: 60px;
   margin-bottom: 105px;
 }
 
@@ -2528,7 +2528,7 @@ img {
 .signin-desc {
   width: 100%;
   max-width: 475px;
-  margin: -85px auto 0;
+  margin: -75px auto 0;
   text-align: center;
   font-family: Arial, sans-serif;
   font-size: 14px;

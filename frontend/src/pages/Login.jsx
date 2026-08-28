@@ -13,7 +13,7 @@ export default function BrowseFeed() {
   // return them to that page after signing in.
   const redirectTo = location.state?.from || "/browse_feed";
 
-  const [mode, setMode] = useState("signin");
+  const [mode, setMode] = useState(location.state?.mode || "signin");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -83,7 +83,7 @@ export default function BrowseFeed() {
       email,
     });
 
-    navigate(redirectTo, {
+    navigate("/browse_feed", {
       replace: true,
     });
   };
