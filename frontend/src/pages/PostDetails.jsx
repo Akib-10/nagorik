@@ -181,7 +181,6 @@ export default function Login() {
           logoHref="/"
           navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]}
           showIconButtons
-          showLogout
         />
         <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px]">
           <Link to="/browse_feed" className="mb-4 inline-flex items-center gap-1.5 bg-transparent p-0 text-[14px] font-bold text-nagorik-red font-[inherit] hover:underline"><ChevronLeftIcon size={16} />Back to feed</Link>
@@ -200,7 +199,6 @@ export default function Login() {
         logoHref="/"
         navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]}
         showIconButtons
-        showLogout
       />
 
       <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px] max-[760px]:px-4">
