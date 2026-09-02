@@ -1,0 +1,24 @@
+{
+  "name": "nagorik",
+  "version": "1.0.0",
+  "description": "NAGORIK (নাগরিক) is a modern civic-tech platform for reporting, discussing, and tracking local community issues such as potholes, garbage, power outages, water problems, and safety hazards. Built as a university project, it connects citizens through community engagement and helps prioritize issues based on public feedback.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Akib-10/nagorik.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Akib-10/nagorik/issues"
+  },
+  "homepage": "https://github.com/Akib-10/nagorik#readme",
+  "dependencies": {
+    "pdfkit": "^0.19.1"
+  }
+}
