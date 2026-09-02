@@ -180,7 +180,6 @@ export default function BrowseFeed() {
           },
         ]}
         showIconButtons
-        showLogout
       />
 
       {/* ================= HERO ================= */}
