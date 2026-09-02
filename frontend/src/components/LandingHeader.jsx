@@ -4,9 +4,6 @@ import logo from "../assets/images/logo_for_dark_mode.png";
 import { isAuthenticated, getUser } from "../services/authService";
 import { MenuIcon, SearchIcon, AvatarGlyph, GearIcon } from "./icons";
 
-// Landing site header — identical DOM to index.html <header class="site-header">.
-// Behaviour ported from assets/js/main.js: mobile nav toggle, scroll-spy,
-// special #top handling and auth-aware login/profile buttons.
 export default function LandingHeader() {
   const [navOpen, setNavOpen] = useState(false);
   const [activeId, setActiveId] = useState("#top");
@@ -16,7 +13,6 @@ export default function LandingHeader() {
   const toggleRef = useRef(null);
   const navigate = useNavigate();
 
-  // Enter in the header search jumps to the feed pre-filtered with the query.
   const handleSearchKey = (e) => {
     if (e.key === "Enter" && e.currentTarget.value.trim()) {
       navigate(
@@ -26,7 +22,6 @@ export default function LandingHeader() {
   };
 
   useEffect(() => {
-    // Close the mobile nav when clicking outside of it
     const onDocClick = (e) => {
       if (
         navRef.current &&
@@ -42,7 +37,6 @@ export default function LandingHeader() {
   }, []);
 
   useEffect(() => {
-    // Highlight in-page nav links while scrolling
     const sections = document.querySelectorAll("main [id]");
     const observer = new IntersectionObserver(
       (entries) => {
@@ -56,7 +50,6 @@ export default function LandingHeader() {
     );
     sections.forEach((sec) => observer.observe(sec));
 
-    // Scrolling back near the top re-activates "Home"
     const onScroll = () => {
       if (window.scrollY < 80) setActiveId("#top");
     };
@@ -68,7 +61,6 @@ export default function LandingHeader() {
     };
   }, []);
 
-  // "Home" scrolls back up every time, even when the hash is already "#top"
   const handleHomeClick = (e) => {
     e.preventDefault();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -77,14 +69,17 @@ export default function LandingHeader() {
     setNavOpen(false);
   };
 
-  const navLinkClass = (id) => (activeId === id ? "active" : undefined);
+  const navLinkClass = (id) =>
+    activeId === id
+      ? "rounded-full bg-nagorik-red px-[15px] py-[9px] text-[14px] font-semibold text-white transition-colors duration-150 max-[920px]:px-3.5 max-[920px]:py-3"
+      : "rounded-full px-[15px] py-[9px] text-[14px] font-semibold text-nagorik-text transition-colors duration-150 hover:bg-nagorik-red/8 hover:text-nagorik-red dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-white max-[920px]:px-3.5 max-[920px]:py-3";
 
   return (
-    <header className="site-header" id="top">
-      <div className="header-inner">
+    <header className="sticky top-0 z-[100] border-b border-nagorik-line bg-nagorik-cream/86 backdrop-blur-[10px] dark:border-white/[0.08] dark:bg-[rgba(23,15,17,0.7)]" id="top">
+      <div className="mx-auto flex max-w-[1160px] items-center gap-7 px-7 py-[14px] max-[480px]:gap-2 max-[480px]:px-4 max-[480px]:py-3">
         <Link
           to="/"
-          className="brand"
+          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap"
           aria-label="নাগরিক home"
           onClick={() => {
             window.scrollTo({ top: 0, behavior: "smooth" });
@@ -92,12 +87,12 @@ export default function LandingHeader() {
             setNavOpen(false);
           }}
         >
-          <img src={logo} alt="নাগরিক logo" />
+          <img src={logo} alt="নাগরিক logo" className="h-[50px] w-auto" />
         </Link>
 
         <button
           ref={toggleRef}
-          className="nav-toggle"
+          className="hidden border-0 bg-transparent p-2 text-nagorik-text dark:text-white max-[920px]:inline-flex"
           aria-label="Toggle navigation"
           aria-expanded={navOpen}
           onClick={() => setNavOpen((open) => !open)}
@@ -105,7 +100,10 @@ export default function LandingHeader() {
           <MenuIcon />
         </button>
 
-        <nav ref={navRef} className={`main-nav${navOpen ? " open" : ""}`}>
+        <nav
+          ref={navRef}
+          className={`flex items-center gap-1.5 max-[920px]:fixed max-[920px]:inset-[64px_16px_auto_16px] max-[920px]:flex-col max-[920px]:items-stretch max-[920px]:gap-0.5 max-[920px]:rounded-2xl max-[920px]:border max-[920px]:border-nagorik-line max-[920px]:bg-nagorik-paper max-[920px]:p-2.5 max-[920px]:shadow-[0_20px_50px_-20px_rgba(23,15,17,0.25)] max-[920px]:transition-[transform_0.18s_ease,opacity_0.18s_ease] max-[920px]:[&:not(.open)]:pointer-events-none max-[920px]:[&:not(.open)]:-translate-y-3 max-[920px]:[&:not(.open)]:opacity-0 ${navOpen ? "open" : ""}`}
+        >
           <a
             href="#top"
             className={navLinkClass("#top")}
@@ -129,51 +127,36 @@ export default function LandingHeader() {
           </a>
         </nav>
 
-        <div className="header-search">
+        <div className="flex flex-1 items-center gap-2 rounded-full border border-nagorik-line bg-nagorik-ink-soft/5 px-4 py-[9px] text-[13px] text-nagorik-muted max-w-[340px] max-[920px]:hidden dark:border-white/12 dark:bg-white/6 dark:text-white/60">
           <SearchIcon size={15} />
           <input
             type="text"
             placeholder="Search civic issues"
             aria-label="Search civic issues"
             onKeyDown={handleSearchKey}
+            className="w-full border-0 bg-transparent font-[inherit] text-[13px] text-inherit outline-none placeholder:text-inherit placeholder:opacity-80"
           />
         </div>
 
-        <div className="header-actions">
-          <Link to="/settings" className="icon-btn" aria-label="Settings">
+        <div className="ml-auto flex shrink-0 items-center gap-2 max-[480px]:gap-1.5">
+          <Link to="/settings" className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full text-nagorik-red transition-colors duration-150 hover:bg-nagorik-red/8 dark:text-[#FF7080] max-[480px]:h-[34px] max-[480px]:w-[34px] dark:hover:bg-[rgba(255,112,128,0.12)]" aria-label="Settings">
             <GearIcon />
           </Link>
           <Link
             to="/login"
-            className="btn btn-ghost"
+            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-nagorik-line bg-transparent px-5 py-[10px] text-[14px] font-semibold text-nagorik-text transition-all duration-150 hover:-translate-y-px hover:bg-nagorik-ink-soft/5 dark:border-white/25 dark:text-white dark:hover:bg-white/[0.08] max-[920px]:hidden"
             style={{ display: isAuth ? "none" : "inline-flex" }}
           >
             Log in
           </Link>
           <Link
             to="/user"
-            className="avatar"
-            style={{
-              display: isAuth ? "flex" : "none",
-              width: "38px",
-              height: "38px",
-              borderRadius: "50%",
-              background: "var(--surface-2)",
-              border: "2px solid var(--red)",
-              overflow: "hidden",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
+            className="flex h-[38px] w-[38px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-nagorik-red bg-nagorik-surface-2 max-[480px]:h-[34px] max-[480px]:w-[34px]"
+            style={{ display: isAuth ? "flex" : "none" }}
             aria-label="Profile"
           >
             {isAuth && userData.name ? (
-              <span
-                style={{
-                  fontWeight: 700,
-                  fontSize: "14px",
-                  color: "var(--red)",
-                }}
-              >
+              <span className="text-[14px] font-bold text-nagorik-red">
                 {userData.name.charAt(0).toUpperCase()}
               </span>
             ) : (
@@ -181,16 +164,16 @@ export default function LandingHeader() {
             )}
           </Link>
           {isAuth ? (
-            <Link to="/report" className="btn btn-primary">
-              <span className="btn-label">Report an issue</span>
+            <Link to="/report" className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-nagorik-red px-5 py-[10px] text-[14px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(200,16,46,0.55)] transition-all duration-150 hover:-translate-y-px hover:bg-nagorik-red-dark max-[480px]:px-3.5 max-[480px]:py-2 max-[480px]:text-[13px] max-[380px]:px-[14px] max-[380px]:py-[10px] [@media(max-width:400px)]:hidden">
+              <span className="max-[380px]:hidden">Report an issue</span>
             </Link>
           ) : (
             <Link
               to="/login"
               state={{ mode: "register", from: "/report" }}
-              className="btn btn-primary"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-nagorik-red px-5 py-[10px] text-[14px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(200,16,46,0.55)] transition-all duration-150 hover:-translate-y-px hover:bg-nagorik-red-dark max-[480px]:px-3.5 max-[480px]:py-2 max-[480px]:text-[13px] max-[380px]:px-[14px] max-[380px]:py-[10px]"
             >
-              <span className="btn-label">Sign up</span>
+              <span className="max-[380px]:hidden">Sign up</span>
             </Link>
           )}
         </div>

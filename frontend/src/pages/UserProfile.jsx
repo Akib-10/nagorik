@@ -1,6 +1,5 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from "react-router-dom";
-import { setPageStyles } from '../styles/usePageStyles';
 import AppHeader from "../components/AppHeader";
 import {
   getMyReports,
@@ -8,6 +7,7 @@ import {
   deleteReport,
 } from "../services/issuesService";
 import { getUser } from "../services/authService";
+import profileBg from "../assets/images/grey-container.png";
 import {
   HomeGlyph,
   PinIcon,
@@ -21,43 +21,45 @@ import {
 } from "../components/icons";
 
 function ReportRow({ issue, expanded, onView, onEdit, onDelete }) {
+  const badgeBg = issue.statusClass === 'st-progress' ? 'bg-[#B87613]' : issue.statusClass === 'st-done' ? 'bg-nagorik-green' : 'bg-nagorik-red'
+
   return (
-    <article className="report-row">
-      <div className="report-thumb">
-        <img src={issue.img} alt={issue.title} />
+    <article className="flex items-center gap-[18px] rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_62%)] p-3.5 max-[760px]:flex-col max-[760px]:items-stretch">
+      <div className="h-[118px] w-[118px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2">
+        <img src={issue.img} alt={issue.title} className="h-full w-full object-cover" />
       </div>
-      <div className="report-info">
-        <div className="report-toprow">
-          <h3>{issue.title}</h3>
-          <span className={`badge-sm ${issue.statusClass || ""}`}>
-            <span className="dot"></span>
+      <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
+        <div className="flex flex-wrap items-center gap-3">
+          <h3 className="m-0 text-[15px] font-extrabold text-nagorik-heading">{issue.title}</h3>
+          <span className={`inline-flex items-center gap-[5px] rounded-full px-[11px] py-1 text-[10.5px] font-bold text-white ${badgeBg}`}>
+            <span className="h-[5px] w-[5px] rounded-full bg-white"></span>
             {issue.statusLabel}
           </span>
         </div>
-        <div className="report-metaline">
-          <span>
+        <div className="flex flex-wrap items-center gap-3.5 text-[12px] text-nagorik-secondary">
+          <span className="flex items-center gap-[5px]">
             <PinIcon size={12} />
             {issue.area}
           </span>
-          <span>
+          <span className="flex items-center gap-[5px]">
             <ClockIcon size={12} />
             {issue.time}
           </span>
         </div>
-        <div className="report-statsline">
-          <span>
+        <div className="flex items-center gap-3.5 text-[11.5px] font-bold text-nagorik-red dark:text-[#FF7080]">
+          <span className="flex items-center gap-1">
             <VoteUpIcon size={12} />
             {issue.up} upvotes
           </span>
-          <span>
+          <span className="flex items-center gap-1">
             <CommentIcon size={12} />
             {issue.comments} comments
           </span>
         </div>
-        <div className="row-actions">
+        <div className="mt-[3px] flex gap-2">
           <button
             type="button"
-            className={`mini-pill${expanded ? " ghost" : ""}`}
+            className={`flex items-center gap-1.5 rounded-full border-none px-3.5 py-2 text-[11.5px] font-bold text-white cursor-pointer whitespace-nowrap transition-colors duration-150 ${expanded ? 'border-[1.5px] border-nagorik-red bg-transparent text-nagorik-red px-[12.5px] py-[6.5px]' : 'bg-nagorik-red hover:bg-nagorik-hover-red'}`}
             onClick={() => onView(issue.id)}
           >
             <EyeIcon />
@@ -65,7 +67,7 @@ function ReportRow({ issue, expanded, onView, onEdit, onDelete }) {
           </button>
           <button
             type="button"
-            className="mini-pill ghost"
+            className="flex items-center gap-1.5 rounded-full border-[1.5px] border-nagorik-red bg-transparent px-[12.5px] py-[6.5px] text-[11.5px] font-bold text-nagorik-red cursor-pointer whitespace-nowrap transition-colors duration-150 hover:bg-nagorik-red hover:text-white"
             onClick={() => onEdit(issue.id)}
           >
             <EditPenIcon size={12} />
@@ -73,7 +75,7 @@ function ReportRow({ issue, expanded, onView, onEdit, onDelete }) {
           </button>
           <button
             type="button"
-            className="mini-pill ghost"
+            className="flex items-center gap-1.5 rounded-full border-[1.5px] border-nagorik-red bg-transparent px-[12.5px] py-[6.5px] text-[11.5px] font-bold text-nagorik-red cursor-pointer whitespace-nowrap transition-colors duration-150 hover:bg-nagorik-red hover:text-white"
             onClick={() => onDelete(issue.id)}
           >
             <TrashIcon />
@@ -81,28 +83,22 @@ function ReportRow({ issue, expanded, onView, onEdit, onDelete }) {
           </button>
         </div>
         {expanded && (
-          <div
-            style={{
-              marginTop: "12px",
-              borderTop: "1px solid var(--border)",
-              paddingTop: "4px",
-            }}
-          >
-            <div className="kv-row">
-              <span className="k">Category</span>
-              <span className="v">{issue.category || "—"}</span>
+          <div className="mt-3 border-t border-nagorik-border pt-1">
+            <div className="flex gap-[24px] border-b border-nagorik-cream py-3 text-[13.5px]">
+              <span className="w-[190px] shrink-0 text-nagorik-muted font-semibold">Category</span>
+              <span className="font-bold text-nagorik-heading break-words">{issue.category || "—"}</span>
             </div>
-            <div className="kv-row">
-              <span className="k">Priority</span>
-              <span className="v">{issue.priority || "—"}</span>
+            <div className="flex gap-[24px] border-b border-nagorik-cream py-3 text-[13.5px]">
+              <span className="w-[190px] shrink-0 text-nagorik-muted font-semibold">Priority</span>
+              <span className="font-bold text-nagorik-heading break-words">{issue.priority || "—"}</span>
             </div>
-            <div className="kv-row">
-              <span className="k">Description</span>
-              <span className="v">{issue.description || "—"}</span>
+            <div className="flex gap-[24px] border-b border-nagorik-cream py-3 text-[13.5px]">
+              <span className="w-[190px] shrink-0 text-nagorik-muted font-semibold">Description</span>
+              <span className="font-bold text-nagorik-heading break-words">{issue.description || "—"}</span>
             </div>
-            <div className="kv-row" style={{ borderBottom: "none" }}>
-              <span className="k">Full Address</span>
-              <span className="v">{issue.address || "—"}</span>
+            <div className="flex gap-[24px] py-3 text-[13.5px]">
+              <span className="w-[190px] shrink-0 text-nagorik-muted font-semibold">Full Address</span>
+              <span className="font-bold text-nagorik-heading break-words">{issue.address || "—"}</span>
             </div>
           </div>
         )}
@@ -112,8 +108,6 @@ function ReportRow({ issue, expanded, onView, onEdit, onDelete }) {
 }
 
 export default function UserProfile() {
-  useLayoutEffect(() => setPageStyles('app'))
-
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState("reports");
@@ -129,26 +123,15 @@ export default function UserProfile() {
   }, []);
 
   const handleView = (id) => setExpandedId((prev) => (prev === id ? null : id));
-
   const handleEdit = (id) => navigate("/report", { state: { editId: id } });
-
   const handleDelete = (id) => {
     const report = reports.find((r) => r.id === id);
-    if (
-      !window.confirm(
-        `Delete "${report ? report.title : "this report"}"? This cannot be undone.`,
-      )
-    )
-      return;
+    if (!window.confirm(`Delete "${report ? report.title : "this report"}"? This cannot be undone.`)) return;
     setReports(deleteReport(id));
     if (expandedId === id) setExpandedId(null);
   };
 
-  const handleEditProfile = () => navigate("/edit_profile");
-
-  const resolvedCount = reports.filter(
-    (r) => r.statusLabel === "Resolved",
-  ).length;
+  const resolvedCount = reports.filter((r) => r.statusLabel === "Resolved").length;
 
   return (
     <>
@@ -165,17 +148,16 @@ export default function UserProfile() {
         showLogout
       />
 
-      {/* ================= PROFILE ================= */}
-      <div className="profile-wrap">
-        <section className="profile-card">
-          <div className="profile-head">
-            <div className="profile-id">
-              <div className="avatar-lg">
+      <div className="mx-auto max-w-[1160px] px-7 pt-7 pb-[60px] max-[760px]:px-4">
+        <section className="relative isolate z-0 flex flex-col overflow-hidden rounded-[18px] p-[30px_32px_26px]" style={{ backgroundImage: `url(${profileBg}), linear-gradient(135deg, #d5d5d3, #c4c4c2)`, backgroundSize: 'cover, cover', backgroundPosition: 'center, center', backgroundRepeat: 'no-repeat, no-repeat' }}>
+          <div className="flex items-start justify-between gap-4 max-[760px]:flex-col max-[760px]:items-stretch">
+            <div className="flex items-center gap-4 max-[760px]:flex-col max-[760px]:items-start max-[760px]:gap-3">
+              <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center rounded-full bg-white text-[32px] font-extrabold text-nagorik-red shadow-[0_6px_16px_-8px_rgba(0,0,0,0.35)] dark:bg-nagorik-surface-2">
                 {displayName.charAt(0).toUpperCase()}
               </div>
-              <div className="profile-id-info">
-                <h1>{displayName}</h1>
-                <span className="joined-line">
+              <div className="min-w-0 flex-1">
+                <h1 className="mb-1 text-[22px] font-extrabold text-nagorik-red">{displayName}</h1>
+                <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#a8525c] dark:text-[#D98A93]">
                   <ClockIcon size={13} />
                   Joined Date: 04 Nov, 2024
                 </span>
@@ -183,77 +165,62 @@ export default function UserProfile() {
             </div>
             <button
               type="button"
-              className="banner-edit"
-              onClick={handleEditProfile}
+              className="flex items-center gap-[7px] self-start rounded-full bg-nagorik-red px-5 py-[11px] text-[12.5px] font-bold tracking-[0.5px] text-white transition-all duration-150 hover:-translate-y-px hover:shadow-[0_8px_20px_-8px_rgba(0,0,0,0.4)] max-[760px]:justify-center"
+              onClick={() => navigate("/edit_profile")}
             >
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M17 3a2.83 2.83 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
-              </svg>
+              <EditPenIcon size={13} />
               EDIT PROFILE
             </button>
           </div>
 
-          <div className="contributions">
-            <h2>Contributions</h2>
-            <div className="contrib-grid">
-              <div className="contrib-card">
-                <span className="label">Issues Reported</span>
-                <span className="numrow">
-                  <EditPenIcon size={17} />
-                  <span className="num">{reports.length}</span>
-                </span>
-              </div>
-              <div className="contrib-card">
-                <span className="label">Upvotes Given</span>
-                <span className="numrow">
-                  <VoteUpIcon size={17} />
-                  <span className="num">{upvotedIssues.length}</span>
-                </span>
-              </div>
-              <div className="contrib-card">
-                <span className="label">Comments made</span>
-                <span className="numrow">
-                  <CommentIcon size={17} />
-                  <span className="num">123</span>
-                </span>
-              </div>
-              <div className="contrib-card">
-                <span className="label">Issues resolved</span>
-                <span className="numrow">
-                  <ShieldIcon size={17} />
-                  <span className="num">{resolvedCount}</span>
-                </span>
-              </div>
+          <div className="mt-auto pt-6">
+            <h2 className="mb-3 text-[15px] font-extrabold text-[#26261f] dark:text-nagorik-heading">Contributions</h2>
+            <div className="grid grid-cols-4 gap-[18px]">
+              {[
+                { label: 'Issues Reported', icon: <EditPenIcon size={17} />, count: reports.length },
+                { label: 'Upvotes Given', icon: <VoteUpIcon size={17} />, count: upvotedIssues.length },
+                { label: 'Comments made', icon: <CommentIcon size={17} />, count: 123 },
+                { label: 'Issues resolved', icon: <ShieldIcon size={17} />, count: resolvedCount },
+              ].map((card) => (
+                <div className="flex min-h-[98px] flex-col rounded-[10px] bg-white p-[13px_18px_14px] shadow-[0_6px_14px_-10px_rgba(0,0,0,0.3)] dark:bg-nagorik-surface" key={card.label}>
+                  <span className="text-[12px] font-semibold text-[#a3a39e]">{card.label}</span>
+                  <span className="mt-auto flex items-center gap-2.5 pt-2.5 text-nagorik-red">
+                    {card.icon}
+                    <span className="text-[28px] font-extrabold leading-none text-[#111110] dark:text-nagorik-heading">{card.count}</span>
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        {/* ================= TABS ================= */}
-        <div className="tabs" style={{ padding: "26px 0 0" }}>
+        {/* TABS */}
+        <div className="flex gap-2.5 pt-[26px]">
           <button
             type="button"
-            className={`tab-btn${activeTab === "reports" ? " active" : ""}`}
+            className={`rounded-full border px-[22px] py-[9px] text-[13px] font-bold transition-all duration-150 ${
+              activeTab === "reports"
+                ? 'border-nagorik-red bg-nagorik-red text-white'
+                : 'border-nagorik-border bg-nagorik-paper text-nagorik-red hover:bg-nagorik-light-red dark:text-[#FF7080]'
+            }`}
             onClick={() => setActiveTab("reports")}
           >
             My Reports
           </button>
           <button
             type="button"
-            className={`tab-btn${activeTab === "upvoted" ? " active" : ""}`}
+            className={`rounded-full border px-[22px] py-[9px] text-[13px] font-bold transition-all duration-150 ${
+              activeTab === "upvoted"
+                ? 'border-nagorik-red bg-nagorik-red text-white'
+                : 'border-nagorik-border bg-nagorik-paper text-nagorik-red hover:bg-nagorik-light-red dark:text-[#FF7080]'
+            }`}
             onClick={() => setActiveTab("upvoted")}
           >
             Upvoted
           </button>
           <button
             type="button"
-            className="tab-btn"
+            className="rounded-full border border-nagorik-border bg-nagorik-paper px-[22px] py-[9px] text-[13px] font-bold text-nagorik-red transition-all duration-150 hover:bg-nagorik-light-red dark:text-[#FF7080]"
             onClick={() => navigate("/settings")}
           >
             Settings
@@ -261,14 +228,12 @@ export default function UserProfile() {
         </div>
 
         {/* MY REPORTS */}
-        <div
-          className={`panel-section${activeTab === "reports" ? " active" : ""}`}
-        >
-          <div className="section-head-sm">
-            <h2>Reports submitted by you</h2>
-            <span>{reports.length} total</span>
+        <div className={activeTab === "reports" ? "block" : "hidden"}>
+          <div className="mt-[26px] mb-3.5 flex items-center justify-between">
+            <h2 className="m-0 text-[17px] font-extrabold text-nagorik-heading">Reports submitted by you</h2>
+            <span className="text-[13px] text-nagorik-muted">{reports.length} total</span>
           </div>
-          <div className="issues-list">
+          <div className="flex flex-col gap-5">
             {reports.length ? (
               reports.map((issue) => (
                 <ReportRow
@@ -281,14 +246,7 @@ export default function UserProfile() {
                 />
               ))
             ) : (
-              <p
-                style={{
-                  textAlign: "center",
-                  color: "var(--muted)",
-                  padding: "48px 0",
-                  fontSize: "14px",
-                }}
-              >
+              <p className="py-12 text-center text-[14px] text-nagorik-muted">
                 You haven't reported any issues yet.
               </p>
             )}
@@ -296,14 +254,12 @@ export default function UserProfile() {
         </div>
 
         {/* UPVOTED */}
-        <div
-          className={`panel-section${activeTab === "upvoted" ? " active" : ""}`}
-        >
-          <div className="section-head-sm">
-            <h2>Issues you upvoted</h2>
-            <span>{upvotedIssues.length} total</span>
+        <div className={activeTab === "upvoted" ? "block" : "hidden"}>
+          <div className="mt-[26px] mb-3.5 flex items-center justify-between">
+            <h2 className="m-0 text-[17px] font-extrabold text-nagorik-heading">Issues you upvoted</h2>
+            <span className="text-[13px] text-nagorik-muted">{upvotedIssues.length} total</span>
           </div>
-          <div className="issues-list">
+          <div className="flex flex-col gap-5">
             {upvotedIssues.map((issue) => (
               <ReportRow
                 key={issue.id}

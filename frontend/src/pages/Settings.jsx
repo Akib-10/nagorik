@@ -1,12 +1,9 @@
-import { useEffect, useLayoutEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { setPageStyles } from '../styles/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import { getUser, getSettings, saveSettings, getTheme, setTheme, signOut } from '../services/authService'
 import { HomeGlyph, GearIcon, BellIconApp, ShieldIcon, UserGlyph, MailIcon } from '../components/icons'
 
-// Same keys the profile page's Settings tab uses — both stay in sync
-// through "nagorik_settings" in localStorage.
 const SETTING_DEFAULTS = {
   email: true,
   push: true,
@@ -17,19 +14,17 @@ const SETTING_DEFAULTS = {
 
 function CardHead({ icon, title, sub }) {
   return (
-    <div className="card-head">
-      <span className="setting-icon">{icon}</span>
+    <div className="mb-2.5 flex items-start gap-3">
+      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] bg-nagorik-soft-red text-nagorik-red dark:text-[#FF7080]">{icon}</span>
       <div>
-        <h3>{title}</h3>
-        {sub && <p className="card-sub">{sub}</p>}
+        <h3 className="m-0 text-[15px] font-extrabold text-nagorik-heading">{title}</h3>
+        {sub && <p className="mt-0.5 text-[11.5px] text-nagorik-muted">{sub}</p>}
       </div>
     </div>
   )
 }
 
 export default function Settings() {
-    useLayoutEffect(() => setPageStyles('app'))
-
   const navigate = useNavigate()
 
   const userData = getUser()
@@ -47,7 +42,6 @@ export default function Settings() {
     document.documentElement.lang = 'en'
   }, [])
 
-  // Brief "saved" confirmation whenever a preference changes.
   useEffect(() => {
     if (!savedFlash) return
     const t = setTimeout(() => setSavedFlash(false), 1600)
@@ -86,35 +80,37 @@ export default function Settings() {
         ]}
       />
 
-      <main className="container settings-page">
+      <main className="mx-auto max-w-[1160px] px-7 pb-[60px] max-[760px]:px-4">
 
-        <div className="page-head">
-          <h1>Settings</h1>
-          <p>Personalise how Nagorik looks and notifies you. Changes are saved automatically.</p>
+        <div className="py-[36px_0_28px] text-center">
+          <h1 className="mb-2 m-0 text-[30px] font-extrabold text-nagorik-heading">Settings</h1>
+          <p className="m-0 text-[14px] text-nagorik-secondary">Personalise how Nagorik looks and notifies you. Changes are saved automatically.</p>
         </div>
 
-        {/* ---------- ACCOUNT SUMMARY — click through to the profile page ---------- */}
-        <Link to="/user" className="setting-card account-card" aria-label="Go to your profile">
-          <div className="avatar-md">{displayName.charAt(0).toUpperCase()}</div>
-          <div className="account-info">
-            <h2>{displayName}</h2>
-            <span><MailIcon /> {userData.email || 'demo@nagorik.bd'}</span>
+        {/* ACCOUNT SUMMARY */}
+        <Link to="/user" className="mt-2 flex cursor-pointer items-center gap-[18px] rounded-2xl border border-nagorik-border bg-nagorik-surface p-[18px_20px] transition-[border-color_0.15s_ease,transform_0.15s_ease,box-shadow_0.15s_ease] hover:border-nagorik-red hover:-translate-y-px hover:shadow-[0_10px_24px_-14px_rgba(200,16,46,0.45)]" aria-label="Go to your profile">
+          <div className="flex h-[56px] w-[56px] shrink-0 items-center justify-center rounded-full border-2 border-nagorik-red bg-white text-[22px] font-extrabold text-nagorik-red dark:bg-nagorik-surface-2">{displayName.charAt(0).toUpperCase()}</div>
+          <div className="min-w-0 flex-1">
+            <h2 className="mb-1 text-[17px] font-extrabold text-nagorik-heading">{displayName}</h2>
+            <span className="inline-flex items-center gap-1.5 text-[12.5px] text-nagorik-muted">
+              <MailIcon /> {userData.email || 'demo@nagorik.bd'}
+            </span>
           </div>
-          <span className="account-go">View profile →</span>
+          <span className="shrink-0 text-[12.5px] font-bold text-nagorik-red whitespace-nowrap dark:text-[#FF7080]">View profile →</span>
         </Link>
 
-        <div className="settings-grid settings-page-grid">
+        <div className="relative mt-[22px] grid grid-cols-2 gap-4 max-[760px]:grid-cols-1">
           {savedFlash && (
-            <div className="save-flash" role="status">✓ Preferences saved</div>
+            <div className="absolute -top-[34px] right-0 rounded-full bg-[#E8F5EE] px-3.5 py-1.5 text-[12px] font-bold text-nagorik-green animate-[saveFlash_0.3s_ease] max-[760px]:static max-[760px]:mb-3 max-[760px]:inline-block" role="status">✓ Preferences saved</div>
           )}
 
-          {/* ---------- APPEARANCE ---------- */}
-          <section className="setting-card">
+          {/* APPEARANCE */}
+          <section className="rounded-2xl border border-nagorik-border bg-nagorik-surface p-[18px_20px]">
             <CardHead icon={<GearIcon size={16} />} title="Appearance" sub="Make the app comfortable for your eyes." />
-            <div className="setting-row">
-              <div className="setting-info">
-                <span className="setting-label">Dark mode</span>
-                <span className="setting-desc">Darker surfaces across every page — easier at night.</span>
+            <div className="flex items-center justify-between gap-3.5 border-b border-nagorik-border py-3 last:border-b-0">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13.5px] font-bold text-nagorik-body-text">Dark mode</span>
+                <span className="text-[12px] text-nagorik-muted">Darker surfaces across every page — easier at night.</span>
               </div>
               <button
                 type="button"
@@ -126,71 +122,71 @@ export default function Settings() {
             </div>
           </section>
 
-          {/* ---------- NOTIFICATIONS ---------- */}
-          <section className="setting-card">
+          {/* NOTIFICATIONS */}
+          <section className="rounded-2xl border border-nagorik-border bg-nagorik-surface p-[18px_20px]">
             <CardHead icon={<BellIconApp size={16} />} title="Notifications" sub="Choose what you want to hear about." />
-            <div className="setting-row">
-              <div className="setting-info">
-                <span className="setting-label">Email notifications</span>
-                <span className="setting-desc">Updates on your reports and followed issues</span>
+            <div className="flex items-center justify-between gap-3.5 border-b border-nagorik-border py-3 last:border-b-0">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13.5px] font-bold text-nagorik-body-text">Email notifications</span>
+                <span className="text-[12px] text-nagorik-muted">Updates on your reports and followed issues</span>
               </div>
               <button type="button" className={toggleButton('email')} onClick={() => toggleSetting('email')} aria-label="Email notifications"></button>
             </div>
-            <div className="setting-row">
-              <div className="setting-info">
-                <span className="setting-label">Push notifications</span>
-                <span className="setting-desc">Real-time alerts on your device</span>
+            <div className="flex items-center justify-between gap-3.5 border-b border-nagorik-border py-3 last:border-b-0">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13.5px] font-bold text-nagorik-body-text">Push notifications</span>
+                <span className="text-[12px] text-nagorik-muted">Real-time alerts on your device</span>
               </div>
               <button type="button" className={toggleButton('push')} onClick={() => toggleSetting('push')} aria-label="Push notifications"></button>
             </div>
-            <div className="setting-row">
-              <div className="setting-info">
-                <span className="setting-label">Weekly digest</span>
-                <span className="setting-desc">Trending issues in your area</span>
+            <div className="flex items-center justify-between gap-3.5 border-b border-nagorik-border py-3 last:border-b-0">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13.5px] font-bold text-nagorik-body-text">Weekly digest</span>
+                <span className="text-[12px] text-nagorik-muted">Trending issues in your area</span>
               </div>
               <button type="button" className={toggleButton('digest')} onClick={() => toggleSetting('digest')} aria-label="Weekly digest"></button>
             </div>
           </section>
 
-          {/* ---------- PRIVACY ---------- */}
-          <section className="setting-card">
+          {/* PRIVACY */}
+          <section className="rounded-2xl border border-nagorik-border bg-nagorik-surface p-[18px_20px]">
             <CardHead icon={<ShieldIcon size={15} />} title="Privacy" sub="Control what other citizens can see." />
-            <div className="setting-row">
-              <div className="setting-info">
-                <span className="setting-label">Public profile</span>
-                <span className="setting-desc">Others can see your reports and activity</span>
+            <div className="flex items-center justify-between gap-3.5 border-b border-nagorik-border py-3 last:border-b-0">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13.5px] font-bold text-nagorik-body-text">Public profile</span>
+                <span className="text-[12px] text-nagorik-muted">Others can see your reports and activity</span>
               </div>
               <button type="button" className={toggleButton('public')} onClick={() => toggleSetting('public')} aria-label="Public profile"></button>
             </div>
-            <div className="setting-row">
-              <div className="setting-info">
-                <span className="setting-label">Show upvotes</span>
-                <span className="setting-desc">Display upvoted issues on your profile</span>
+            <div className="flex items-center justify-between gap-3.5 border-b border-nagorik-border py-3 last:border-b-0">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13.5px] font-bold text-nagorik-body-text">Show upvotes</span>
+                <span className="text-[12px] text-nagorik-muted">Display upvoted issues on your profile</span>
               </div>
               <button type="button" className={toggleButton('showUpvotes')} onClick={() => toggleSetting('showUpvotes')} aria-label="Show upvotes"></button>
             </div>
           </section>
 
-          {/* ---------- DANGER ZONE ---------- */}
-          <section className="setting-card danger-zone">
+          {/* DANGER ZONE */}
+          <section className="rounded-2xl border border-[rgba(200,16,46,0.35)] bg-nagorik-surface p-[18px_20px]">
             <CardHead icon={<UserGlyph size={16} />} title="Account actions" sub="Manage your session and account." />
-            <div className="setting-row">
-              <div className="setting-info">
-                <span className="setting-label">Log out</span>
-                <span className="setting-desc">End your session on this device</span>
+            <div className="flex items-center justify-between gap-3.5 border-b border-nagorik-border py-3 last:border-b-0">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13.5px] font-bold text-nagorik-body-text">Log out</span>
+                <span className="text-[12px] text-nagorik-muted">End your session on this device</span>
               </div>
-              <button type="button" className="ghost-btn" onClick={handleLogout}>
+              <button type="button" className="rounded-full border-[1.5px] border-nagorik-border bg-transparent px-4 py-2 text-[12.5px] font-bold text-nagorik-secondary transition-[border-color_0.15s_ease,color_0.15s_ease,background_0.15s_ease] hover:border-nagorik-red hover:text-nagorik-red" onClick={handleLogout}>
                 Log out
               </button>
             </div>
-            <div className="setting-row">
-              <div className="setting-info">
-                <span className="setting-label">Delete account</span>
-                <span className="setting-desc">Permanently remove your account and data</span>
+            <div className="flex items-center justify-between gap-3.5 border-b border-nagorik-border py-3 last:border-b-0">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-[13.5px] font-bold text-nagorik-body-text">Delete account</span>
+                <span className="text-[12px] text-nagorik-muted">Permanently remove your account and data</span>
               </div>
               <button
                 type="button"
-                className="danger-btn"
+                className="rounded-full border-[1.5px] border-nagorik-red bg-transparent px-4 py-2 text-[12.5px] font-bold text-nagorik-red transition-[background_0.15s_ease,color_0.15s_ease] hover:bg-nagorik-red hover:text-white"
                 onClick={() => window.confirm('Delete your account? This cannot be undone.')}
               >
                 Delete
