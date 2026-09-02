@@ -145,7 +145,6 @@ export default function UserProfile() {
             icon: <HomeGlyph />,
           },
         ]}
-        showLogout
       />
 
       <div className="mx-auto max-w-[1160px] px-7 pt-7 pb-[60px] max-[760px]:px-4">

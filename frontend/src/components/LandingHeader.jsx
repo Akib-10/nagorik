@@ -1,14 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/images/logo_for_dark_mode.png";
-import { isAuthenticated, getUser } from "../services/authService";
-import { MenuIcon, SearchIcon, AvatarGlyph, GearIcon } from "./icons";
+import { MenuIcon, SearchIcon } from "./icons";
 
 export default function LandingHeader() {
   const [navOpen, setNavOpen] = useState(false);
   const [activeId, setActiveId] = useState("#top");
-  const isAuth = isAuthenticated();
-  const userData = getUser();
   const navRef = useRef(null);
   const toggleRef = useRef(null);
   const navigate = useNavigate();
@@ -72,11 +69,11 @@ export default function LandingHeader() {
   const navLinkClass = (id) =>
     activeId === id
       ? "rounded-full bg-nagorik-red px-[15px] py-[9px] text-[14px] font-semibold text-white transition-colors duration-150 max-[920px]:px-3.5 max-[920px]:py-3"
-      : "rounded-full px-[15px] py-[9px] text-[14px] font-semibold text-nagorik-text transition-colors duration-150 hover:bg-nagorik-red/8 hover:text-nagorik-red dark:text-white/85 dark:hover:bg-white/10 dark:hover:text-white max-[920px]:px-3.5 max-[920px]:py-3";
+      : "rounded-full px-[15px] py-[9px] text-[14px] font-semibold text-nagorik-text transition-colors duration-150 hover:bg-nagorik-red hover:text-white dark:text-white/85 max-[920px]:px-3.5 max-[920px]:py-3";
 
   return (
     <header className="sticky top-0 z-[100] border-b border-nagorik-line bg-nagorik-cream/86 backdrop-blur-[10px] dark:border-white/[0.08] dark:bg-[rgba(23,15,17,0.7)]" id="top">
-      <div className="mx-auto flex max-w-[1160px] items-center gap-7 px-7 py-[14px] max-[480px]:gap-2 max-[480px]:px-4 max-[480px]:py-3">
+      <div className="mx-auto flex max-w-[1160px] flex-wrap items-center gap-7 px-7 py-[14px] max-[480px]:gap-2 max-[480px]:px-4 max-[480px]:py-3">
         <Link
           to="/"
           className="flex shrink-0 items-center gap-2.5 whitespace-nowrap"
@@ -127,7 +124,7 @@ export default function LandingHeader() {
           </a>
         </nav>
 
-        <div className="flex flex-1 items-center gap-2 rounded-full border border-nagorik-line bg-nagorik-ink-soft/5 px-4 py-[9px] text-[13px] text-nagorik-muted max-w-[340px] max-[920px]:hidden dark:border-white/12 dark:bg-white/6 dark:text-white/60">
+        <div className="flex flex-1 items-center gap-2 rounded-full border border-nagorik-line bg-nagorik-ink-soft/5 px-4 py-[9px] text-[13px] text-nagorik-muted max-w-[340px] max-[920px]:order-3 max-[920px]:w-full max-[920px]:basis-full max-[920px]:max-w-full dark:border-white/12 dark:bg-white/6 dark:text-white/60">
           <SearchIcon size={15} />
           <input
             type="text"
@@ -139,43 +136,19 @@ export default function LandingHeader() {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-2 max-[480px]:gap-1.5">
-          <Link to="/settings" className="inline-flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full text-nagorik-red transition-colors duration-150 hover:bg-nagorik-red/8 dark:text-[#FF7080] max-[480px]:h-[34px] max-[480px]:w-[34px] dark:hover:bg-[rgba(255,112,128,0.12)]" aria-label="Settings">
-            <GearIcon />
-          </Link>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-nagorik-line bg-transparent px-5 py-[10px] text-[14px] font-semibold text-nagorik-text transition-all duration-150 hover:-translate-y-px hover:bg-nagorik-ink-soft/5 dark:border-white/25 dark:text-white dark:hover:bg-white/[0.08] max-[920px]:hidden"
-            style={{ display: isAuth ? "none" : "inline-flex" }}
+            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-nagorik-line bg-transparent px-5 py-[10px] text-[14px] font-semibold text-nagorik-text transition-all duration-150 hover:-translate-y-px hover:bg-nagorik-red hover:text-white dark:border-white/25 dark:text-white max-[480px]:px-3.5 max-[480px]:py-2 max-[480px]:text-[13px] max-[380px]:px-[14px] max-[380px]:py-[10px]"
           >
             Log in
           </Link>
           <Link
-            to="/user"
-            className="flex h-[38px] w-[38px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-nagorik-red bg-nagorik-surface-2 max-[480px]:h-[34px] max-[480px]:w-[34px]"
-            style={{ display: isAuth ? "flex" : "none" }}
-            aria-label="Profile"
+            to="/login"
+            state={{ mode: "register", from: "/report" }}
+            className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-nagorik-line bg-transparent px-5 py-[10px] text-[14px] font-semibold text-nagorik-text transition-all duration-150 hover:-translate-y-px hover:bg-nagorik-red hover:text-white dark:border-white/25 dark:text-white max-[480px]:px-3.5 max-[480px]:py-2 max-[480px]:text-[13px] max-[380px]:px-[14px] max-[380px]:py-[10px]"
           >
-            {isAuth && userData.name ? (
-              <span className="text-[14px] font-bold text-nagorik-red">
-                {userData.name.charAt(0).toUpperCase()}
-              </span>
-            ) : (
-              <AvatarGlyph size={24} />
-            )}
+            <span className="max-[380px]:hidden">Sign in</span>
           </Link>
-          {isAuth ? (
-            <Link to="/report" className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-nagorik-red px-5 py-[10px] text-[14px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(200,16,46,0.55)] transition-all duration-150 hover:-translate-y-px hover:bg-nagorik-red-dark max-[480px]:px-3.5 max-[480px]:py-2 max-[480px]:text-[13px] max-[380px]:px-[14px] max-[380px]:py-[10px] [@media(max-width:400px)]:hidden">
-              <span className="max-[380px]:hidden">Report an issue</span>
-            </Link>
-          ) : (
-            <Link
-              to="/login"
-              state={{ mode: "register", from: "/report" }}
-              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-nagorik-red px-5 py-[10px] text-[14px] font-semibold text-white shadow-[0_10px_24px_-10px_rgba(200,16,46,0.55)] transition-all duration-150 hover:-translate-y-px hover:bg-nagorik-red-dark max-[480px]:px-3.5 max-[480px]:py-2 max-[480px]:text-[13px] max-[380px]:px-[14px] max-[380px]:py-[10px]"
-            >
-              <span className="max-[380px]:hidden">Sign up</span>
-            </Link>
-          )}
         </div>
       </div>
     </header>
