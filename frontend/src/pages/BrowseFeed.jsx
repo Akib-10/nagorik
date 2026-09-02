@@ -194,14 +194,17 @@ export default function BrowseFeed() {
           }}
         >
           <div className="relative z-[1] max-w-[560px] flex-1">
-            <h1 className="mb-1.5 text-[28px] font-extrabold tracking-[0.2px] text-white">
+            <h1 className="mb-7.5 text-[28px] font-extrabold tracking-[0.2px] text-white">
               Dhaka Civic Issues
             </h1>
-            <p className="mb-3.5 text-[14px] text-white/90">
+            <p className="mb-8 text-[14px] text-white/90 leading-relaxed max-[760px]:hidden">
               Report local problem, vote on urgent issues, track resolution
               progress.
             </p>
-            <div className="flex max-w-[380px] items-center gap-3 rounded-full bg-white px-4 py-[9px] w-full">
+            <p className="mb-8 hidden text-[14px] text-white/90 leading-relaxed max-[760px]:block">
+              Report problem and track resolution progress.
+            </p>
+            <div className="mt-4 flex max-w-[380px] items-center gap-3 rounded-full bg-white px-4 py-[9px] w-full">
               <SearchIcon size={18} />
               <div className="h-[18px] w-px bg-nagorik-border"></div>
               <input
@@ -213,26 +216,26 @@ export default function BrowseFeed() {
               />
             </div>
           </div>
-          <div className="relative z-[1] ml-6 flex shrink-0 flex-col gap-[10px] text-right max-[1100px]:ml-0 max-[1100px]:flex-row max-[1100px]:text-left max-[1100px]:gap-7">
-            <div>
+          <div className="relative z-[1] ml-6 flex shrink-0 flex-col gap-[10px] text-right max-[1100px]:ml-0 max-[1100px]:flex-row max-[1100px]:text-left max-[1100px]:justify-between max-[1100px]:w-full max-[1100px]:gap-20">
+            <div className="flex flex-col items-center">
               <div className="text-[24px] font-extrabold leading-none text-white">
                 45
               </div>
-              <div className="mt-0.5 text-[11px] text-white/85">Open</div>
+              <div className="mt-0.5 text-center text-[11px] text-white/85">Open</div>
             </div>
-            <div>
+            <div className="flex flex-col items-center">
               <div className="text-[24px] font-extrabold leading-none text-white">
                 31
               </div>
-              <div className="mt-0.5 text-[11px] text-white/85">
-                in progress
+              <div className="mt-0.5 text-center text-[11px] text-white/85">
+                Progressing 
               </div>
             </div>
-            <div>
+            <div className="flex flex-col items-center">
               <div className="text-[24px] font-extrabold leading-none text-white">
                 14
               </div>
-              <div className="mt-0.5 text-[11px] text-white/85">received</div>
+              <div className="mt-0.5 text-center text-[11px] text-white/85">received</div>
             </div>
           </div>
         </section>
