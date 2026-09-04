@@ -1,0 +1,209 @@
+@font-face {
+  font-family: space_grotesk;
+  src: url(../assets/fonts/space-grotesk.woff2) format("woff2");
+}
+
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --color-nagorik-red: #C8102E;
+  --color-nagorik-red-dark: #8C0B22;
+  --color-nagorik-red-deep: #5C0716;
+  --color-nagorik-hover-red: #A60F28;
+  --color-nagorik-ink: #170F11;
+  --color-nagorik-ink-soft: #241A1C;
+  --color-nagorik-ink-line: #3A2C2E;
+  --color-nagorik-cream: #FBF5F2;
+  --color-nagorik-paper: #FFFFFF;
+  --color-nagorik-text: #241A1C;
+  --color-nagorik-muted: #6B5D5A;
+  --color-nagorik-muted-soft: #9C8D8A;
+  --color-nagorik-gold: #E8A33D;
+  --color-nagorik-green: #2E8B57;
+  --color-nagorik-line: #EDE0DC;
+  --color-nagorik-light-red: #FBE7E5;
+  --color-nagorik-soft-red: #FDEDEC;
+  --color-nagorik-surface-2: #F4ECE9;
+  --color-nagorik-heading: #221618;
+  --color-nagorik-body-text: #241A1C;
+  --color-nagorik-secondary: #6B5D5A;
+  --color-nagorik-border: #EDE0DC;
+  --color-nagorik-blue-500: #FF7080;
+  --color-nagorik-dark-login-side: #dedede;
+
+  --font-display: "Space Grotesk", Georgia, serif;
+  --font-body: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Space Grotesk", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+  /*--font-display: "Hind Siliguri", Georgia, serif;
+  --font-body: "Hind Siliguri", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Hind Siliguri", ui-monospace, SFMono-Regular, Menlo, monospace;
+}*/
+
+/* ---- Global resets ---- */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-nagorik-body-text);
+  background: var(--color-nagorik-cream);
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+img { max-width: 100%; display: block; }
+a { color: inherit; text-decoration: none; }
+ul { margin: 0; padding: 0; list-style: none; }
+button { font-family: inherit; cursor: pointer; }
+h1, h2, h3, h4 { font-family: var(--font-display); margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+p { margin: 0; }
+
+/* ---- Focus visibility ---- */
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--color-nagorik-red);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---- Toggle switch ---- */
+.toggle {
+  position: relative;
+  width: 42px;
+  height: 23px;
+  background: var(--color-nagorik-border);
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.toggle::after {
+  content: "";
+  position: absolute;
+  top: 2.5px;
+  left: 2.5px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease;
+}
+.toggle.active {
+  background: var(--color-nagorik-red);
+}
+.toggle.active::after {
+  transform: translateX(19px);
+}
+
+/* ---- Save flash animation ---- */
+@keyframes saveFlash {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Eyebrow pseudo-element (cannot be done with pure Tailwind) ---- */
+.eyebrow-line::before {
+  content: "";
+  width: 16px;
+  height: 1px;
+  background: var(--color-nagorik-red);
+  display: inline-block;
+}
+
+/* ---- Sign-in browse link pseudo-element ---- */
+.signin-browse-link::before {
+  content: "";
+  width: 16px;
+  height: 1px;
+  background: var(--color-nagorik-red);
+  display: inline-block;
+}
+
+/* ---- Map pin positioning ---- */
+.map-pin {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  pointer-events: none;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+}
+
+/* ---- Dark mode theme variable overrides ---- */
+:root[data-theme="dark"] {
+  --color-nagorik-cream: #161010;
+  --color-nagorik-paper: #211A19;
+  --color-nagorik-line: #392D2A;
+  --color-nagorik-text: #EFE5E1;
+  --color-nagorik-muted: #8D7E79;
+  --color-nagorik-surface-2: #2B2220;
+  --color-nagorik-heading: #F3EBE8;
+  --color-nagorik-body-text: #EAE0DC;
+  --color-nagorik-secondary: #B5A59F;
+  --color-nagorik-border: #392D2A;
+  --color-nagorik-light-red: #402528;
+  --color-nagorik-soft-red: #2C1C1B;
+  --color-nagorik-red: #FF5A6A;
+  --color-nagorik-red-dark: #FF7080;
+}
+
+/* ---- Dark mode overrides for login page ---- */
+:root[data-theme="dark"] body {
+  background: #161010;
+  color: #EAE0DC;
+}
+
+:root[data-theme="dark"] .signin-desc {
+  color: #B5A59F;
+}
+
+:root[data-theme="dark"] .signin-sub {
+  color: #B5A59F;
+}
+
+:root[data-theme="dark"] .signin-switch {
+  color: #B5A59F;
+}
+
+:root[data-theme="dark"] .signin-switch button {
+  color: #B5A59F;
+}
+
+:root[data-theme="dark"] .signin-btn-outline {
+  background: transparent;
+  border-color: #FF7080;
+  color: #FF7080;
+}
+
+:root[data-theme="dark"] .signin-btn-outline:hover {
+  background: #FF7080;
+  color: #fff;
+}
+
+:root[data-theme="dark"] .signin-browse-link {
+  color: #FF7080;
+}
+
+:root[data-theme="dark"] .signin-browse-link::before {
+  background: #FF7080;
+}
+
+:root[data-theme="dark"] .signin-browse-link:hover {
+  color: #C8102E;
+}

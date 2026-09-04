@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import usePageStyles from '../hooks/usePageStyles'
 import AppHeader from '../components/AppHeader'
 import { getFeedIssues } from '../services/issuesService'
 import {
@@ -16,7 +15,6 @@ import {
   ShareNodesIcon,
 } from '../components/icons'
 
-// --- small local icons used only on this page (not part of the shared icon set) ---
 function ChevronLeftIcon({ size = 16 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -42,20 +40,17 @@ function CloseIcon({ size = 13 }) {
   )
 }
 
-// Keeps the seed data's zero-padded style ("02") once votes are toggled.
 function formatDown(value) {
   const n = Number(value)
   return Number.isNaN(n) ? value : String(n).padStart(2, '0')
 }
 
-// Seed comment thread — same lorem-ipsum placeholder convention as the rest of the seed data.
 const SEED_COMMENTS = [
   {
     id: 'c1',
     author: 'Abrar Patwary',
     time: '8h ago',
-    text:
-      'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui',
+    text: 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui',
     up: 12,
     down: '02',
     replies: [
@@ -63,8 +58,7 @@ const SEED_COMMENTS = [
         id: 'c1-r1',
         author: 'Abrar Patwary',
         time: '8h ago',
-        text:
-          'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui',
+        text: 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat. Duis autem vel eum iriure dolor in hendrerit in vulputate velit esse molestie consequat, vel illum dolore eu feugiat nulla facilisis at vero eros et accumsan et iusto odio dignissim qui',
         up: 12,
         down: '02',
         replies: [],
@@ -73,7 +67,6 @@ const SEED_COMMENTS = [
   },
 ]
 
-// Recursively keeps a comment (and its replies) if it or any descendant matches the search query.
 function filterComment(comment, q) {
   const hay = `${comment.author} ${comment.text}`.toLowerCase()
   const selfMatch = hay.includes(q)
@@ -82,37 +75,44 @@ function filterComment(comment, q) {
   return { ...comment, replies }
 }
 
-function CommentItem({ comment, votes, onVote, depth = 0 }) {
-  const myVote = votes[comment.id] || null
+function VoteOutline({ myVote, comment, onVote }) {
   const upCount = Number(comment.up) + (myVote === 'up' ? 1 : 0)
   const downCount = formatDown(Number(comment.down) + (myVote === 'down' ? 1 : 0))
 
   return (
-    <div className="pd-comment">
-      <div className="pd-comment-avatar" />
-      <div className="pd-comment-body">
-        <div className="pd-comment-head">
-          <span className="pd-comment-author">{comment.author}</span>
-          <span className="pd-comment-dot">•</span>
-          <span className="pd-comment-time">{comment.time}</span>
+    <div className="flex overflow-hidden rounded-full border-[1.5px] border-nagorik-light-red">
+      <button type="button" className={`flex items-center gap-[5px] border-0 bg-transparent px-[13px] py-[7px] text-[12px] font-bold text-nagorik-red font-[inherit] transition-colors ${myVote === 'up' ? 'bg-nagorik-soft-red' : ''}`} onClick={() => onVote(comment.id, 'up')}>
+        <VoteUpIcon size={14} />{upCount}
+      </button>
+      <div className="h-3.5 w-px bg-nagorik-light-red" />
+      <button type="button" className={`flex items-center gap-[5px] border-0 bg-transparent px-[13px] py-[7px] text-[12px] font-bold text-nagorik-red font-[inherit] transition-colors ${myVote === 'down' ? 'bg-nagorik-soft-red' : ''}`} onClick={() => onVote(comment.id, 'down')}>
+        <VoteDownIcon size={14} />{downCount}
+      </button>
+    </div>
+  )
+}
+
+function CommentItem({ comment, votes, onVote, depth = 0 }) {
+  const myVote = votes[comment.id] || null
+
+  return (
+    <div className="flex gap-3">
+      <div className="h-[38px] w-[38px] shrink-0 rounded-full border-2 border-nagorik-border bg-nagorik-surface-2"></div>
+      <div className="min-w-0 flex-1">
+        <div className="mb-1 flex items-center gap-1.5">
+          <span className="text-[14px] font-extrabold text-nagorik-heading">{comment.author}</span>
+          <span className="text-nagorik-muted">•</span>
+          <span className="text-[12.5px] text-nagorik-muted">{comment.time}</span>
         </div>
-        <p className="pd-comment-text">{comment.text}</p>
-        <div className="pd-comment-actions">
-          <div className="pd-vote-outline">
-            <button type="button" className={myVote === 'up' ? 'active' : undefined} onClick={() => onVote(comment.id, 'up')}>
-              <VoteUpIcon size={14} />{upCount}
-            </button>
-            <div className="sep" />
-            <button type="button" className={myVote === 'down' ? 'active' : undefined} onClick={() => onVote(comment.id, 'down')}>
-              <VoteDownIcon size={14} />{downCount}
-            </button>
-          </div>
-          <button type="button" className="pd-outline-pill"><CommentIcon size={14} />Reply</button>
-          <button type="button" className="pd-outline-pill"><ShareNodesIcon size={14} />share</button>
+        <p className="mb-2.5 text-[14px] leading-[1.6] text-nagorik-body-text">{comment.text}</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <VoteOutline myVote={myVote} comment={comment} onVote={onVote} />
+          <button type="button" className="flex items-center gap-[5px] rounded-full border-[1.5px] border-nagorik-light-red bg-transparent px-[15px] py-[7px] text-[12px] font-bold text-nagorik-red font-[inherit] cursor-pointer transition-colors hover:bg-nagorik-light-red"><CommentIcon size={14} />Reply</button>
+          <button type="button" className="flex items-center gap-[5px] rounded-full border-[1.5px] border-nagorik-light-red bg-transparent px-[15px] py-[7px] text-[12px] font-bold text-nagorik-red font-[inherit] cursor-pointer transition-colors hover:bg-nagorik-light-red"><ShareNodesIcon size={14} />share</button>
         </div>
 
         {comment.replies && comment.replies.length > 0 && (
-          <div className="pd-comment-children">
+          <div className="mt-3.5 flex flex-col gap-[18px] border-l-2 border-nagorik-border pl-5">
             {comment.replies.map((reply) => (
               <CommentItem key={reply.id} comment={reply} votes={votes} onVote={onVote} depth={depth + 1} />
             ))}
@@ -123,9 +123,7 @@ function CommentItem({ comment, votes, onVote, depth = 0 }) {
   )
 }
 
-export default function PostDetails() {
-  usePageStyles('app')
-
+export default function Login() {
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -134,7 +132,6 @@ export default function PostDetails() {
     return list.find((i) => String(i.id) === String(id)) || null
   }, [id])
 
-  // Supports a future `images: [...]` array on the issue; falls back to the single feed image.
   const images = useMemo(() => {
     if (!issue) return []
     if (Array.isArray(issue.images) && issue.images.length) return issue.images
@@ -182,13 +179,12 @@ export default function PostDetails() {
       <>
         <AppHeader
           logoHref="/"
-          navItems={[{ label: 'HOME', variant: 'active', icon: <HomeGlyph /> }]}
+          navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]}
           showIconButtons
-          showLogout
         />
-        <div className="post-detail-wrap">
-          <Link to="/browse_feed" className="pd-back-link"><ChevronLeftIcon size={16} />Back to feed</Link>
-          <p style={{ marginTop: 32, color: 'var(--muted)' }}>This post could not be found.</p>
+        <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px]">
+          <Link to="/browse_feed" className="mb-4 inline-flex items-center gap-1.5 bg-transparent p-0 text-[14px] font-bold text-nagorik-red font-[inherit] hover:underline"><ChevronLeftIcon size={16} />Back to feed</Link>
+          <p className="mt-8 text-nagorik-muted">This post could not be found.</p>
         </div>
       </>
     )
@@ -201,28 +197,27 @@ export default function PostDetails() {
     <>
       <AppHeader
         logoHref="/"
-        navItems={[{ label: 'HOME', variant: 'active', icon: <HomeGlyph /> }]}
+        navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]}
         showIconButtons
-        showLogout
       />
 
-      <div className="post-detail-wrap">
-        <button type="button" className="pd-back-link" onClick={() => navigate('/browse_feed')}>
+      <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px] max-[760px]:px-4">
+        <button type="button" className="mb-4 inline-flex items-center gap-1.5 bg-transparent p-0 text-[14px] font-bold text-nagorik-red font-[inherit] cursor-pointer hover:underline" onClick={() => navigate('/browse_feed')}>
           <ChevronLeftIcon size={16} />Back to feed
         </button>
 
-        <div className="pd-gallery">
-          <img src={images[activeImage]} alt={issue.alt || issue.title} />
-          <button type="button" className="pd-gallery-close" onClick={() => navigate('/browse_feed')} aria-label="Close">
+        <div className="relative h-[380px] overflow-hidden rounded-[18px] bg-nagorik-surface-2 max-[760px]:h-[240px]">
+          <img src={images[activeImage]} alt={issue.alt || issue.title} className="h-full w-full object-cover" />
+          <button type="button" className="absolute right-3.5 top-3.5 flex h-[30px] w-[30px] items-center justify-center rounded-full border-[1.5px] border-white/85 bg-[rgba(34,22,24,0.55)] text-white cursor-pointer" onClick={() => navigate('/browse_feed')} aria-label="Close">
             <CloseIcon size={13} />
           </button>
           {images.length > 1 && (
-            <div className="pd-gallery-dots">
+            <div className="absolute bottom-3.5 left-1/2 flex -translate-x-1/2 gap-2">
               {images.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
-                  className={idx === activeImage ? 'active' : undefined}
+                  className={`rounded-full border-0 bg-white/55 cursor-pointer p-0 ${idx === activeImage ? 'h-[9px] w-[9px] bg-white' : 'h-2 w-2'}`}
                   onClick={() => setActiveImage(idx)}
                   aria-label={`Show image ${idx + 1}`}
                 />
@@ -231,36 +226,35 @@ export default function PostDetails() {
           )}
         </div>
 
-        <h1 className="pd-title">{issue.title}</h1>
-        <div className="issue-meta pd-meta">
-          <span><PinIcon size={14} />{issue.area}</span>
-          <span><UserGlyph size={14} />{issue.reporter}</span>
-          <span><ClockIcon size={14} />{issue.time}</span>
+        <h1 className="mb-2.5 mt-[22px] text-[30px] font-extrabold leading-[1.25] text-nagorik-red max-[760px]:text-[22px]">{issue.title}</h1>
+        <div className="mb-[18px] flex flex-wrap items-center gap-[22px] text-[13px] text-nagorik-secondary">
+          <span className="flex items-center gap-1.5"><PinIcon size={14} />{issue.area}</span>
+          <span className="flex items-center gap-1.5"><UserGlyph size={14} />{issue.reporter}</span>
+          <span className="flex items-center gap-1.5"><ClockIcon size={14} />{issue.time}</span>
         </div>
 
-        <p className="pd-desc">
-          {issue.description ||
-            'Residents have noticed large trees in the north section cut down without any visible permits. Workers have been operating in the late evening hours, which has raised concerns among nearby households. This needs urgent investigation from the city corporation.'}
+        <p className="mb-[22px] text-[15px] leading-[1.7] text-nagorik-body-text">
+          {issue.description || 'Residents have noticed large trees in the north section cut down without any visible permits. Workers have been operating in the late evening hours, which has raised concerns among nearby households. This needs urgent investigation from the city corporation.'}
         </p>
 
-        <div className="issue-actions pd-actions">
-          <div className="vote-group">
-            <button type="button" className={myVote === 'up' ? 'active' : undefined} onClick={() => handlePostVote('up')}>
+        <div className="mb-[22px] flex flex-wrap items-center gap-2.5">
+          <div className="flex overflow-hidden rounded-full bg-nagorik-red">
+            <button type="button" className={`flex items-center gap-1.5 bg-transparent px-3.5 py-[9px] text-[13px] font-bold text-white font-[inherit] cursor-pointer transition-colors hover:bg-nagorik-hover-red ${myVote === 'up' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => handlePostVote('up')}>
               <VoteUpIcon size={14} />{upCount}
             </button>
-            <div className="sep" />
-            <button type="button" className={myVote === 'down' ? 'active' : undefined} onClick={() => handlePostVote('down')}>
+            <div className="h-4 w-px bg-white/35"></div>
+            <button type="button" className={`flex items-center gap-1.5 bg-transparent px-3.5 py-[9px] text-[13px] font-bold text-white font-[inherit] cursor-pointer transition-colors hover:bg-nagorik-hover-red ${myVote === 'down' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => handlePostVote('down')}>
               <VoteDownIcon size={14} />{downCount}
             </button>
           </div>
-          <button type="button" className="pill-action"><CommentIcon size={14} />{issue.comments}</button>
-          <button type="button" className="icon-pill"><RepostIcon /></button>
-          <button type="button" className="pill-action"><ShareNodesIcon />share</button>
+          <button type="button" className="flex items-center gap-2 rounded-full bg-nagorik-red px-4 py-[9px] text-[13px] font-bold text-white transition-colors hover:bg-nagorik-hover-red"><CommentIcon size={14} />{issue.comments}</button>
+          <button type="button" className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-nagorik-red text-white transition-colors hover:bg-nagorik-hover-red"><RepostIcon /></button>
+          <button type="button" className="flex items-center gap-2 rounded-full bg-nagorik-red px-4 py-[9px] text-[13px] font-bold text-white transition-colors hover:bg-nagorik-hover-red"><ShareNodesIcon />share</button>
         </div>
 
         <input
           type="text"
-          className="pd-join-input"
+          className="mb-[18px] w-full rounded-full border-[1.5px] border-nagorik-border bg-nagorik-surface-2 px-5 py-3.5 text-[14px] text-nagorik-muted font-[inherit] outline-none focus:border-nagorik-red focus:bg-white focus:text-nagorik-body-text"
           placeholder="Join the conversation"
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
@@ -269,34 +263,35 @@ export default function PostDetails() {
           }}
         />
 
-        <div className="pd-comment-toolbar">
-          <label className="pd-sort">
+        <div className="mb-[18px] flex flex-wrap items-center justify-between gap-3">
+          <label className="inline-flex items-center gap-1.5 text-[13px] font-bold text-nagorik-secondary">
             Sort by:
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="cursor-pointer border-0 bg-transparent text-[13px] font-extrabold text-nagorik-heading font-[inherit] outline-none">
               <option value="best">Best</option>
               <option value="newest">Newest</option>
               <option value="oldest">Oldest</option>
             </select>
             <ChevronDownIcon size={12} />
           </label>
-          <div className="pd-comment-search">
+          <div className="flex max-w-[280px] flex-1 items-center gap-2 rounded-full border border-nagorik-border bg-nagorik-surface-2 px-4 py-[9px] text-[13px] text-nagorik-muted max-[760px]:max-w-full">
             <SearchIcon size={14} />
             <input
               type="text"
               placeholder="Search Comments"
               value={commentQuery}
               onChange={(e) => setCommentQuery(e.target.value)}
+              className="w-full border-0 bg-transparent text-[13px] text-nagorik-body-text font-[inherit] outline-none"
             />
           </div>
         </div>
 
-        <div className="pd-comment-thread">
+        <div className="flex flex-col gap-[22px]">
           {visibleComments.length ? (
             visibleComments.map((comment) => (
               <CommentItem key={comment.id} comment={comment} votes={commentVotes} onVote={handleCommentVote} />
             ))
           ) : (
-            <p style={{ textAlign: 'center', color: 'var(--muted)', padding: '32px 0', fontSize: 14 }}>
+            <p className="py-8 text-center text-[14px] text-nagorik-muted">
               No comments match your search.
             </p>
           )}
