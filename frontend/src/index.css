@@ -1,3 +1,45 @@
+/* ---- Define Space Grotesk TTF Fonts ---- */
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("./assets/fonts/SpaceGrotesk-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("./assets/fonts/SpaceGrotesk-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("./assets/fonts/SpaceGrotesk-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("./assets/fonts/SpaceGrotesk-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+}
+
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --font-sans: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Space Grotesk", sans-serif;
+  --font-mono: "Space Grotesk", monospace;
+
+  /* Keep your color definitions below... */
+}
+
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -28,10 +70,14 @@
   --color-nagorik-blue-500: #FF7080;
   --color-nagorik-dark-login-side: #dedede;
 
-  --font-display: "Hind Siliguri", Georgia, serif;
+  --font-display: "Space Grotesk", Georgia, serif;
+  --font-body: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Space Grotesk", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+  /*--font-display: "Hind Siliguri", Georgia, serif;
   --font-body: "Hind Siliguri", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "Hind Siliguri", ui-monospace, SFMono-Regular, Menlo, monospace;
-}
+}*/
 
 /* ---- Global resets ---- */
 *, *::before, *::after { box-sizing: border-box; }

@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 const FIELD_DEFAULTS = {
-  fullName: 'Abrar Bin Patwary',
-  username: 'abrar.patwary',
+  fullName: 'Arafath Akit',
+  username: 'Sumur Akib',
   bio: 'Civic volunteer in Dhanmondi and Mohammadpur. Reporting what I see, one issue at a time.',
-  email: 'abrar.patwary@email.com',
+  email: 'akib_sumu@email.com',
   phone: '+880 1XXX-XXXXXX',
   homeArea: 'Bnasree, Dhaka',
 }
