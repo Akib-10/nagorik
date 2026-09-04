@@ -1,3 +1,8 @@
+@font-face {
+  font-family: space_grotesk;
+  src: url(../assets/fonts/space-grotesk.woff2) format("woff2");
+}
+
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
@@ -28,10 +33,14 @@
   --color-nagorik-blue-500: #FF7080;
   --color-nagorik-dark-login-side: #dedede;
 
-  --font-display: "Hind Siliguri", Georgia, serif;
+  --font-display: "Space Grotesk", Georgia, serif;
+  --font-body: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Space Grotesk", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+  /*--font-display: "Hind Siliguri", Georgia, serif;
   --font-body: "Hind Siliguri", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: "Hind Siliguri", ui-monospace, SFMono-Regular, Menlo, monospace;
-}
+}*/
 
 /* ---- Global resets ---- */
 *, *::before, *::after { box-sizing: border-box; }
