@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/Akib-10/nagorik#readme",
   "dependencies": {
+    "clsx": "^2.1.1",
     "pdfkit": "^0.19.1"
   }
 }
