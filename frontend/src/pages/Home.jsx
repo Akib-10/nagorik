@@ -237,7 +237,7 @@ export default function Home() {
                 "flex-wrap",
                 "items-center",
                 "justify-center",
-                "gap-3.5",
+                "gap-5.5",
               )}
             >
               <AuthLink
@@ -250,17 +250,17 @@ export default function Home() {
                   "rounded-full",
                   "border-2",
                   "border-nagorik-line",
-                  "bg-transparent",
+                  "bg-nagorik-red",
+                  "!text-white",
                   "px-7",
                   "py-[11px]",
                   "text-[15px]",
                   "font-semibold",
-                  "text-nagorik-text",
                   "transition-all",
                   "duration-150",
                   "hover:-translate-y-px",
-                  "hover:bg-nagorik-red",
-                  "hover:border-nagorik-red",
+                  "hover:bg-nagorik-red-dark",
+                  "hover:border-nagorik-red-dark",
                   "hover:text-white",
                   "hover:shadow-[0_10px_24px_-10px_rgba(200,16,46,0.55)]",
                   "hover:px-10",
@@ -284,22 +284,22 @@ export default function Home() {
                   "rounded-full",
                   "border-2",
                   "border-nagorik-line",
-                  "bg-transparent",
-                  "px-7",
+                  "bg-nagorik-red",
+                  "px-9",
                   "py-[11px]",
                   "text-[15px]",
                   "font-semibold",
-                  "text-nagorik-text",
+                  "!text-white",
                   "transition-all",
                   "duration-150",
                   "hover:-translate-y-px",
-                  "hover:bg-nagorik-red",
+                  "hover:bg-nagorik-red-dark",
                   "hover:border-nagorik-red",
                   "hover:text-white",
                   "hover:shadow-[0_10px_24px_-10px_rgba(200,16,46,0.55)]",
-                  "hover:px-10",
+                  "hover:px-12",
                   "hover:bg-nagorik-red",
-                  "hover:border-nagorik-red",
+                  "hover:border-nagorik-red-dark",
                   "hover:!text-white",
                   "dark:border-white/25",
                   "dark:text-white",
@@ -313,7 +313,11 @@ export default function Home() {
 
         {/* ============ STATS ============ */}
         <section
-          className={clsx("bg-nagorik-ink-soft", "py-[38px]", "text-white")}
+          className={clsx(
+            "bg-nagorik-ink-soft", 
+            "py-[38px]", 
+            "text-white"
+          )}
         >
           <div
             className={clsx(
