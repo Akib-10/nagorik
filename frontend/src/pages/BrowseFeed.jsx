@@ -175,7 +175,7 @@ export default function BrowseFeed() {
         navItems={[
           {
             label: "HOME",
-            to: "/browse-feed",
+            to: "/browse_feed",
             variant: "active",
             icon: <HomeGlyph />,
           },

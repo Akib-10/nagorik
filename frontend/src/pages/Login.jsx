@@ -27,38 +27,50 @@ export default function BrowseFeed() {
     setError("");
   };
 
-  const handleSignIn = (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError("Please enter your email and password.");
-      return;
-    }
-    signIn({ email, isAdmin: false });
+  const handleSignIn = async (e) => {
+  e.preventDefault();
+  if (!email || !password) {
+    setError("Please enter your email and password.");
+    return;
+  }
+  try {
+    await signIn({ email, password });
     navigate(redirectTo, { replace: true });
-  };
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
-  const handleAdminSignIn = () => {
-    if (!email || !password) {
-      setError("Enter your email and password, then use Sign in as Admin.");
-      return;
-    }
-    signIn({ email, isAdmin: true });
+const handleAdminSignIn = async () => {
+  if (!email || !password) {
+    setError("Enter your email and password, then use Sign in as Admin.");
+    return;
+  }
+  try {
+    await signIn({ email, password });
     navigate(redirectTo, { replace: true });
-  };
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
-  const handleRegister = (e) => {
-    e.preventDefault();
-    if (!name || !email || !password || !confirm) {
-      setError("Please fill in every field.");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    register({ name, email });
+const handleRegister = async (e) => {
+  e.preventDefault();
+  if (!name || !email || !password || !confirm) {
+    setError("Please fill in every field.");
+    return;
+  }
+  if (password !== confirm) {
+    setError("Passwords do not match.");
+    return;
+  }
+  try {
+    await register({ name, email, password });
     navigate("/browse_feed", { replace: true });
-  };
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
   return (
     <div
