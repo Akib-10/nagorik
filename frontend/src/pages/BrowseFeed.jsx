@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import Footer from "../components/Footer";
 import { getFeedIssues, getTrendingIssues } from "../services/issuesService";
-import heroImg from "../assets/images/artwork_red_container.png";
+import heroImg from "../assets/images/artwork_red_container.png"
 import {
   HomeGlyph,
   SearchIcon,
@@ -340,6 +341,7 @@ export default function BrowseFeed() {
           </div>
         </aside>
       </div>
+      <Footer />
     </>
   );
 }
