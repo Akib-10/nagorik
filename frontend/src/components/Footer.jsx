@@ -6,7 +6,6 @@ export default function LandingFooter() {
   return (
     <footer className="mt-24 bg-nagorik-ink px-6 py-12 text-white/70">
       <div className="mx-auto flex max-w-[1160px] flex-col items-center gap-8 text-center">
-
         {/* Logo & Bio */}
         <div className="flex flex-col items-center gap-3 max-w-[860px]">
           <img src={logo} alt="নাগরিক logo" className="h-[60px] w-auto" />

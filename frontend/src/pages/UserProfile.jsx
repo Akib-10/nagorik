@@ -75,7 +75,7 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const [activeContribution, setActiveContribution] = useState("recent");
   const [activeStatus, setActiveStatus] = useState("All");
-  const [reports, setReports] = useState([]);
+const [reports, setReports] = useState([]);
 
   useEffect(() => {
     getMyReports().then(setReports).catch(console.error);
@@ -92,15 +92,10 @@ export default function UserProfile() {
     document.documentElement.lang = "bn";
   }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deletingId) return;
-    const confirmDelete = async () => {
-      if (!deletingId) return;
-      await deleteReport(deletingId);
-      setReports((prev) => prev.filter((r) => r._id !== deletingId));
-      if (expandedId === deletingId) setExpandedId(null);
-      setDeletingId(null);
-    };
+    await deleteReport(deletingId);
+    setReports((prev) => prev.filter((r) => r._id !== deletingId));
     if (expandedId === deletingId) setExpandedId(null);
     setDeletingId(null);
   };
@@ -159,7 +154,7 @@ export default function UserProfile() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="mb-1 text-[22px] font-extrabold text-nagorik-red">{displayName}</h1>
+<h1 className="mb-1 text-[22px] font-extrabold text-nagorik-red">{displayName}</h1>
                 <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#a8525c] dark:text-[#D98A93]">
                   <ClockIcon size={13} /> Joined Date: 04 Nov, 2024
                 </span>
@@ -178,7 +173,7 @@ export default function UserProfile() {
                   <span className="text-[12px] font-semibold text-[#a3a39e]">{card.label}</span>
                   <span className="mt-auto flex items-center gap-2.5 pt-2.5 text-nagorik-red">
                     {card.icon}
-                    <span className="text-[28px] font-extrabold leading-none text-[#111110] dark:text-nagorik-heading">{card.count}</span>
+<span className="text-[28px] font-extrabold leading-none text-[#111110] dark:text-nagorik-heading">{card.count}</span>
                   </span>
                 </button>
               ))}

@@ -141,12 +141,12 @@ export default function Home() {
           <div
             className={clsx(
               "w-full",
-              "max-w-[920px]",
+"max-w-[920px]",
               "px-7",
               "pt-[25px]",
               "pb-[65px]",
               "text-center",
-              "max-[480px]:pt-[24px]",
+"max-[480px]:pt-[24px]",
               "max-[480px]:pb-[60px]",
             )}
           >
