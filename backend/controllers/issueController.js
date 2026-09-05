@@ -1,8 +1,10 @@
 const Issue = require('../models/Issue');
 
 // GET /api/issues — public feed
+// সবাই খালি চোখে issue list দেখতে পারবে (login লাগবে না)
 exports.getIssues = async (req, res) => {
   try {
+    // newest report আগে দেখাবে — createdAt দিয়ে sort
     const issues = await Issue.find().sort({ createdAt: -1 });
     res.json(issues);
   } catch (err) {
@@ -11,6 +13,7 @@ exports.getIssues = async (req, res) => {
 };
 
 // GET /api/issues/mine — শুধু নিজেরটা
+// logged-in user-এর নিজের report list ফেরত দেয়
 exports.getMyIssues = async (req, res) => {
   try {
     const issues = await Issue.find({ user: req.user._id }).sort({ createdAt: -1 });
@@ -20,9 +23,11 @@ exports.getMyIssues = async (req, res) => {
   }
 };
 
-// POST /api/issues
+// POST /api/issues — নতুন report তৈরি
+// frontend থেকে আসা সব field (title, area, photos...) DB-তে সেভ হয়
 exports.createIssue = async (req, res) => {
   try {
+    // user id-token থেকে protect middleware set করে দেয়
     const issue = await Issue.create({ ...req.body, user: req.user._id });
     res.status(201).json(issue);
   } catch (err) {
@@ -30,7 +35,8 @@ exports.createIssue = async (req, res) => {
   }
 };
 
-// PUT /api/issues/:id — মালিক ছাড়া কেউ এডিট করতে পারবে না
+// PUT /api/issues/:id — report edit/update
+// মালিক ছাড়া কেউ এডিট করতে পারবে না (ownership check)
 exports.updateIssue = async (req, res) => {
   try {
     const issue = await Issue.findById(req.params.id);
@@ -46,7 +52,8 @@ exports.updateIssue = async (req, res) => {
   }
 };
 
-// DELETE /api/issues/:id
+// DELETE /api/issues/:id — report মুছে ফেলা
+// শুধু মালিক delete করতে পারবে
 exports.deleteIssue = async (req, res) => {
   try {
     const issue = await Issue.findById(req.params.id);
