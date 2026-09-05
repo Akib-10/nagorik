@@ -14,6 +14,8 @@ import {
   CheckIcon,
   ChevronDownIcon,
 } from "../components/icons";
+import AppHeader from "../components/AppHeader";
+import LandingFooter from "../components/LandingFooter";
 
 const STEP_TITLES = {
   1: "Issue Details",
@@ -44,7 +46,6 @@ function StepProgress({ currentStep }) {
     >
       <div
         className={clsx(
-          //progress bar full shape
           "relative",
           "h-[34px]",
           "w-full",
@@ -54,41 +55,11 @@ function StepProgress({ currentStep }) {
         )}
       >
         <div
-          className={clsx(
-            //progress bar step 1 shape
-            "absolute", 
-            "inset-y-0", 
-            "left-0", 
-            "rounded-full", 
-            "bg-gradient-to-r", 
-            "from-nagorik-red", 
-            "to-nagorik-red/25", 
-            "transition-[width]", 
-            "duration-300", 
-            "ease-out"
-          )}
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-nagorik-red to-nagorik-red/25 transition-[width] duration-300 ease-out"
           style={{ width: `${fillPct}%` }}
         />
         <div
-          className={clsx(
-            "absolute",
-            "top-1/2",
-            "flex",
-            "h-5",
-            "w-5",
-            "-translate-y-1/2",
-            "items-center",
-            "justify-center",
-            "rounded-full",
-            "bg-white",
-            "text-nagorik-red",
-            "shadow-[0_2px_6px_rgba(0,0,0,0.25)]",
-            "transition-[left]",
-            "duration-300",
-            "ease-out",
-            "text-[12px]",
-            "font-bold"
-          )}
+          className="absolute top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white text-nagorik-red shadow-[0_2px_6px_rgba(0,0,0,0.25)] transition-[left] duration-300 ease-out text-[12px] font-bold"
           style={{ left: `calc(${markerLeftPct}% - 18px)` }}
         >
           <CheckIcon />
@@ -287,7 +258,9 @@ export default function ReportIssue() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-[1160px] overflow-x-hidden px-4 py-6 sm:px-7 sm:py-9">
+    <>
+      <AppHeader />
+      <main className="mx-auto w-full max-w-[1160px] overflow-x-hidden px-4 py-6 sm:px-7 sm:py-9">
       {/* Header row: icon-only back button (left), centered step title (middle), spacer (right) keeps the title visually centered on the page */}
       <div className="mb-6 grid grid-cols-[26px_1fr_26px] items-center gap-3 sm:mb-9 sm:gap-4">
         <button
@@ -768,6 +741,8 @@ export default function ReportIssue() {
           </button>
         </div>
       </section>
-    </main>
+      </main>
+      <LandingFooter />
+    </>
   );
 }
