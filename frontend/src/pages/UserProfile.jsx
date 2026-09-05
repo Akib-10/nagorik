@@ -63,9 +63,13 @@ function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
             ))}
             {issue.canEdit && (
               <div className="mt-4 flex justify-end pt-1">
-                <button type="button" className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3.5 py-1.5 text-[12px] font-bold text-red-600 transition-colors hover:bg-red-600 hover:text-white dark:border-red-800 dark:bg-red-950/30 dark:text-red-400" onClick={() => onDelete(issue.id)}>
-                  <TrashIcon />Delete Issue
-                </button>
+                  <button 
+                  type="button" 
+                  className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-[#C8102E]/30 bg-[#C8102E]/10 px-3.5 py-1.5 text-[12px] font-bold text-[#C8102E] transition-colors hover:bg-[#C8102E] hover:text-white" 
+                  onClick={() => onDelete(issue.id)}
+                  >
+                  <TrashIcon />Delete Report
+                  </button>
               </div>
             )}
           </div>
