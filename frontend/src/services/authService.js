@@ -1,4 +1,4 @@
-const API_BASE = '/api/auth'
+const API_BASE = 'http://localhost:5000/api/auth'
 
 export function isAuthenticated() {
   return localStorage.getItem('nagorik_auth') === 'true'
@@ -14,7 +14,7 @@ export function getUser() {
 
 function saveSession(data) {
   localStorage.setItem('nagorik_auth', 'true')
-localStorage.setItem('nagorik_token', data.token)
+  localStorage.setItem('nagorik_token', data.token)
   localStorage.setItem(
     'nagorik_user',
     JSON.stringify({

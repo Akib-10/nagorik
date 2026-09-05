@@ -28,49 +28,49 @@ export default function BrowseFeed() {
   };
 
   const handleSignIn = async (e) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setError("Please enter your email and password.");
-      return;
-    }
-    try {
-      await signIn({ email, password });
-      navigate(redirectTo, { replace: true });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+  e.preventDefault();
+  if (!email || !password) {
+    setError("Please enter your email and password.");
+    return;
+  }
+  try {
+    await signIn({ email, password });
+    navigate(redirectTo, { replace: true });
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
-  const handleAdminSignIn = async () => {
-    if (!email || !password) {
-      setError("Enter your email and password, then use Sign in as Admin.");
-      return;
-    }
-    try {
-      await signIn({ email, password });
-      navigate(redirectTo, { replace: true });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+const handleAdminSignIn = async () => {
+  if (!email || !password) {
+    setError("Enter your email and password, then use Sign in as Admin.");
+    return;
+  }
+  try {
+    await signIn({ email, password });
+    navigate(redirectTo, { replace: true });
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    if (!name || !email || !password || !confirm) {
-      setError("Please fill in every field.");
-      return;
-    }
-    if (password !== confirm) {
-      setError("Passwords do not match.");
-      return;
-    }
-    try {
-      await register({ name, email, password });
-      navigate("/browse_feed", { replace: true });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
+const handleRegister = async (e) => {
+  e.preventDefault();
+  if (!name || !email || !password || !confirm) {
+    setError("Please fill in every field.");
+    return;
+  }
+  if (password !== confirm) {
+    setError("Passwords do not match.");
+    return;
+  }
+  try {
+    await register({ name, email, password });
+    navigate("/browse_feed", { replace: true });
+  } catch (err) {
+    setError(err.message);
+  }
+};
 
   return (
     <div
@@ -265,6 +265,9 @@ export default function BrowseFeed() {
 
       {/* ============ RIGHT SIGN-IN PANEL ============ */}
       <main
+        /* right panel background properties */
+
+        //right panel background
         className={clsx(
           "relative",
           "flex",
@@ -286,6 +289,7 @@ export default function BrowseFeed() {
         }}
       >
         <div
+          //white card
           className={clsx(
             "relative",
             "z-[2]",
@@ -306,6 +310,7 @@ export default function BrowseFeed() {
           {mode === "signin" ? (
             <>
               <h1
+                //"sign in" Heading
                 className={clsx(
                   "mb-[5px]",
                   "pb-[20px]",
@@ -371,6 +376,7 @@ export default function BrowseFeed() {
                 <div className={clsx("mb-3.5")}>
                   <label
                     htmlFor="password"
+                    //password text
                     className={clsx(
                       "mb-[5px]",
                       "block",
@@ -431,6 +437,7 @@ export default function BrowseFeed() {
                 <button
                   type="submit"
                   className={clsx(
+                    //sign in button
                     "signin-btn-primary",
                     "mt-[15px]",
                     "h-[51px]",
@@ -452,6 +459,7 @@ export default function BrowseFeed() {
                 <button
                   type="button"
                   className={clsx(
+                    //admin button
                     "signin-btn-outline",
                     "mt-[17px]",
                     "h-[52px]",
@@ -476,6 +484,7 @@ export default function BrowseFeed() {
 
               <p
                 className={clsx(
+                  // "don't have an account?" text
                   "signin-switch",
                   "pt-3",
                   "text-center",
@@ -505,6 +514,7 @@ export default function BrowseFeed() {
           ) : (
             <>
               <h1
+                //"create account" Heading
                 className={clsx(
                   "mb-[5px]",
                   "pb-[20px]",
@@ -524,6 +534,7 @@ export default function BrowseFeed() {
                 <div className={clsx("mb-3.5")}>
                   <label
                     htmlFor="name"
+                    //full name text
                     className={clsx(
                       "mb-[5px]",
                       "block",
@@ -616,6 +627,7 @@ export default function BrowseFeed() {
                 <div className={clsx("mb-3.5")}>
                   <label
                     htmlFor="regPassword"
+                    //password text
                     className={clsx(
                       "mb-[5px]",
                       "block",
@@ -662,6 +674,7 @@ export default function BrowseFeed() {
                 <div className={clsx("mb-3.5")}>
                   <label
                     htmlFor="confirm"
+                    //confirm password text
                     className={clsx(
                       "mb-[5px]",
                       "block",
@@ -722,6 +735,7 @@ export default function BrowseFeed() {
                 <button
                   type="submit"
                   className={clsx(
+                    //create account button
                     "signin-btn-primary",
                     "mt-[15px]",
                     "h-[51px]",
@@ -743,6 +757,7 @@ export default function BrowseFeed() {
 
               <p
                 className={clsx(
+                  // "already have an account?" text
                   "signin-switch",
                   "pt-3",
                   "text-center",
