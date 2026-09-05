@@ -14,7 +14,7 @@ export function getUser() {
 
 function saveSession(data) {
   localStorage.setItem('nagorik_auth', 'true')
-  localStorage.setItem('nagorik_token', data.token) //token save hocche
+localStorage.setItem('nagorik_token', data.token)
   localStorage.setItem(
     'nagorik_user',
     JSON.stringify({

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
+import Footer from "../components/Footer";
 import { getFeedIssues, getTrendingIssues } from "../services/issuesService";
 import heroImg from "../assets/images/artwork_red_container.png";
 import {
@@ -45,7 +46,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
   return (
     <article
       className="flex gap-5 rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] p-3.5 transition-all duration-150 dark:bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] max-[760px]:flex-col"
-      onClick={() => onOpen(issue._id)}
+onClick={() => onOpen(issue._id)}
       style={{ cursor: "pointer" }}
     >
       <div className="h-[158px] w-[210px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2 max-[760px]:h-[180px] max-[760px]:w-full">
@@ -140,7 +141,7 @@ export default function BrowseFeed() {
     document.documentElement.lang = "bn";
   }, []);
 
-  const [feedIssues, setFeedIssues] = useState([]);
+const [feedIssues, setFeedIssues] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -149,9 +150,8 @@ export default function BrowseFeed() {
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []); 
-  
-  const trendingIssues = useMemo(() => getTrendingIssues(), []);
 
+  const trendingIssues = useMemo(() => getTrendingIssues(), []);
   const visibleIssues = useMemo(() => {
     let list = feedIssues;
     if (activeTab === "ongoing")
@@ -349,6 +349,7 @@ export default function BrowseFeed() {
           </div>
         </aside>
       </div>
+      <Footer />
     </>
   );
 }
