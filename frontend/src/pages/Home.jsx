@@ -141,12 +141,12 @@ export default function Home() {
           <div
             className={clsx(
               "w-full",
-              "max-w-[920px]",
+              "max-w-[1000px]",
               "px-7",
               "pt-[25px]",
               "pb-[65px]",
               "text-center",
-              "max-[480px]:pt-[24px]",
+              "max-[480px]:pt-[20px]",
               "max-[480px]:pb-[60px]",
             )}
           >
@@ -158,12 +158,13 @@ export default function Home() {
                 "items-center",
                 "gap-2",
                 "rounded-full",
+                "text-[clamp(10,1vw,25px)]",
                 "border-1",
                 "border-nagorik-red/16",
                 "bg-nagorik-red/7",
                 "px-[18px]",
                 "py-2",
-                "text-[13.5px]",
+                "text-[12px]",
                 "font-semibold",
                 "text-nagorik-red-dark",
               )}
