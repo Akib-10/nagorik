@@ -373,6 +373,25 @@ export default function ReportIssue() {
             </div>
           </div>
 
+          {/* Date Noticed — new date picker field */}
+          <div className="flex min-w-0 flex-col">
+            <label
+              htmlFor="issueDate"
+              className="mb-2.5 text-[15px] font-extrabold text-nagorik-heading sm:text-[17px]"
+            >
+              Date Noticed
+            </label>
+            <input
+              id="issueDate"
+              type="date"
+              required
+              max={new Date().toISOString().split("T")[0]}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full min-w-0 rounded-full border border-nagorik-border bg-nagorik-cream py-4 pl-5 pr-5 text-[14px] text-nagorik-heading font-[inherit] outline-none transition-colors duration-150 focus:border-nagorik-red focus:bg-white"
+            />
+          </div>
+
           <div className="flex min-w-0 flex-col">
             <label
               htmlFor="issueDesc"
