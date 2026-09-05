@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react'
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { getMyReports, getUpvotedIssues, deleteReport } from "../services/issuesService";
@@ -18,11 +18,7 @@ function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
   return (
     <article className="flex items-center gap-[18px] rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_62%)] p-3.5 max-[760px]:flex-col max-[760px]:items-stretch">
       <div className="h-[118px] w-[118px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2">
-        <img
-          src={issue.img}
-          alt={issue.title}
-          className="h-full w-full object-cover"
-        />
+        <img src={issue.img} alt={issue.title} className="h-full w-full object-cover" />
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
         <div className="flex flex-wrap items-center gap-2.5">
@@ -79,7 +75,11 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const [activeContribution, setActiveContribution] = useState("recent");
   const [activeStatus, setActiveStatus] = useState("All");
-  const [reports, setReports] = useState(() => getMyReports());
+const [reports, setReports] = useState([]);
+
+  useEffect(() => {
+    getMyReports().then(setReports).catch(console.error);
+  }, []);
   const [expandedId, setExpandedId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -92,16 +92,20 @@ export default function UserProfile() {
     document.documentElement.lang = "bn";
   }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (!deletingId) return;
-    setReports(deleteReport(deletingId));
+    await deleteReport(deletingId);
+    setReports((prev) => prev.filter((r) => r._id !== deletingId));
     if (expandedId === deletingId) setExpandedId(null);
     setDeletingId(null);
   };
 
   const format = (list, badge, canEdit = false, prefix = "") =>
-    list.map((r) => ({ ...r, id: prefix ? `${prefix}-${r.id}` : r.id, activityBadge: badge, canEdit, statusLabel: r.statusLabel || "Open" }));
-
+  list.map((r) => {
+    const rawId = r._id || r.id;
+    return { ...r, id: prefix ? `${prefix}-${rawId}` : rawId, activityBadge: badge, canEdit, statusLabel: r.statusLabel || "Open" };
+  });
+  
   const getDisplayedItems = () => {
     const categories = {
       recent: [...format(reports, "Reported by you", true), ...format(upvotedIssues, "Upvoted by you"), ...format(reports.slice(0, 1), "Commented by you", false, "comment")],
@@ -150,9 +154,7 @@ export default function UserProfile() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="mb-1 text-[22px] font-extrabold text-nagorik-red">
-                  {displayName}
-                </h1>
+<h1 className="mb-1 text-[22px] font-extrabold text-nagorik-red">{displayName}</h1>
                 <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#a8525c] dark:text-[#D98A93]">
                   <ClockIcon size={13} /> Joined Date: 04 Nov, 2024
                 </span>
@@ -171,9 +173,7 @@ export default function UserProfile() {
                   <span className="text-[12px] font-semibold text-[#a3a39e]">{card.label}</span>
                   <span className="mt-auto flex items-center gap-2.5 pt-2.5 text-nagorik-red">
                     {card.icon}
-                    <span className="text-[28px] font-extrabold leading-none text-[#111110] dark:text-nagorik-heading">
-                      {card.count}
-                    </span>
+<span className="text-[28px] font-extrabold leading-none text-[#111110] dark:text-nagorik-heading">{card.count}</span>
                   </span>
                 </button>
               ))}
