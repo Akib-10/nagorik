@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
-import { getFeedIssues } from '../services/issuesService'
+import { getFeedIssues, getMyReports } from '../services/issuesService'
 import {
   HomeGlyph,
   SearchIcon,
@@ -128,9 +128,14 @@ export default function Login() {
   const navigate = useNavigate()
 
   const issue = useMemo(() => {
-    const list = getFeedIssues()
-    return list.find((i) => String(i.id) === String(id)) || null
-  }, [id])
+  // Search both feed issues AND user reports
+  const allIssues = [...getFeedIssues(), ...getMyReports()]
+  
+  // Clean 'comment-' prefix if clicked from a comment highlight
+  const cleanId = String(id).replace('comment-', '')
+  
+  return allIssues.find((i) => String(i.id) === cleanId) || null
+}, [id])
 
   const images = useMemo(() => {
     if (!issue) return []
