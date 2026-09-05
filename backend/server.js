@@ -4,11 +4,13 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
+const issueRoutes = require('./routes/issueRoutes');
+// ...
 
 const app = express();
 app.use(cors());
-app.use(express.json());
-
+app.use(express.json({ limit: '10mb' }));
+app.use('/api/issues', issueRoutes);
 app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {

@@ -75,7 +75,11 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const [activeContribution, setActiveContribution] = useState("recent");
   const [activeStatus, setActiveStatus] = useState("All");
-  const [reports, setReports] = useState(() => getMyReports());
+  const [reports, setReports] = useState([]);
+
+  useEffect(() => {
+    getMyReports().then(setReports).catch(console.error);
+  }, []);
   const [expandedId, setExpandedId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -90,14 +94,23 @@ export default function UserProfile() {
 
   const confirmDelete = () => {
     if (!deletingId) return;
-    setReports(deleteReport(deletingId));
+    const confirmDelete = async () => {
+      if (!deletingId) return;
+      await deleteReport(deletingId);
+      setReports((prev) => prev.filter((r) => r._id !== deletingId));
+      if (expandedId === deletingId) setExpandedId(null);
+      setDeletingId(null);
+    };
     if (expandedId === deletingId) setExpandedId(null);
     setDeletingId(null);
   };
 
   const format = (list, badge, canEdit = false, prefix = "") =>
-    list.map((r) => ({ ...r, id: prefix ? `${prefix}-${r.id}` : r.id, activityBadge: badge, canEdit, statusLabel: r.statusLabel || "Open" }));
-
+  list.map((r) => {
+    const rawId = r._id || r.id;
+    return { ...r, id: prefix ? `${prefix}-${rawId}` : rawId, activityBadge: badge, canEdit, statusLabel: r.statusLabel || "Open" };
+  });
+  
   const getDisplayedItems = () => {
     const categories = {
       recent: [...format(reports, "Reported by you", true), ...format(upvotedIssues, "Upvoted by you"), ...format(reports.slice(0, 1), "Commented by you", false, "comment")],
