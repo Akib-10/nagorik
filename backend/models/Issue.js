@@ -1,11 +1,28 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const issueSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true },
+    title: { 
+      type: String, 
+      required: true 
+    },
+
+    priority: { 
+      type: String, 
+      default: 'Medium'
+     },
+     
+     category: { 
+       type: String 
+     },
+
+     date: {
+      type: String
+     },
+
     area: String,
-    category: String,
-    priority: { type: String, default: 'Medium' },
+    
+    
     date: String,
     description: String,
     address: String,
@@ -21,4 +38,5 @@ const issueSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Issue', issueSchema);
+const Issue = mongoose.model('Issue', issueSchema);
+export default Issue;

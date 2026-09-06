@@ -1,6 +1,6 @@
 // backend/controllers/authController.js
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
 
 const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
@@ -9,7 +9,7 @@ const generateToken = (userId) => {
 };
 
 // POST /api/auth/register
-exports.registerUser = async (req, res) => {
+export async function registerUser(req, res) {
   try {
     const { name, email, password } = req.body;
 
@@ -34,10 +34,10 @@ exports.registerUser = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-};
+}
 
 // POST /api/auth/login
-exports.loginUser = async (req, res) => {
+export async function loginUser(req, res) {
   try {
     const { email, password } = req.body;
 
@@ -65,4 +65,4 @@ exports.loginUser = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-};
+}

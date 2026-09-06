@@ -1,16 +1,24 @@
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-require('dotenv').config();
-const connectDB = require('./config/db');
-const authRoutes = require('./routes/authRoutes');
-const issueRoutes = require('./routes/issueRoutes');
+import express from 'express';
+import cors from 'cors';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+dotenv.config();
+
+import { connectDB } from './config/db.js';
+import authRoutes from './routes/authRoutes.js';
+import issueRoutes from './routes/issueRoutes.js';
+// ==== PROFILE EDIT: START ====
+import profileRoutes from './routes/profileRoutes.js';
+// ==== PROFILE EDIT: END ====
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/issues', issueRoutes);
 app.use('/api/auth', authRoutes);
+// ==== PROFILE EDIT: START ====
+app.use('/api/profile', profileRoutes);
+// ==== PROFILE EDIT: END ====
 
 app.get('/', (req, res) => {
   res.send('Server is running');
