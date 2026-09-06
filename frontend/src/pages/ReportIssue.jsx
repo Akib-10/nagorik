@@ -110,9 +110,17 @@ function StepProgress({ currentStep }) {
 export default function ReportIssue() {
   const navigate = useNavigate();
   const location = useLocation();
-  const editing = location.state?.editId
-    ? findReport(location.state.editId)
-    : null;
+  // backend থেকে edit-এর report ঠিক async ভাবে load হয়
+  // (findReport এখন API call — synchronous Promise না)
+  const [editing, setEditing] = useState(null);
+
+  useEffect(() => {
+    if (location.state?.editId) {
+      findReport(location.state.editId)
+        .then(setEditing)
+        .catch(() => setEditing(null));
+    }
+  }, [location.state?.editId]);
 
   // currentStep is the single source of truth for which step is shown —
   // only changed via goStep(), called from Next/Back/Preview buttons.
@@ -235,14 +243,18 @@ export default function ReportIssue() {
       fullAddress,
       coordsText,
       photos: filledPhotos,
+      img: filledPhotos[0] || "",
     };
     if (editing) {
-      updateReport(editing.id, reportData);
-      alert("Report updated!");
+      // backend report-এর _id দিয়ে update হয়
+      updateReport(editing._id || editing.id, reportData)
+        .then(() => alert("Report updated!"))
+        .catch((err) => alert("Update failed: " + err.message));
       navigate("/user");
     } else {
-      submitReport(reportData);
-      alert("Report submitted! Our team will review it soon.");
+      submitReport(reportData)
+        .then(() => alert("Report submitted! Our team will review it soon."))
+        .catch((err) => alert("Submission failed: " + err.message));
       navigate("/browse_feed");
     }
   };

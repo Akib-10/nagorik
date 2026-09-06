@@ -13,6 +13,7 @@ import profileRoutes from './routes/profileRoutes.js';
 
 const app = express();
 app.use(cors());
+// 10mb limit — report-এ base64 photo আপলোড থাকে, তাই বড় body allow করছি
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/issues', issueRoutes);
 app.use('/api/auth', authRoutes);

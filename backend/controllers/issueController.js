@@ -1,8 +1,14 @@
 import Issue from '../models/Issue.js';
 
 // GET /api/issues — public feed
+<<<<<<< HEAD
 export async function getIssues(req, res) {
+=======
+// সবাই খালি চোখে issue list দেখতে পারবে (login লাগবে না)
+exports.getIssues = async (req, res) => {
+>>>>>>> 1a32d0a376c3aae67b61ac682b148d618ce18eec
   try {
+    // newest report আগে দেখাবে — createdAt দিয়ে sort
     const issues = await Issue.find().sort({ createdAt: -1 });
     res.json(issues);
   } catch (err) {
@@ -11,7 +17,12 @@ export async function getIssues(req, res) {
 }
 
 // GET /api/issues/mine — শুধু নিজেরটা
+<<<<<<< HEAD
 export async function getMyIssues(req, res) {
+=======
+// logged-in user-এর নিজের report list ফেরত দেয়
+exports.getMyIssues = async (req, res) => {
+>>>>>>> 1a32d0a376c3aae67b61ac682b148d618ce18eec
   try {
     const issues = await Issue.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json(issues);
@@ -20,9 +31,16 @@ export async function getMyIssues(req, res) {
   }
 }
 
+<<<<<<< HEAD
 // POST /api/issues
 export async function createIssue(req, res) {
+=======
+// POST /api/issues — নতুন report তৈরি
+// frontend থেকে আসা সব field (title, area, photos...) DB-তে সেভ হয়
+exports.createIssue = async (req, res) => {
+>>>>>>> 1a32d0a376c3aae67b61ac682b148d618ce18eec
   try {
+    // user id-token থেকে protect middleware set করে দেয়
     const issue = await Issue.create({ ...req.body, user: req.user._id });
     res.status(201).json(issue);
   } catch (err) {
@@ -30,8 +48,14 @@ export async function createIssue(req, res) {
   }
 }
 
+<<<<<<< HEAD
 // PUT /api/issues/:id — মালিক ছাড়া কেউ এডিট করতে পারবে না
 export async function updateIssue(req, res) {
+=======
+// PUT /api/issues/:id — report edit/update
+// মালিক ছাড়া কেউ এডিট করতে পারবে না (ownership check)
+exports.updateIssue = async (req, res) => {
+>>>>>>> 1a32d0a376c3aae67b61ac682b148d618ce18eec
   try {
     const issue = await Issue.findById(req.params.id);
     if (!issue) return res.status(404).json({ message: 'Not found' });
@@ -46,8 +70,14 @@ export async function updateIssue(req, res) {
   }
 }
 
+<<<<<<< HEAD
 // DELETE /api/issues/:id
 export async function deleteIssue(req, res) {
+=======
+// DELETE /api/issues/:id — report মুছে ফেলা
+// শুধু মালিক delete করতে পারবে
+exports.deleteIssue = async (req, res) => {
+>>>>>>> 1a32d0a376c3aae67b61ac682b148d618ce18eec
   try {
     const issue = await Issue.findById(req.params.id);
     if (!issue) return res.status(404).json({ message: 'Not found' });
