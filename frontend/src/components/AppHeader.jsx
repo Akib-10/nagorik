@@ -13,13 +13,9 @@ export default function AppHeader({
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  // Hide any nav item whose destination matches the current page being viewed,
-  // so the active page's own icon does not appear in the navbar. On the profile,
-  // report and settings pages the HOME item moves to a right-side slot, so it is
-  // hidden from the left.
   const visibleNavItems = navItems.filter((item) => {
     const itemPath = item.to ?? item.href ?? "";
-    if (pathname === "/user" || pathname === "/report" || pathname === "/settings") return false;
+    if (pathname === "/user" || pathname === "/report" || pathname === "/settings" || pathname === "/notifications") return false;
     return !(itemPath === "/" ? pathname === itemPath : pathname.startsWith(itemPath));
   });
 
@@ -28,6 +24,14 @@ export default function AppHeader({
       navigate(
         `/browse_feed?q=${encodeURIComponent(e.currentTarget.value.trim())}`,
       );
+    }
+  };
+
+  const handleBellClick = () => {
+    if (pathname === "/notifications") {
+      navigate(-1); // Jump out back to previous page
+    } else {
+      navigate("/notifications"); // Jump in
     }
   };
 
@@ -75,7 +79,7 @@ export default function AppHeader({
         </div>
 
         <div className="ml-auto flex items-center gap-4 min-[761px]:ml-0 min-[761px]:justify-self-end max-[760px]:gap-2.5 max-[420px]:gap-2">
-          {pathname === "/settings" && (
+          {(pathname === "/settings" || pathname === "/notifications") && (
             <Link
               to="/browse_feed"
               className="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-nagorik-surface-2 px-5 py-[10px] text-[14px] font-bold text-nagorik-secondary transition-colors duration-150 hover:bg-nagorik-red hover:text-white"
@@ -110,11 +114,21 @@ export default function AppHeader({
             </Link>
           )}
           {showIconButtons && pathname !== "/report" && (
-            <>
-              <button type="button" className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full bg-transparent text-nagorik-red transition-colors duration-150 hover:bg-nagorik-light-red max-[420px]:h-[34px] max-[420px]:w-[34px]">
-                <BellIconApp />
-              </button>
-            </>
+            <button
+              type="button"
+              onClick={handleBellClick}
+              className={`relative flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-full transition-colors duration-150 cursor-pointer max-[420px]:h-[34px] max-[420px]:w-[34px] ${
+                pathname === "/notifications"
+                  ? "bg-nagorik-red text-white"
+                  : "bg-transparent text-nagorik-red hover:bg-nagorik-light-red"
+              }`}
+              aria-label="Toggle notifications"
+            >
+              <BellIconApp />
+              {pathname !== "/notifications" && (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[#C8102E]" />
+              )}
+            </button>
           )}
           {pathname === "/user" ? (
             <Link

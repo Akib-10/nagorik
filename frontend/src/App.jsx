@@ -8,11 +8,11 @@ import UserProfile from './pages/UserProfile.jsx'
 import ProfileEdit from './pages/ProfileEdit.jsx'
 import ReportIssue from './pages/ReportIssue.jsx'
 import Settings from './pages/Settings.jsx'
+import Notification from './pages/Notification.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
 import { getTheme, setTheme } from './services/authService'
 
 export default function App() {
-  // Restore the saved theme before any page renders.
   useEffect(() => {
     setTheme(getTheme())
   }, [])
@@ -29,6 +29,7 @@ export default function App() {
         <Route path="/edit_profile" element={<ProfileEdit />} />
         <Route path="/report" element={<ReportIssue />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/notifications" element={<Notification />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
