@@ -1,37 +1,37 @@
-const Issue = require('../models/Issue');
+import Issue from '../models/Issue.js';
 
 // GET /api/issues — public feed
-exports.getIssues = async (req, res) => {
+export async function getIssues(req, res) {
   try {
     const issues = await Issue.find().sort({ createdAt: -1 });
     res.json(issues);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-};
+}
 
 // GET /api/issues/mine — শুধু নিজেরটা
-exports.getMyIssues = async (req, res) => {
+export async function getMyIssues(req, res) {
   try {
     const issues = await Issue.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json(issues);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-};
+}
 
 // POST /api/issues
-exports.createIssue = async (req, res) => {
+export async function createIssue(req, res) {
   try {
     const issue = await Issue.create({ ...req.body, user: req.user._id });
     res.status(201).json(issue);
   } catch (err) {
     res.status(400).json({ message: 'Invalid data', error: err.message });
   }
-};
+}
 
 // PUT /api/issues/:id — মালিক ছাড়া কেউ এডিট করতে পারবে না
-exports.updateIssue = async (req, res) => {
+export async function updateIssue(req, res) {
   try {
     const issue = await Issue.findById(req.params.id);
     if (!issue) return res.status(404).json({ message: 'Not found' });
@@ -44,10 +44,10 @@ exports.updateIssue = async (req, res) => {
   } catch (err) {
     res.status(400).json({ message: 'Update failed', error: err.message });
   }
-};
+}
 
 // DELETE /api/issues/:id
-exports.deleteIssue = async (req, res) => {
+export async function deleteIssue(req, res) {
   try {
     const issue = await Issue.findById(req.params.id);
     if (!issue) return res.status(404).json({ message: 'Not found' });
@@ -59,4 +59,4 @@ exports.deleteIssue = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
-};
+}

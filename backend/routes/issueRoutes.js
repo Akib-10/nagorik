@@ -1,13 +1,14 @@
-const express = require('express');
-const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
-const {
+import express from 'express';
+import { protect } from '../middleware/authMiddleware.js';
+import {
   getIssues,
   getMyIssues,
   createIssue,
   updateIssue,
   deleteIssue,
-} = require('../controllers/issueController');
+} from '../controllers/issueController.js';
+
+const router = express.Router();
 
 router.get('/', getIssues);              // public — feed-এর জন্য
 router.get('/mine', protect, getMyIssues);
@@ -15,4 +16,4 @@ router.post('/', protect, createIssue);
 router.put('/:id', protect, updateIssue);
 router.delete('/:id', protect, deleteIssue);
 
-module.exports = router;
+export default router;
