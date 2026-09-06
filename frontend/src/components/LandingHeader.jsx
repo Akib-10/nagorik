@@ -140,13 +140,35 @@ export default function LandingHeader() {
   return (
     <header
       id="top"
-      className="sticky top-0 z-[100] border-b border-nagorik-line bg-nagorik-cream/86 backdrop-blur-[10px] dark:border-white/[0.08] dark:bg-[rgba(23,15,17,0.7)]"
+      className={clsx(
+        "sticky",
+        "top-0",
+        "z-[100]",
+        "border-b",
+        "border-nagorik-line",
+        "bg-nagorik-cream/86",
+        "backdrop-blur-[10px]",
+        "dark:border-white/[0.08]",
+        "dark:bg-[rgba(23,15,17,0.7)]"
+      )}
     >
-      <div className="mx-auto flex max-w-[1160px] flex-wrap items-center gap-7 px-7 py-[14px] max-[480px]:gap-2 max-[480px]:px-4 max-[480px]:py-3">
+      <div className={clsx(
+        "mx-auto",
+        "flex",
+        "max-w-[1160px]",
+        "flex-wrap",
+        "items-center",
+        "gap-7",
+        "px-7",
+        "py-[14px]",
+        "max-[480px]:gap-2",
+        "max-[480px]:px-4",
+        "max-[480px]:py-3"
+      )}>
         {/* Logo */}
         <Link
           to="/"
-          className="flex shrink-0 items-center gap-2.5 whitespace-nowrap"
+          className={clsx("flex shrink-0 items-center gap-2.5 whitespace-nowrap")}
           aria-label="নাগরিক home"
           onClick={(e) => handleNavClick(e, "#top")}
         >
@@ -156,7 +178,14 @@ export default function LandingHeader() {
         {/* Mobile nav toggle */}
         <button
           ref={toggleRef}
-          className="hidden border-0 bg-transparent p-2 text-nagorik-text dark:text-white max-[920px]:inline-flex"
+          className={clsx(
+            "hidden border-0", 
+            "bg-transparent", 
+            "p-2", 
+            "text-nagorik-text", 
+            "dark:text-white", 
+            "max-[920px]:inline-flex"
+          )}
           aria-label="Toggle navigation"
           aria-expanded={navOpen}
           onClick={() => setNavOpen((open) => !open)}
@@ -168,9 +197,24 @@ export default function LandingHeader() {
         <nav
           ref={navRef}
           className={clsx(
-            "flex items-center gap-1.5",
-            "max-[920px]:fixed max-[920px]:inset-[64px_16px_auto_16px] max-[920px]:flex-col max-[920px]:items-stretch max-[920px]:gap-0.5 max-[920px]:rounded-2xl max-[920px]:border max-[920px]:border-nagorik-line max-[920px]:bg-nagorik-red/5 max-[920px]:p-2.5 max-[920px]:shadow-[0_20px_50px_-20px_rgba(23,15,17,0.25)] max-[920px]:transition-[transform_0.18s_ease,opacity_0.18s_ease]",
-            "max-[920px]:[&:not(.open)]:pointer-events-none max-[920px]:[&:not(.open)]:-translate-y-3 max-[920px]:[&:not(.open)]:opacity-0",
+            "flex", 
+            "items-center", 
+            "gap-1.5",
+            "max-[920px]:fixed",
+            "max-[920px]:inset-[64px_16px_auto_16px]", 
+            "max-[920px]:flex-col", 
+            "max-[920px]:items-stretch", 
+            "max-[920px]:gap-0.5", 
+            "max-[920px]:rounded-2xl", 
+            "max-[920px]:border", 
+            "max-[920px]:border-nagorik-line", 
+            "max-[920px]:bg-nagorik-red/5", 
+            "max-[920px]:p-2.5", 
+            "max-[920px]:shadow-[0_20px_50px_-20px_rgba(23,15,17,0.25)]", 
+            "max-[920px]:transition-[transform_0.18s_ease,opacity_0.18s_ease]",
+            "max-[920px]:[&:not(.open)]:pointer-events-none", 
+            "max-[920px]:[&:not(.open)]:-translate-y-3", 
+            "max-[920px]:[&:not(.open)]:opacity-0",
             navOpen && "open"
           )}
         >
@@ -212,7 +256,14 @@ export default function LandingHeader() {
         </div>
 
         {/* Auth buttons */}
-        <div className="ml-auto flex shrink-0 items-center gap-2 max-[480px]:gap-1.5">
+        <div className={clsx(
+          "ml-auto", 
+          "flex", 
+          "shrink-0", 
+          "items-center", 
+          "gap-2", 
+          "max-[480px]:gap-1.5"
+        )}>
           <Link to="/login" className={authBtnClass}>
             Log in
           </Link>
