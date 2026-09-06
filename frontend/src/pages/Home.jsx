@@ -127,14 +127,15 @@ export default function Home() {
             "border-b",
             "border-nagorik-line",
             "dark:border-white/[0.08]",
-            "max-[480px]:min-h-0",
+            "bg-bottom",
+            "bg-no-repeat",
+            "bg-[length:120%_auto]",
+            "max-[480px]:min-h-[420px]",
+            "max-[480px]:bg-[length:220%_auto]",
+            "max-[360px]:bg-[length:280%_auto]",
           )}
           style={{
             backgroundImage: `url(${heroBg})`,
-            backgroundSize: "120% auto",
-            backgroundPosition: "bottom center",
-            backgroundRepeat: "no-repeat",
-
           }}
         >
           {/* Hero Section elements */}
@@ -314,11 +315,7 @@ export default function Home() {
 
         {/* ============ STATS ============ */}
         <section
-          className={clsx(
-            "bg-nagorik-ink-soft", 
-            "py-[38px]", 
-            "text-white"
-          )}
+          className={clsx("bg-nagorik-ink-soft", "py-[38px]", "text-white")}
         >
           <div
             className={clsx(
@@ -837,6 +834,7 @@ export default function Home() {
               "max-w-[1160px]",
               "px-7",
               "max-[480px]:px-4",
+              "text-center",
             )}
           >
             <div
@@ -855,7 +853,7 @@ export default function Home() {
                 className={clsx(
                   "mb-3.5",
                   "text-white",
-                  "text-[clamp(26px,3.4vw,38px)]",
+                  "text-[clamp(26px,3.1vw,38px)]",
                 )}
               >
                 Your city needs you
@@ -874,6 +872,7 @@ export default function Home() {
               >
                 Every report you submit makes your neighbourhood a little
                 better. Join 12,000+ citizens already making a difference.
+
               </p>
               <div
                 className={clsx(
@@ -895,8 +894,8 @@ export default function Home() {
                     "px-5",
                     "py-[10px]",
                     "text-[14px]",
-                    "font-semibold",
-                    "text-nagorik-red",
+                    "font-bold",
+                    "!text-nagorik-red-dark",
                     "transition-all",
                     "duration-150",
                     "hover:-translate-y-px",
