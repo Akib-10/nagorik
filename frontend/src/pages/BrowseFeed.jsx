@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
 import { getFeedIssues, getTrendingIssues } from "../services/issuesService";
-import heroImg from "../assets/images/artwork_red_container.png"
+import heroImg from "../assets/images/artwork_red_container.png";
 import {
   HomeGlyph,
   SearchIcon,
@@ -46,7 +46,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
   return (
     <article
       className="flex gap-5 rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] p-3.5 transition-all duration-150 dark:bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] max-[760px]:flex-col"
-      onClick={() => onOpen(issue.id)}
+onClick={() => onOpen(issue._id)}
       style={{ cursor: "pointer" }}
     >
       <div className="h-[158px] w-[210px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2 max-[760px]:h-[180px] max-[760px]:w-full">
@@ -85,7 +85,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
             <button
               type="button"
               className={`flex items-center gap-1.5 bg-transparent px-3.5 py-[9px] text-[13px] font-bold text-white transition-colors duration-150 hover:bg-nagorik-hover-red ${myVote === "up" ? "bg-nagorik-hover-red" : ""}`}
-              onClick={stop(() => onVote(issue.id, "up"))}
+              onClick={stop(() => onVote(issue._id, "up"))}
             >
               <VoteUpIcon size={14} />
               {upCount}
@@ -94,7 +94,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
             <button
               type="button"
               className={`flex items-center gap-1.5 bg-transparent px-3.5 py-[9px] text-[13px] font-bold text-white transition-colors duration-150 hover:bg-nagorik-hover-red ${myVote === "down" ? "bg-nagorik-hover-red" : ""}`}
-              onClick={stop(() => onVote(issue.id, "down"))}
+              onClick={stop(() => onVote(issue._id, "down"))}
             >
               <VoteDownIcon size={14} />
               {downCount}
@@ -103,7 +103,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
           <button
             type="button"
             className="flex items-center gap-2 rounded-full bg-nagorik-red px-4 py-[9px] text-[13px] font-bold text-white transition-colors duration-150 hover:bg-nagorik-hover-red"
-            onClick={stop(() => onOpen(issue.id))}
+            onClick={stop(() => onOpen(issue._id))}
           >
             <CommentIcon size={14} />
             {issue.comments}
@@ -141,9 +141,17 @@ export default function BrowseFeed() {
     document.documentElement.lang = "bn";
   }, []);
 
-  const feedIssues = useMemo(() => getFeedIssues(), []);
-  const trendingIssues = useMemo(() => getTrendingIssues(), []);
+const [feedIssues, setFeedIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    getFeedIssues()
+      .then(setFeedIssues)
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
+  }, []); 
+
+  const trendingIssues = useMemo(() => getTrendingIssues(), []);
   const visibleIssues = useMemo(() => {
     let list = feedIssues;
     if (activeTab === "ongoing")
@@ -270,9 +278,9 @@ export default function BrowseFeed() {
           {visibleIssues.length ? (
             visibleIssues.map((issue) => (
               <IssueCard
-                key={issue.id}
+                key={issue._id}
                 issue={issue}
-                myVote={votes[issue.id] || null}
+                myVote={votes[issue._id] || null}
                 onVote={handleVote}
                 onOpen={openPost}
               />

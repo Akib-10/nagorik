@@ -88,9 +88,23 @@ export default function PostDetails() {
   const navigate = useNavigate()
   const scrollRef = useRef(null)
 
-  const issue = useMemo(() => {
+  // backend/getFeedIssues + getMyReports এখন async API — state দিয়ে load হয়,
+  // এবং report খোঁজা হয় _id (backend id) দিয়ে
+  const [issue, setIssue] = useState(null)
+
+  useEffect(() => {
     const cleanId = String(id).replace('comment-', '')
-    return [...getFeedIssues(), ...getMyReports()].find((i) => String(i.id) === cleanId) || null
+    Promise.all([
+      getFeedIssues(),
+      getMyReports().catch(() => []), // login না থাকলে 401 — ignore করলাম
+    ])
+      .then(([feed, mine]) =>
+        [...feed, ...mine].find(
+          (i) => String(i._id || i.id) === cleanId,
+        ) || null,
+      )
+      .then(setIssue)
+      .catch(() => setIssue(null))
   }, [id])
 
   const images = useMemo(() => issue?.images?.length ? issue.images : (issue?.img ? [issue.img] : []), [issue])
