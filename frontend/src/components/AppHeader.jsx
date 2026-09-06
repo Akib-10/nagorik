@@ -210,7 +210,7 @@ export default function AppHeader({ logoHref = "/" }) {
           ) : (
             <Link
               to="/login"
-              state={{ mode: "register", from: "/report" }}
+              state={{ mode: "login", from: "/report" }}
               className={clsx(
                 "flex",
                 "shrink-0",
@@ -218,20 +218,23 @@ export default function AppHeader({ logoHref = "/" }) {
                 "gap-2",
                 "whitespace-nowrap",
                 "rounded-full",
-                "bg-nagorik-red",
+                "bg-transparent",
+                "border-2",
+                "border-red",
                 "px-[22px]",
                 "py-[11px]",
                 "text-[14px]",
                 "font-bold",
-                "!text-white",
+                "!text-nagorik-red",
                 "transition-colors",
                 "duration-150",
                 "hover:bg-nagorik-hover-red",
+                "hover:!text-white",
                 "max-[760px]:px-3.5",
               )}
             >
            
-              <span className="max-[760px]:hidden">SIGN UP</span>
+              <span className="max-[760px]:hidden">Sign In</span>
             </Link>
           )}
 
