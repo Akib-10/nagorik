@@ -92,7 +92,7 @@ export default function UserProfile() {
   const displayName = userData.name || "Nagorik User";
 
   useEffect(() => {
-    document.title = "Profile — नागरिक";
+    document.title = "Profile - Nagorik";
     document.documentElement.lang = "bn";
   }, []);
 
