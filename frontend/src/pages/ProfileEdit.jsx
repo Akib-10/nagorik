@@ -1,57 +1,98 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// 🎨 PRIMARY BRAND RED COLORS
-const PRIMARY_RED = '#C8102E';
-const PRIMARY_RED_HOVER = '#A60F28';
-
 export default function ProfileEdit() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
 
-  // Lazy initialize state once on mount to prevent localStorage reading on every key press
-  const [form, setForm] = useState(() => {
-    let saved = {};
-    try {
-      saved = JSON.parse(localStorage.getItem('nagorik_user') || '{}');
-    } catch (e) {
-      console.error(e);
-    }
-    return {
-      name: saved.name || 'Nagorik User',
-      email: saved.email || 'user@nagorik.gov.bd',
-      phone: saved.phone || '+880 1700-000000',
-      bio: saved.bio || 'Active citizen contributing towards community development.',
-      avatar: saved.avatar || saved.image || null,
-      division: saved.division || 'Dhaka',
-      district: saved.district || 'Dhaka',
-      subDistrict: saved.subDistrict || 'Dhanmondi',
-      cityCorporation: saved.cityCorporation || 'Dhaka South City Corporation',
-      union: saved.union || 'N/A',
-      wardNumber: saved.wardNumber || '15',
-      roadNumber: saved.roadNumber || '27',
-      houseNumber: saved.houseNumber || '42/A',
-      privacy: saved.privacy || {
-        publicProfile: true,
-        showAddressDetails: true,
-        hideContactInfo: true,
-        showActivityLeaderboard: true,
-        anonymousReportingDefault: false,
-      },
-    };
-  });
+  const emptyForm = {
+    name: '',
+    email: '',
+    phone: '',
+    bio: '',
+    avatar: null,
+    division: '',
+    district: '',
+    subDistrict: '',
+    cityCorporation: '',
+    union: '',
+    wardNumber: '',
+    roadNumber: '',
+    houseNumber: '',
+    privacy: {
+      publicProfile: true,
+      showAddressDetails: true,
+      hideContactInfo: true,
+      showActivityLeaderboard: true,
+      anonymousReportingDefault: false,
+    },
+  };
+
+  const [form, setForm] = useState(emptyForm);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     document.title = "Edit Profile — নাগরিক";
   }, []);
 
-  // Generic Field Handler
+  useEffect(() => {
+    const token = localStorage.getItem('nagorik_token');
+    if (!token) {
+      setError('You must be logged in to edit your profile.');
+      setLoading(false);
+      return;
+    }
+
+    const abortController = new AbortController();
+
+    fetch('/api/profile', {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: abortController.signal
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.message || 'Failed to load profile');
+        }
+        return res.json();
+      })
+      .then((data) => {
+        setForm({
+          name: data.name || '',
+          email: data.email || '',
+          phone: data.phone || '',
+          bio: data.bio || '',
+          avatar: data.avatar || null,
+          division: data.address?.division || '',
+          district: data.address?.district || '',
+          subDistrict: data.address?.subDistrict || '',
+          cityCorporation: data.address?.cityCorporation || '',
+          union: data.address?.union || '',
+          wardNumber: data.address?.wardNumber || '',
+          roadNumber: data.address?.roadNumber || '',
+          houseNumber: data.address?.houseNumber || '',
+          privacy: data.privacy || emptyForm.privacy,
+        });
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          setError(err.message);
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+
+    return () => abortController.abort(); // Cleanup fetch on unmount
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Toggle Privacy Switch
   const togglePrivacy = (key) => {
     setForm((prev) => ({
       ...prev,
@@ -59,7 +100,6 @@ export default function ProfileEdit() {
     }));
   };
 
-  // Image Upload Handler
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -69,7 +109,6 @@ export default function ProfileEdit() {
     }
   };
 
-  // Prevent Enter key from submitting form; unfocus input instead
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -77,39 +116,97 @@ export default function ProfileEdit() {
     }
   };
 
-  // Form Submission
-  const handleSaveClick = (e) => {
+  const handleSaveClick = async (e) => {
     e.preventDefault();
     if (!window.confirm("Do you want to save changes?")) return;
 
-    localStorage.setItem('nagorik_user', JSON.stringify(form));
-    navigate(-1);
+    const token = localStorage.getItem('nagorik_token');
+    if (!token) {
+      alert('You must be logged in to save changes.');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          bio: form.bio,
+          avatar: form.avatar,
+          address: {
+            division: form.division,
+            district: form.district,
+            subDistrict: form.subDistrict,
+            cityCorporation: form.cityCorporation,
+            union: form.union,
+            wardNumber: form.wardNumber,
+            roadNumber: form.roadNumber,
+            houseNumber: form.houseNumber,
+          },
+          privacy: form.privacy,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || 'Failed to save changes');
+      }
+
+      navigate(-1);
+    } catch (err) {
+      setError(err.message);
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-nagorik-cream dark:bg-nagorik-cream">
+        <p className="text-nagorik-muted font-semibold">Loading profile...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+    <div className="min-h-screen bg-nagorik-cream text-nagorik-text">
       <div className="mx-auto max-w-[1160px] px-7 pt-10 pb-[60px] max-[760px]:px-4">
-        
-        <h1 className="mb-8 text-[26px] font-extrabold" style={{ color: PRIMARY_RED }}>Edit Profile</h1>
+
+        <h1 className="mb-8 text-[35px] text-center font-extrabold text-nagorik-red">Edit Profile</h1>
+
+        {error && (
+          <div className="mb-6 rounded-xl border-2 border-nagorik-red bg-nagorik-soft-red px-4 py-3 text-[13px] font-semibold text-nagorik-red">
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSaveClick} onKeyDown={handleKeyDown} className="flex flex-col gap-8">
-          
+
           {/* SECTION 1: PERSONAL INFO & PHOTO */}
-          <section className="rounded-2xl border-2 border-gray-300 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-6 pb-2 text-[17px] font-extrabold" style={{ color: PRIMARY_RED }}>
+          <section className="rounded-2xl border-2 border-nagorik-border bg-nagorik-paper p-6 shadow-md">
+            <h2 className="mb-6 pb-2 text-[17px] font-extrabold text-nagorik-red">
               Personal Information & Photo
             </h2>
-            
+
             <div className="flex items-center gap-6 mb-6 max-[600px]:flex-col max-[600px]:items-start">
-              <div 
-                className="group relative flex h-[110px] w-[110px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-4 bg-gray-100 dark:bg-gray-700 shadow-lg"
-                style={{ borderColor: PRIMARY_RED }}
+              <div
+                className="group relative flex h-[110px] w-[110px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-4 border-nagorik-red bg-nagorik-surface-2 shadow-lg"
                 onClick={() => fileInputRef.current?.click()}
               >
                 {form.avatar ? (
                   <img src={form.avatar} alt="Profile" className="h-full w-full object-cover transition-opacity group-hover:opacity-75" />
                 ) : (
-                  <svg className="h-12 w-12" style={{ color: PRIMARY_RED }} fill="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-12 w-12 text-nagorik-red" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                   </svg>
                 )}
@@ -120,10 +217,7 @@ export default function ProfileEdit() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="rounded-full px-5 py-2 text-[13px] font-bold text-white transition-transform hover:scale-105 cursor-pointer shadow-sm"
-                style={{ backgroundColor: PRIMARY_RED }}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = PRIMARY_RED_HOVER)}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = PRIMARY_RED)}
+                className="rounded-full bg-nagorik-red px-5 py-2 text-[13px] font-bold text-white transition-transform hover:scale-105 hover:bg-nagorik-hover-red cursor-pointer shadow-sm"
               >
                 Upload New Photo
               </button>
@@ -137,14 +231,14 @@ export default function ProfileEdit() {
                 { label: 'Bio', name: 'bio', type: 'text' },
               ].map((field) => (
                 <div key={field.name}>
-                  <label className="mb-1.5 block text-[13px] font-bold">{field.label}</label>
+                  <label htmlFor={`input-${field.name}`} className="mb-1.5 block text-[13px] font-bold">{field.label}</label>
                   <input
+                    id={`input-${field.name}`}
                     type={field.type}
                     name={field.name}
                     value={form[field.name]}
                     onChange={handleChange}
-                    className="w-full rounded-xl border-2 border-gray-300 bg-gray-50 px-4 py-2.5 text-[14px] font-semibold outline-none focus:border-[var(--brand-red)] dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                    style={{ '--brand-red': PRIMARY_RED }}
+                    className="w-full rounded-xl border-2 border-nagorik-border bg-nagorik-surface-2 px-4 py-2.5 text-[14px] font-semibold outline-none focus:border-nagorik-red"
                   />
                 </div>
               ))}
@@ -152,11 +246,11 @@ export default function ProfileEdit() {
           </section>
 
           {/* SECTION 2: ADDRESS FIELDS */}
-          <section className="rounded-2xl border-2 border-gray-300 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-2 text-[17px] font-extrabold border-b border-gray-200 pb-2 dark:border-gray-700" style={{ color: PRIMARY_RED }}>
+          <section className="rounded-2xl border-2 border-nagorik-border bg-nagorik-paper p-6 shadow-md">
+            <h2 className="mb-2 text-[17px] font-extrabold border-b border-nagorik-line pb-2 text-nagorik-red">
               Home Area
             </h2>
-            <p className="mb-5 text-[12.5px] font-medium text-gray-500 dark:text-gray-400">Specify your location details for local civic routing.</p>
+            <p className="mb-5 text-[12.5px] font-medium text-nagorik-muted">Specify your location details for local civic routing.</p>
 
             <div className="grid grid-cols-2 gap-4 max-[760px]:grid-cols-1">
               {[
@@ -170,14 +264,15 @@ export default function ProfileEdit() {
                 { label: 'House Number', name: 'houseNumber', placeholder: 'e.g. 42/A' },
               ].map((field) => (
                 <div key={field.name}>
-                  <label className="mb-1 block text-[12.5px] font-bold">{field.label}</label>
+                  <label htmlFor={`input-${field.name}`} className="mb-1 block text-[12.5px] font-bold">{field.label}</label>
                   <input
+                    id={`input-${field.name}`}
                     type="text"
                     name={field.name}
                     value={form[field.name]}
                     onChange={handleChange}
                     placeholder={field.placeholder}
-                    className="w-full rounded-xl border-2 border-gray-300 bg-gray-50 px-3.5 py-2 text-[13.5px] font-semibold outline-none dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className="w-full rounded-xl border-2 border-nagorik-border bg-nagorik-surface-2 px-3.5 py-2 text-[13.5px] font-semibold outline-none focus:border-nagorik-red"
                   />
                 </div>
               ))}
@@ -185,13 +280,13 @@ export default function ProfileEdit() {
           </section>
 
           {/* SECTION 3: PRIVACY FEATURES */}
-          <section className="rounded-2xl border-2 border-gray-300 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-1 text-[17px] font-extrabold border-b border-gray-200 pb-2 dark:border-gray-700" style={{ color: PRIMARY_RED }}>
+          <section className="rounded-2xl border-2 border-nagorik-border bg-nagorik-paper p-6 shadow-md">
+            <h2 className="mb-1 text-[17px] font-extrabold border-b border-nagorik-line pb-2 text-nagorik-red">
               Privacy & Visibility Features
             </h2>
-            <p className="mb-4 text-[12.5px] font-medium text-gray-500 dark:text-gray-400">Configure public visibility options for your profile.</p>
+            <p className="mb-4 text-[12.5px] font-medium text-nagorik-muted">Configure public visibility options for your profile.</p>
 
-            <div className="flex flex-col divide-y divide-gray-200 dark:divide-gray-700">
+            <div className="flex flex-col divide-y divide-nagorik-line">
               {[
                 { key: 'publicProfile', title: '1. Public Profile Visibility', desc: 'Allow other citizens to view your profile and contributions.' },
                 { key: 'showAddressDetails', title: '2. Display Address Hierarchy', desc: 'Show Ward, District, and Sub-district details on public issue posts.' },
@@ -201,36 +296,35 @@ export default function ProfileEdit() {
               ].map((item) => (
                 <div key={item.key} className="flex items-center justify-between py-3.5">
                   <div className="pr-4">
-                    <h4 className="text-[14px] font-bold text-gray-900 dark:text-white">{item.title}</h4>
-                    <p className="text-[12px] text-gray-500 dark:text-gray-400">{item.desc}</p>
+                    <h4 className="text-[14px] font-bold text-nagorik-heading">{item.title}</h4>
+                    <p className="text-[12px] text-nagorik-muted">{item.desc}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => togglePrivacy(item.key)}
-                    style={{ backgroundColor: form.privacy[item.key] ? PRIMARY_RED : '' }}
-                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${!form.privacy[item.key] ? 'bg-gray-300 dark:bg-gray-600' : ''}`}
-                  >
-                    <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${form.privacy[item.key] ? 'translate-x-5' : 'translate-x-0'}`} />
-                  </button>
+                    className={`toggle ${form.privacy[item.key] ? 'active' : ''}`}
+                    aria-pressed={form.privacy[item.key]}
+                    aria-label={`Toggle ${item.title}`}
+                  />
                 </div>
               ))}
             </div>
           </section>
 
           {/* SECTION 4: LIVE PREVIEW */}
-          <section className="rounded-2xl border-2 border-gray-300 bg-white p-6 shadow-md dark:border-gray-700 dark:bg-gray-800">
-            <h2 className="mb-4 text-[17px] font-extrabold border-b border-gray-200 pb-2 dark:border-gray-700" style={{ color: PRIMARY_RED }}>
+          <section className="rounded-2xl border-2 border-nagorik-border bg-nagorik-paper p-6 shadow-md">
+            <h2 className="mb-4 text-[17px] font-extrabold border-b border-nagorik-line pb-2 text-nagorik-red">
               Preview
             </h2>
-            
-            <div className="overflow-hidden rounded-2xl border-2 bg-white shadow-lg dark:bg-gray-900" style={{ borderColor: PRIMARY_RED }}>
-              <div className="p-6 text-white" style={{ backgroundColor: PRIMARY_RED }}>
+
+            <div className="overflow-hidden rounded-2xl border-2 border-nagorik-red bg-nagorik-paper shadow-lg">
+              <div className="p-6 text-white bg-nagorik-red">
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-white bg-white shadow-md flex items-center justify-center">
                     {form.avatar ? (
                       <img src={form.avatar} alt="Preview" className="h-full w-full object-cover" />
                     ) : (
-                      <svg className="h-10 w-10" style={{ color: PRIMARY_RED }} fill="currentColor" viewBox="0 0 24 24">
+                      <svg className="h-10 w-10 text-nagorik-red" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                       </svg>
                     )}
@@ -243,18 +337,20 @@ export default function ProfileEdit() {
               </div>
 
               <div className="p-5 space-y-4">
-                <p className="text-[14px] font-semibold text-gray-800 dark:text-gray-200 italic">"{form.bio}"</p>
-                <div className="grid grid-cols-2 gap-4 border-t-2 border-gray-100 dark:border-gray-800 pt-3">
+                <p className="text-[14px] font-semibold text-nagorik-body-text italic">
+                  "{form.bio || "No bio added yet."}"
+                </p>
+                <div className="grid grid-cols-2 gap-4 border-t-2 border-nagorik-line pt-3">
                   <div>
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-gray-400">Contact Details</span>
-                    <span className="text-[13px] font-bold text-gray-900 dark:text-white">
-                      {form.privacy.hideContactInfo ? "Hidden by Privacy Setting" : `${form.email} | ${form.phone}`}
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-nagorik-muted">Contact Details</span>
+                    <span className="text-[13px] font-bold text-nagorik-heading">
+                      {form.privacy.hideContactInfo ? "Hidden by Privacy Setting" : `${form.email || 'No email'} | ${form.phone || 'No phone'}`}
                     </span>
                   </div>
                   <div>
-                    <span className="block text-[11px] font-bold uppercase tracking-wider text-gray-400">Address Line</span>
-                    <span className="text-[13px] font-bold text-gray-900 dark:text-white">
-                      House {form.houseNumber}, Road {form.roadNumber}, {form.subDistrict}
+                    <span className="block text-[11px] font-bold uppercase tracking-wider text-nagorik-muted">Address Line</span>
+                    <span className="text-[13px] font-bold text-nagorik-heading">
+                      House {form.houseNumber || '—'}, Road {form.roadNumber || '—'}, {form.subDistrict || '—'}
                     </span>
                   </div>
                 </div>
@@ -267,18 +363,16 @@ export default function ProfileEdit() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="rounded-full border-2 border-gray-300 px-6 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
+              className="rounded-full border-2 border-nagorik-border px-6 py-2.5 text-[13px] font-bold text-nagorik-secondary hover:bg-nagorik-surface-2"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="rounded-full px-8 py-2.5 text-[13px] font-bold text-white transition-all shadow-md hover:shadow-lg"
-              style={{ backgroundColor: PRIMARY_RED }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = PRIMARY_RED_HOVER)}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = PRIMARY_RED)}
+              disabled={saving}
+              className="rounded-full bg-nagorik-red px-8 py-2.5 text-[13px] font-bold text-white transition-all shadow-md hover:shadow-lg hover:bg-nagorik-hover-red disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Save
+              {saving ? 'Saving...' : 'Save'}
             </button>
           </div>
 
