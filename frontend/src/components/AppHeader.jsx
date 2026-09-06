@@ -2,14 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import logo from "../assets/images/logo_for_dark_mode.png";
-import { 
-        isAuthenticated, 
-        getUser, 
-        signOut } from "../services/authService";
-import { 
-        SearchIcon, 
-        PlusIcon, 
-        BellIconApp } from "./icons";
+import { isAuthenticated, getUser, signOut } from "../services/authService";
+import { SearchIcon, PlusIcon, BellIconApp } from "./icons";
 
 export default function AppHeader({ logoHref = "/" }) {
   const isAuth = isAuthenticated();
@@ -60,7 +54,6 @@ export default function AppHeader({ logoHref = "/" }) {
   };
 
   const bellBtnClass = clsx(
-    //navbar size
     "relative",
     "flex",
     "h-[38px]",
@@ -80,13 +73,12 @@ export default function AppHeader({ logoHref = "/" }) {
       : ["bg-transparent", 
         "text-nagorik-red", 
         "hover:bg-nagorik-light-red", 
-        "hover:text-nagorik-red"],
+        "!hover:text-white"],
   );
 
   return (
     <header
       className={clsx(
-        //navbar background
         "sticky",
         "top-0",
         "z-50",
@@ -126,11 +118,7 @@ export default function AppHeader({ logoHref = "/" }) {
         >
           <Link
             to={logoHref}
-            className={clsx(
-              "flex", 
-              "shrink-0", 
-              "items-center"
-            )}
+            className={clsx("flex", "shrink-0", "items-center")}
             aria-label="নাগরিক home"
           >
             <img src={logo} alt="নাগরিক" className="h-[50px] w-auto" />
@@ -216,7 +204,7 @@ export default function AppHeader({ logoHref = "/" }) {
                 "max-[760px]:px-3.5",
               )}
             >
-              <PlusIcon />
+            
               <span className="max-[760px]:hidden">REPORT ISSUE</span>
             </Link>
           ) : (
@@ -235,181 +223,185 @@ export default function AppHeader({ logoHref = "/" }) {
                 "py-[11px]",
                 "text-[14px]",
                 "font-bold",
-                "text-white",
+                "!text-white",
                 "transition-colors",
                 "duration-150",
                 "hover:bg-nagorik-hover-red",
                 "max-[760px]:px-3.5",
               )}
             >
-              <PlusIcon />
+           
               <span className="max-[760px]:hidden">SIGN UP</span>
             </Link>
           )}
 
-          <button
-            type="button"
-            onClick={handleBellClick}
-            className={bellBtnClass}
-            aria-label="Toggle notifications"
-          >
-            <BellIconApp />
-            {pathname !== "/notifications" && (
-              <span
-                className={clsx(
-                  "absolute",
-                  "top-1.5",
-                  "right-1.5",
-                  "h-2",
-                  "w-2",
-                  "rounded-full",
-                  "bg-nagorik-red",
-                )}
-              />
-            )}
-          </button>
-
-          {/* Profile icon + dropdown */}
-          <div className="relative">
+          {isAuth && (
             <button
-              ref={menuToggleRef}
               type="button"
-              onClick={() => setMenuOpen((open) => !open)}
-              className={clsx(
-                "flex",
-                "h-[38px]",
-                "w-[38px]",
-                "shrink-0",
-                "items-center",
-                "justify-center",
-                "overflow-hidden",
-                "rounded-full",
-                "border-2",
-                "border-nagorik-red",
-                "bg-nagorik-surface-2",
-                "max-[420px]:h-[34px]",
-                "max-[420px]:w-[34px]",
-              )}
-              aria-label="Open profile menu"
-              aria-expanded={menuOpen}
+              onClick={handleBellClick}
+              className={bellBtnClass}
+              aria-label="Toggle notifications"
             >
-              {isAuth && userData.name ? (
+              <BellIconApp />
+              {pathname !== "/notifications" && (
                 <span
                   className={clsx(
-                    "text-[14px]",
-                    "font-bold",
-                    "text-nagorik-red",
+                    "absolute",
+                    "top-1.5",
+                    "right-1.5",
+                    "h-2",
+                    "w-2",
+                    "rounded-full",
+                    "bg-nagorik-red",
                   )}
-                >
-                  {userData.name.charAt(0).toUpperCase()}
-                </span>
-              ) : (
-                <svg viewBox="0 0 24 24" fill="var(--color-nagorik-muted)">
-                  <circle cx="12" cy="8" r="4" />
-                  <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
-                </svg>
+                />
               )}
             </button>
+          )}
 
-            {menuOpen && (
-              <ul
-                ref={menuRef}
+          {/* Profile icon + dropdown */}
+          {isAuth && (
+            <div className="relative">
+              <button
+                ref={menuToggleRef}
+                type="button"
+                onClick={() => setMenuOpen((open) => !open)}
                 className={clsx(
-                  "absolute",
-                  "right-0",
-                  "top-[46px]",
-                  "z-20",
-                  "w-48",
-                  "rounded-xl",
-                  "border",
-                  "border-nagorik-border",
-                  "bg-nagorik-paper",
-                  "p-1.5",
-                  "shadow-lg",
+                  "flex",
+                  "h-[38px]",
+                  "w-[38px]",
+                  "shrink-0",
+                  "items-center",
+                  "justify-center",
+                  "overflow-hidden",
+                  "rounded-full",
+                  "border-2",
+                  "border-nagorik-red",
+                  "bg-nagorik-surface-2",
+                  "max-[420px]:h-[34px]",
+                  "max-[420px]:w-[34px]",
                 )}
+                aria-label="Open profile menu"
+                aria-expanded={menuOpen}
               >
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate("/user");
-                    }}
+                {userData.name ? (
+                  <span
                     className={clsx(
-                      "flex",
-                      "w-full",
-                      "items-center",
-                      "rounded-lg",
-                      "px-3",
-                      "py-2",
-                      "text-left",
-                      "text-[13px]",
-                      "font-semibold",
-                      "text-nagorik-heading",
-                      "hover:bg-nagorik-surface-2",
-                      "cursor-pointer",
+                      "text-[14px]",
+                      "font-bold",
+                      "text-nagorik-red",
                     )}
                   >
-                    View Profile
-                  </button>
-                </li>
-                <li>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      navigate("/settings");
-                    }}
-                    className={clsx(
-                      "flex",
-                      "w-full",
-                      "items-center",
-                      "rounded-lg",
-                      "px-3",
-                      "py-2",
-                      "text-left",
-                      "text-[13px]",
-                      "font-semibold",
-                      "text-nagorik-heading",
-                      "hover:bg-nagorik-surface-2",
-                      "cursor-pointer",
-                    )}
-                  >
-                    Settings
-                  </button>
-                </li>
-                <li
+                    {userData.name.charAt(0).toUpperCase()}
+                  </span>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="var(--color-nagorik-muted)">
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                  </svg>
+                )}
+              </button>
+
+              {menuOpen && (
+                <ul
+                  ref={menuRef}
                   className={clsx(
-                    "mt-1",
-                    "border-t",
+                    "absolute",
+                    "right-0",
+                    "top-[46px]",
+                    "z-20",
+                    "w-48",
+                    "rounded-xl",
+                    "border",
                     "border-nagorik-border",
-                    "pt-1",
+                    "bg-nagorik-paper",
+                    "p-1.5",
+                    "shadow-lg",
                   )}
                 >
-                  <button
-                    type="button"
-                    onClick={handleLogout}
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate("/user");
+                      }}
+                      className={clsx(
+                        "flex",
+                        "w-full",
+                        "items-center",
+                        "rounded-lg",
+                        "px-3",
+                        "py-2",
+                        "text-left",
+                        "text-[13px]",
+                        "font-semibold",
+                        "text-nagorik-heading",
+                        "hover:bg-nagorik-surface-2",
+                        "cursor-pointer",
+                      )}
+                    >
+                      View Profile
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate("/settings");
+                      }}
+                      className={clsx(
+                        "flex",
+                        "w-full",
+                        "items-center",
+                        "rounded-lg",
+                        "px-3",
+                        "py-2",
+                        "text-left",
+                        "text-[13px]",
+                        "font-semibold",
+                        "text-nagorik-heading",
+                        "hover:bg-nagorik-surface-2",
+                        "cursor-pointer",
+                      )}
+                    >
+                      Settings
+                    </button>
+                  </li>
+                  <li
                     className={clsx(
-                      "flex",
-                      "w-full",
-                      "items-center",
-                      "rounded-lg",
-                      "px-3",
-                      "py-2",
-                      "text-left",
-                      "text-[13px]",
-                      "font-semibold",
-                      "text-nagorik-red",
-                      "hover:bg-nagorik-red/10",
-                      "cursor-pointer",
+                      "mt-1",
+                      "border-t",
+                      "border-nagorik-border",
+                      "pt-1",
                     )}
                   >
-                    Log out
-                  </button>
-                </li>
-              </ul>
-            )}
-          </div>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className={clsx(
+                        "flex",
+                        "w-full",
+                        "items-center",
+                        "rounded-lg",
+                        "px-3",
+                        "py-2",
+                        "text-left",
+                        "text-[13px]",
+                        "font-semibold",
+                        "text-nagorik-red",
+                        "hover:bg-nagorik-red/10",
+                        "cursor-pointer",
+                      )}
+                    >
+                      Log out
+                    </button>
+                  </li>
+                </ul>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>
