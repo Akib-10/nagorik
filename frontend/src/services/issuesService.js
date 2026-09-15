@@ -1,6 +1,6 @@
-// Issues service — এখন real API + mock data মিশিয়ে কাজ করছে।
+// Issues service —  real API + mock data (trending and upvoted nei bole)
 // feed/mine/create/update/delete → backend API
-// trending/upvoted → এখনো mock (backend route নেই বলে)
+// trending/upvoted →  mock (cz backend route nei)
 
 import { api } from './api'
 import { trendingIssues, upvotedIssues } from './mockData'
