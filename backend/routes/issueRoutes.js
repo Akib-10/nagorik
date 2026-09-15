@@ -1,18 +1,19 @@
-const express = require("express");
-const router = express.Router();
-const { protect } = require("../middleware/authMiddleware");
-const {
+import express from 'express';
+import { protect } from '../middleware/authMiddleware.js';
+import {
   getIssues,
   getMyIssues,
   createIssue,
   updateIssue,
   deleteIssue,
-} = require("../controllers/issueController");
+} from '../controllers/issueController.js';
 
-router.get("/", getIssues); // public
-router.get("/mine", protect, getMyIssues); 
-router.post("/", protect, createIssue); 
-router.put("/:id", protect, updateIssue); 
-router.delete("/:id", protect, deleteIssue); 
+const router = express.Router();
 
-module.exports = router;
+router.get('/', getIssues); // public
+router.get('/mine', protect, getMyIssues);
+router.post('/', protect, createIssue);
+router.put('/:id', protect, updateIssue);
+router.delete('/:id', protect, deleteIssue);
+
+export default router;
