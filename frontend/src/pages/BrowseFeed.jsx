@@ -46,7 +46,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
   return (
     <article
       className="flex gap-5 rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] p-3.5 transition-all duration-150 dark:bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] max-[760px]:flex-col"
-onClick={() => onOpen(issue._id)}
+      onClick={() => onOpen(issue._id)}
       style={{ cursor: "pointer" }}
     >
       <div className="h-[158px] w-[210px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2 max-[760px]:h-[180px] max-[760px]:w-full">
@@ -141,7 +141,7 @@ export default function BrowseFeed() {
     document.documentElement.lang = "bn";
   }, []);
 
-const [feedIssues, setFeedIssues] = useState([]);
+  const [feedIssues, setFeedIssues] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -149,7 +149,7 @@ const [feedIssues, setFeedIssues] = useState([]);
       .then(setFeedIssues)
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
-  }, []); 
+  }, []);
 
   const trendingIssues = useMemo(() => getTrendingIssues(), []);
   const visibleIssues = useMemo(() => {
@@ -230,21 +230,25 @@ const [feedIssues, setFeedIssues] = useState([]);
               <div className="text-[24px] font-extrabold leading-none text-white">
                 45
               </div>
-              <div className="mt-0.5 text-center text-[11px] text-white/85">Open</div>
+              <div className="mt-0.5 text-center text-[11px] text-white/85">
+                Open
+              </div>
             </div>
             <div className="flex flex-col items-center">
               <div className="text-[24px] font-extrabold leading-none text-white">
                 31
               </div>
               <div className="mt-0.5 text-center text-[11px] text-white/85">
-                Progressing 
+                Progressing
               </div>
             </div>
             <div className="flex flex-col items-center">
               <div className="text-[24px] font-extrabold leading-none text-white">
                 14
               </div>
-              <div className="mt-0.5 text-center text-[11px] text-white/85">received</div>
+              <div className="mt-0.5 text-center text-[11px] text-white/85">
+                received
+              </div>
             </div>
           </div>
         </section>
