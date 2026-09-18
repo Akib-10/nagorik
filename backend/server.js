@@ -10,6 +10,10 @@ import issueRoutes from './routes/issueRoutes.js';
 // ==== PROFILE EDIT: START ====
 import profileRoutes from './routes/profileRoutes.js';
 // ==== PROFILE EDIT: END ====
+// ==== NOTIFICATION EDIT: START ====
+import notificationRoutes from './routes/notificationRoutes.js';
+import commentRoutes from './routes/commentRoutes.js';
+// ==== NOTIFICATION EDIT: END ====
 
 const app = express();
 app.use(cors());
@@ -19,6 +23,10 @@ app.use('/api/auth', authRoutes);
 // ==== PROFILE EDIT: START ====
 app.use('/api/profile', profileRoutes);
 // ==== PROFILE EDIT: END ====
+// ==== NOTIFICATION EDIT: START ====
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/comments', commentRoutes);
+// ==== NOTIFICATION EDIT: END ====
 
 app.get('/', (req, res) => {
   res.send('Server is running');

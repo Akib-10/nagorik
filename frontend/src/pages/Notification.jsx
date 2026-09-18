@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import {
@@ -9,48 +9,32 @@ import {
   CheckIcon,
 } from "../components/icons";
 
-const INITIAL_NOTIFS = [
-  {
-    id: "n1",
-    type: "status",
-    title: "Report Status Updated",
-    message:
-      'Your report "Uncollected waste near Mirpur 10" has been marked as In Progress by the City Corporation.',
-    time: "10m ago",
-    read: false,
-    targetUrl: "/post/1",
-  },
-  {
-    id: "n2",
-    type: "upvote",
-    title: "Upvote Goal Reached",
-    message:
-      "Abrar Patwary and 14 others upvoted your issue report on broken streetlights.",
-    time: "2h ago",
-    read: false,
-    targetUrl: "/post/2",
-  },
-  {
-    id: "n3",
-    type: "comment",
-    title: "New Comment",
-    message:
-      'Sabbir Hossain commented on your post: "This needs immediate attention from authorities."',
-    time: "5h ago",
-    read: true,
-    targetUrl: "/post/1",
-  },
-  {
-    id: "n4",
-    type: "system",
-    title: "Community Announcement",
-    message:
-      "Scheduled maintenance for Nagorik civic portal tonight from 2 AM to 4 AM.",
-    time: "1d ago",
-    read: true,
-    targetUrl: null,
-  },
-];
+// Adjust this if your API base or token storage differs.
+const API_BASE = import.meta.env.VITE_API_URL || "/api";
+
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+function timeAgo(dateString) {
+  const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+  const units = [
+    ["y", 31536000],
+    ["mo", 2592000],
+    ["d", 86400],
+    ["h", 3600],
+    ["m", 60],
+  ];
+  for (const [label, secs] of units) {
+    const val = Math.floor(seconds / secs);
+    if (val >= 1) return `${val}${label} ago`;
+  }
+  return "just now";
+}
 
 const ICONS = {
   upvote: <VoteUpIcon size={16} />,
@@ -61,27 +45,115 @@ const ICONS = {
 
 export default function Notification() {
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState(INITIAL_NOTIFS);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [openMenuId, setOpenMenuId] = useState(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-  const [showClearModal, setShowClearModal] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchNotifications() {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/notifications?filter=all&limit=100`, {
+          headers: authHeaders(),
+        });
+        if (!res.ok) throw new Error("Failed to load notifications");
+        const data = await res.json();
+        if (!cancelled) {
+          setNotifications(
+            data.items.map((n) => ({
+              id: n._id,
+              type: n.type,
+              title: n.title,
+              message: n.message,
+              time: timeAgo(n.createdAt),
+              read: n.read,
+              targetUrl:
+                n.targetType === "Issue"
+                  ? `/post/${n.targetId}`
+                  : n.targetType === "Comment"
+                  ? `/post/${n.targetId}`
+                  : null,
+            }))
+          );
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    fetchNotifications();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const toggleRead = (id, e) => {
+  const toggleRead = async (id, e) => {
     e?.stopPropagation();
+    const target = notifications.find((n) => n.id === id);
+    if (!target) return;
+    const nextRead = !target.read;
+
+    // optimistic update
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: !n.read } : n)),
+      prev.map((n) => (n.id === id ? { ...n, read: nextRead } : n))
     );
     setOpenMenuId(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/notifications/${id}/read`, {
+        method: "PATCH",
+        headers: authHeaders(),
+        body: JSON.stringify({ read: nextRead }),
+      });
+      if (!res.ok) throw new Error("Failed to update read state");
+    } catch (err) {
+      console.error(err);
+      // revert on failure
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: !nextRead } : n))
+      );
+    }
   };
 
-  const handleDelete = (id, e) => {
+  const handleDelete = async (id, e) => {
     e.stopPropagation();
+    const prevState = notifications;
     setNotifications((prev) => prev.filter((n) => n.id !== id));
     setConfirmDeleteId(null);
     setOpenMenuId(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/notifications/${id}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error("Failed to delete notification");
+    } catch (err) {
+      console.error(err);
+      setNotifications(prevState); // revert on failure
+    }
+  };
+
+  const markAllAsRead = async () => {
+    const prevState = notifications;
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+    try {
+      const res = await fetch(`${API_BASE}/notifications/mark-all-read`, {
+        method: "PATCH",
+        headers: authHeaders(),
+      });
+      if (!res.ok) throw new Error("Failed to mark all as read");
+    } catch (err) {
+      console.error(err);
+      setNotifications(prevState); // revert on failure
+    }
   };
 
   const handleItemClick = (item) => {
@@ -124,23 +196,11 @@ export default function Notification() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() =>
-                setNotifications((prev) =>
-                  prev.map((n) => ({ ...n, read: true })),
-                )
-              }
+              onClick={markAllAsRead}
               disabled={!unreadCount}
               className="rounded-full border border-nagorik-border bg-nagorik-surface-2 px-3.5 py-1.5 text-[12px] font-bold text-nagorik-secondary transition-colors hover:bg-nagorik-border disabled:opacity-50 cursor-pointer"
             >
               Mark all as read
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowClearModal(true)}
-              disabled={!notifications.length}
-              className="rounded-full border border-nagorik-red/30 bg-nagorik-red/10 px-3.5 py-1.5 text-[12px] font-bold text-nagorik-red transition-colors hover:bg-nagorik-red hover:text-white disabled:opacity-50 cursor-pointer"
-            >
-              Clear all
             </button>
           </div>
         </div>
@@ -166,7 +226,13 @@ export default function Notification() {
 
         {/* NOTIFICATION CARDS */}
         <div className="flex flex-col gap-3">
-          {filtered.length > 0 ? (
+          {loading ? (
+            <div className="rounded-2xl border border-nagorik-border bg-nagorik-surface-2/40 py-12 text-center">
+              <p className="text-[14px] font-semibold text-nagorik-muted">
+                Loading notifications...
+              </p>
+            </div>
+          ) : filtered.length > 0 ? (
             filtered.map((item) => (
               <div
                 key={item.id}
@@ -281,40 +347,6 @@ export default function Notification() {
           )}
         </div>
       </main>
-
-      {/* CONFIRM CLEAR MODAL */}
-      {showClearModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-nagorik-border bg-nagorik-paper p-6 shadow-xl">
-            <h3 className="text-[18px] font-extrabold text-nagorik-heading">
-              Clear all notifications?
-            </h3>
-            <p className="mt-2 text-[13px] text-nagorik-body-text">
-              This action cannot be undone. All current notifications will be
-              permanently deleted.
-            </p>
-            <div className="mt-6 flex justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setShowClearModal(false)}
-                className="rounded-full border border-nagorik-border px-4 py-2 text-[13px] font-bold text-nagorik-secondary hover:bg-nagorik-surface-2 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setNotifications([]);
-                  setShowClearModal(false);
-                }}
-                className="rounded-full bg-nagorik-red px-4 py-2 text-[13px] font-bold text-white hover:bg-nagorik-hover-red cursor-pointer"
-              >
-                Yes, Clear All
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
