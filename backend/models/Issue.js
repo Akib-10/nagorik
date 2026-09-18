@@ -32,7 +32,11 @@ const issueSchema = new mongoose.Schema(
     statusClass: { type: String, default: '' },
     up: { type: Number, default: 0 },
     down: { type: Number, default: 0 },
-    comments: { type: Number, default: 0 },
+    // ==== NOTIFICATION EDIT: START ====
+    // Tracks who has upvoted, so we can prevent duplicate upvotes
+    // and know the actor's identity for the notification.
+    upvotedBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    // ==== NOTIFICATION EDIT: END ====
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
