@@ -865,7 +865,7 @@ export default function Home() {
                   "w-full",
                   "max-w-[520px]",
                   "text-center",
-                  "text-[clamp(15px,1.6vw,17px)]",
+                  "text-[clamp(15px,1.3vw,17px)]",
                   "leading-relaxed",
                   "text-white/80",
                 )}

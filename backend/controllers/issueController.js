@@ -1,6 +1,5 @@
 import Issue from '../models/Issue.js';
 
-// GET /api/issues — public feed
 export async function getIssues(req, res) {
   try {
     const issues = await Issue.find().sort({ createdAt: -1 });
@@ -10,7 +9,7 @@ export async function getIssues(req, res) {
   }
 }
 
-// GET /api/issues/mine — শুধু নিজেরটা
+// GET /api/issues/mine —
 export async function getMyIssues(req, res) {
   try {
     const issues = await Issue.find({ user: req.user._id }).sort({ createdAt: -1 });
@@ -30,7 +29,7 @@ export async function createIssue(req, res) {
   }
 }
 
-// PUT /api/issues/:id — মালিক ছাড়া কেউ এডিট করতে পারবে না
+
 export async function updateIssue(req, res) {
   try {
     const issue = await Issue.findById(req.params.id);

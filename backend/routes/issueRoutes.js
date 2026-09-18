@@ -10,7 +10,7 @@ import {
 
 const router = express.Router();
 
-router.get('/', getIssues);              // public — feed-এর জন্য
+router.get('/', getIssues);              
 router.get('/mine', protect, getMyIssues);
 router.post('/', protect, createIssue);
 router.put('/:id', protect, updateIssue);
