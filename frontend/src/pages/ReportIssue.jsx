@@ -219,7 +219,7 @@ export default function ReportIssue() {
 
   const filledPhotos = slots.filter(Boolean);
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
     const reportData = {
       title,
       category,
@@ -241,9 +241,13 @@ export default function ReportIssue() {
       alert("Report updated!");
       navigate("/user");
     } else {
-      submitReport(reportData);
-      alert("Report submitted! Our team will review it soon.");
-      navigate("/browse_feed");
+      try {
+        await submitReport(reportData);
+        alert("Report submitted! Our team will review it soon.");
+        navigate("/browse_feed");
+      } catch (err) {
+        alert(err.message || "Failed to submit report. Please try again.");
+      }
     }
   };
 

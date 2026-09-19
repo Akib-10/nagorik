@@ -3,6 +3,7 @@
 // become fetch('/api/...') calls and no component needs to change.
 
 import { feedIssues, trendingIssues, upvotedIssues, seedMyReports, PLACEHOLDER_IMG } from './mockData'
+import { api } from './api'
 
 const USER_REPORTS_KEY = 'nagorik_user_reports'
 
@@ -62,29 +63,43 @@ export function findReport(id) {
   return getMyReports().find((r) => r.id === id) || null
 }
 
-export function submitReport(data) {
-  const reports = readUserReports() || seedMyReports
+export async function submitReport(data) {
   const report = {
-    id: `rep-${Date.now()}`,
     title: data.title,
     area: data.area,
-    by: 'You',
-    time: 'Just now',
-    statusClass: '',
-    statusLabel: 'Open',
     category: data.category,
     priority: data.priority,
     date: data.date,
     description: data.description,
     address: data.fullAddress,
-    up: 0,
-    down: 0,
-    comments: 0,
     photos: data.photos || [],
     img: (data.photos && data.photos[0]) || PLACEHOLDER_IMG,
   }
-  writeUserReports([report, ...reports])
-  return report
+  const created = await api.post('/issues', report)
+  // Keep a localStorage mirror so the (still mock-based) feed and profile
+  // can render the new report until they are wired to the backend.
+  const reports = readUserReports() || seedMyReports
+  const local = {
+    id: created._id,
+    title: created.title,
+    area: created.area,
+    by: 'You',
+    time: 'Just now',
+    statusClass: created.statusClass || '',
+    statusLabel: created.statusLabel || 'Open',
+    category: created.category,
+    priority: created.priority,
+    date: created.date,
+    description: created.description,
+    address: created.address,
+    up: created.up ?? 0,
+    down: created.down ?? 0,
+    comments: created.comments ?? 0,
+    photos: created.photos || [],
+    img: created.img || PLACEHOLDER_IMG,
+  }
+  writeUserReports([local, ...reports])
+  return created
 }
 
 export function updateReport(id, patch) {
