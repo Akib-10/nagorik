@@ -76,6 +76,7 @@ function mapIssue(i) {
 function mapComment(c) {
   return {
     id: c._id,
+    parent: c.parent ? String(c.parent) : null,
     author: c.user?.name || 'Anonymous',
     time: formatTime(c.createdAt),
     text: c.text,
@@ -84,6 +85,20 @@ function mapComment(c) {
     timestamp: c.createdAt ? new Date(c.createdAt).getTime() : Date.now(),
     replies: [],
   }
+}
+
+// The API returns a flat, oldest-first list. Nest replies under their parent
+// so the UI can render the thread; orphans fall back to the top level.
+function buildCommentTree(list) {
+  const byId = new Map()
+  list.forEach((c) => byId.set(String(c.id), c))
+  const roots = []
+  byId.forEach((c) => {
+    const parent = c.parent && byId.get(c.parent)
+    if (parent) parent.replies.push(c)
+    else roots.push(c)
+  })
+  return roots
 }
 
 export async function getFeedIssues() {
@@ -160,10 +175,10 @@ export async function toggleUpvote(id) {
 }
 
 export async function getCommentsForIssue(id) {
-  return (await api.get(`/comments/issue/${id}`)).map(mapComment)
+  return buildCommentTree((await api.get(`/comments/issue/${id}`)).map(mapComment))
 }
 
-export async function addComment(id, text) {
-  const created = await api.post(`/comments/issue/${id}`, { text })
+export async function addComment(id, text, parentId = null) {
+  const created = await api.post(`/comments/issue/${id}`, { text, parent: parentId })
   return mapComment(created)
 }

@@ -17,28 +17,41 @@ export async function getCommentsForIssue(req, res) {
 // POST /api/comments/issue/:issueId
 export async function createComment(req, res) {
   try {
-    const { text } = req.body;
+    const { text, parent } = req.body;
     if (!text) return res.status(400).json({ message: 'Comment text is required' });
 
     const issue = await Issue.findById(req.params.issueId);
     if (!issue) return res.status(404).json({ message: 'Issue not found' });
 
+    // Resolve the comment being replied to, if any. It must belong to the
+    // same issue so replies can't be attached across posts.
+    let parentComment = null;
+    if (parent) {
+      parentComment = await Comment.findById(parent);
+      if (!parentComment || parentComment.issue.toString() !== issue._id.toString()) {
+        return res.status(400).json({ message: 'Invalid parent comment' });
+      }
+    }
+
     const comment = await Comment.create({
       issue: issue._id,
       user: req.user._id,
+      parent: parentComment ? parentComment._id : null,
       text,
     });
 
-    // Notify the issue owner, unless they're commenting on their own report
-    if (issue.user.toString() !== req.user._id.toString()) {
+    // Replies notify the person being replied to; top-level comments notify
+    // the report owner. Never notify yourself.
+    const recipient = parentComment ? parentComment.user : issue.user;
+    if (recipient.toString() !== req.user._id.toString()) {
       await createNotification({
-        recipientId: issue.user,
+        recipientId: recipient,
         type: 'comment',
         actorId: req.user._id,
         actorName: req.user.name,
         targetType: 'Comment',
         targetId: comment._id,
-        subject: `your report "${issue.title}"`,
+        subject: parentComment ? 'your comment' : `your report "${issue.title}"`,
         title: 'New Comment',
       });
     }

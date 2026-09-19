@@ -145,9 +145,15 @@ export default function PostDetails() {
     }
   }
 
-  const handleAddReply = (parentId, text) => {
-    const addReply = (list) => list.map((item) => item.id === parentId ? { ...item, replies: [...item.replies, { id: `r-${Date.now()}`, author: 'You', time: 'just now', text, up: 0, down: '00', timestamp: Date.now(), replies: [] }] } : { ...item, replies: addReply(item.replies || []) })
-    setComments((p) => addReply(p))
+  const handleAddReply = async (parentId, text) => {
+    try {
+      const created = await addComment(cleanId, text, parentId)
+      const addReply = (list) => list.map((item) => item.id === parentId ? { ...item, replies: [...item.replies, created] } : { ...item, replies: addReply(item.replies || []) })
+      setComments((p) => addReply(p))
+      setIssue((prev) => (prev ? { ...prev, comments: prev.comments + 1 } : prev))
+    } catch (err) {
+      alert(err.message || 'Failed to add reply')
+    }
   }
 
   const visibleComments = useMemo(() => {
@@ -220,7 +226,7 @@ export default function PostDetails() {
 
         <div className="mb-[22px] flex flex-wrap items-center gap-2.5">
           <div className="flex overflow-hidden rounded-full bg-nagorik-red">
-            <button type="button" className={`flex items-center gap-1.5 px-3.5 py-[9px] text-[13px] font-bold text-white cursor-pointer hover:bg-nagorik-hover-red ${myVote === 'up' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => handleVote('up')}><VoteUpIcon size={14} />{issue.up + (myVote === 'up' ? 1 : 0)}</button>
+            <button type="button" className={`flex items-center gap-1.5 px-3.5 py-[9px] text-[13px] font-bold text-white cursor-pointer hover:bg-nagorik-hover-red ${myVote === 'up' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => handleVote('up')}><VoteUpIcon size={14} />{issue.up}</button>
             <div className="h-4 w-px bg-white/35 self-center" />
             <button type="button" className={`flex items-center gap-1.5 px-3.5 py-[9px] text-[13px] font-bold text-white cursor-pointer hover:bg-nagorik-hover-red ${myVote === 'down' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => handleVote('down')}><VoteDownIcon size={14} />{formatDown(Number(issue.down) + (myVote === 'down' ? 1 : 0))}</button>
           </div>
