@@ -18,11 +18,22 @@ function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
   return (
     <article className="flex items-center gap-[18px] rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_62%)] p-3.5 max-[760px]:flex-col max-[760px]:items-stretch">
       <div className="h-[118px] w-[118px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2">
-        <img
-          src={issue.img}
-          alt={issue.title}
-          className="h-full w-full object-cover"
-        />
+        {issue.img ? (
+          <img
+            src={issue.img}
+            alt={issue.title}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-nagorik-muted">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span className="text-[10px] font-semibold">No photo</span>
+          </div>
+        )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
         <div className="flex flex-wrap items-center gap-2.5">
@@ -83,11 +94,13 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const [activeContribution, setActiveContribution] = useState("recent");
   const [activeStatus, setActiveStatus] = useState("All");
-  const [reports, setReports] = useState(() => getMyReports());
+  const [reports, setReports] = useState([]);
+  const [upvotedIssues, setUpvotedIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  const upvotedIssues = getUpvotedIssues();
   const userData = getUser();
   const displayName = userData.name || "Nagorik User";
 
@@ -96,10 +109,32 @@ export default function UserProfile() {
     document.documentElement.lang = "bn";
   }, []);
 
-  const confirmDelete = () => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const [mine, upvoted] = await Promise.all([
+          getMyReports(),
+          getUpvotedIssues(),
+        ]);
+        setReports(mine);
+        setUpvotedIssues(upvoted);
+      } catch (err) {
+        setLoadError(err.message || "Failed to load reports");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const confirmDelete = async () => {
     if (!deletingId) return;
-    setReports(deleteReport(deletingId));
-    if (expandedId === deletingId) setExpandedId(null);
+    try {
+      await deleteReport(deletingId);
+      setReports((prev) => prev.filter((r) => r.id !== deletingId));
+      if (expandedId === deletingId) setExpandedId(null);
+    } catch (err) {
+      alert(err.message || "Failed to delete report");
+    }
     setDeletingId(null);
   };
 
@@ -200,7 +235,15 @@ export default function UserProfile() {
           </div>
 
           <div className="flex flex-col gap-5">
-            {displayedItems.length ? (
+            {loading ? (
+              <p className="py-12 text-center text-[14px] text-nagorik-muted">
+                Loading your activity...
+              </p>
+            ) : loadError ? (
+              <p className="py-12 text-center text-[14px] text-nagorik-red">
+                {loadError}
+              </p>
+            ) : displayedItems.length ? (
               displayedItems.map((issue) => (
                 <ReportRow key={issue.id} issue={issue} expanded={expandedId === issue.id} onView={(id) => setExpandedId(prev => prev === id ? null : id)} onGoToPost={(id) => navigate(`/post/${String(id).replace('comment-', '')}`)} onEdit={(id) => navigate("/report", { state: { editId: id } })} onDelete={setDeletingId} />
               ))

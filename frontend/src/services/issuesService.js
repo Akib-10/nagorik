@@ -1,70 +1,125 @@
 // Issues service — the only place components get issue data from.
-// Today it serves mock data + localStorage; tomorrow the function bodies
-// become fetch('/api/...') calls and no component needs to change.
+// All data now flows through the Express backend (/api/issues, /api/comments).
+// Field mapping (DB shape -> UI shape) happens here, so components stay clean.
+// Photos are stored on disk as files; the DB keeps only URLs, so feeds stay light.
 
-import { feedIssues, trendingIssues, upvotedIssues, seedMyReports, PLACEHOLDER_IMG } from './mockData'
 import { api } from './api'
 
-const USER_REPORTS_KEY = 'nagorik_user_reports'
+// Upload any base64 data-URL photos to /api/upload and return their /uploads URLs.
+// Existing URLs pass through untouched, so edits never re-upload old photos.
+async function persistPhotos(photos) {
+  const list = photos || []
+  if (!list.some((p) => typeof p === 'string' && p.startsWith('data:image/'))) return list
+  return Promise.all(
+    list.map(async (p) => {
+      if (typeof p !== 'string' || !p.startsWith('data:image/')) return p
+      const { url } = await api.post('/upload', { image: p })
+      return url
+    }),
+  )
+}
 
-function readUserReports() {
+function currentUserId() {
   try {
-    const raw = localStorage.getItem(USER_REPORTS_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : null
+    return JSON.parse(localStorage.getItem('nagorik_user') || '{}')._id || null
   } catch {
     return null
   }
 }
 
-function writeUserReports(reports) {
-  // Photos are stored as data URLs which can be large — if we exceed the
-  // localStorage quota, retry without photos rather than losing the report.
-  try {
-    localStorage.setItem(USER_REPORTS_KEY, JSON.stringify(reports))
-  } catch {
-    try {
-      localStorage.setItem(
-        USER_REPORTS_KEY,
-        JSON.stringify(reports.map((r) => ({ ...r, photos: [] })))
-      )
-    } catch {
-      /* storage unavailable — report stays in memory only */
-    }
+function formatTime(ts) {
+  if (!ts) return 'Just now'
+  const seconds = Math.floor((Date.now() - new Date(ts).getTime()) / 1000)
+  if (seconds < 60) return 'Just now'
+  const units = [
+    ['year', 31536000],
+    ['month', 2592000],
+    ['week', 604800],
+    ['day', 86400],
+    ['hour', 3600],
+    ['minute', 60],
+  ]
+  for (const [label, secs] of units) {
+    const v = Math.floor(seconds / secs)
+    if (v >= 1) return `${v} ${label}${v > 1 ? 's' : ''} ago`
+  }
+  return 'Just now'
+}
+
+function mapIssue(i) {
+  const me = currentUserId()
+  const upvotedBy = (i.upvotedBy || []).map((x) => String(x._id || x))
+  return {
+    id: i._id,
+    title: i.title,
+    area: i.area,
+    reporter: i.user?.name || i.reporter || 'Anonymous',
+    time: formatTime(i.createdAt),
+    statusClass: i.statusClass || '',
+    statusLabel: i.statusLabel || 'Open',
+    category: i.category,
+    priority: i.priority,
+    date: i.date,
+    description: i.description,
+    address: i.address,
+    up: i.up ?? 0,
+    down: i.down ?? 0,
+    comments: i.comments ?? 0,
+    photos: i.photos || [],
+    img: i.img || (i.photos && i.photos[0]) || '',
+    alt: i.title,
+    upvotedBy,
+    myUpvote: me ? upvotedBy.includes(me) : false,
   }
 }
 
-export function getFeedIssues() {
-  const mine = readUserReports() || []
-  return [...mine, ...feedIssues]
-}
-
-export function getTrendingIssues() {
-  return trendingIssues
-}
-
-export function getUpvotedIssues() {
-  return upvotedIssues
-}
-
-// Lazily seeds localStorage with the three demo reports on first visit so
-// edit/delete work uniformly on every row of "My Reports".
-export function getMyReports() {
-  let reports = readUserReports()
-  if (!reports) {
-    reports = seedMyReports
-    writeUserReports(reports)
+function mapComment(c) {
+  return {
+    id: c._id,
+    author: c.user?.name || 'Anonymous',
+    time: formatTime(c.createdAt),
+    text: c.text,
+    up: 0,
+    down: '00',
+    timestamp: c.createdAt ? new Date(c.createdAt).getTime() : Date.now(),
+    replies: [],
   }
-  return reports
 }
 
-export function findReport(id) {
-  return getMyReports().find((r) => r.id === id) || null
+export async function getFeedIssues() {
+  return (await api.get('/issues')).map(mapIssue)
+}
+
+export async function getIssueById(id) {
+  return mapIssue(await api.get(`/issues/${id}`))
+}
+
+export async function getTrendingIssues() {
+  const feed = await getFeedIssues()
+  return feed
+    .slice()
+    .sort((a, b) => b.up - a.up)
+    .slice(0, 4)
+    .map((i) => ({ id: i.id, title: i.title, votes: i.up, time: i.time, img: i.img }))
+}
+
+export async function getMyReports() {
+  return (await api.get('/issues/mine')).map(mapIssue)
+}
+
+export async function getUpvotedIssues() {
+  return (await api.get('/issues/upvoted')).map(mapIssue)
+}
+
+export async function findReport(id) {
+  const cleanId = String(id).replace('comment-', '')
+  const list = [...(await getMyReports()), ...(await getFeedIssues())]
+  return list.find((r) => String(r.id) === cleanId) || null
 }
 
 export async function submitReport(data) {
-  const report = {
+  const photos = await persistPhotos(data.photos)
+  const created = await api.post('/issues', {
     title: data.title,
     area: data.area,
     category: data.category,
@@ -72,46 +127,43 @@ export async function submitReport(data) {
     date: data.date,
     description: data.description,
     address: data.fullAddress,
-    photos: data.photos || [],
-    img: (data.photos && data.photos[0]) || PLACEHOLDER_IMG,
-  }
-  const created = await api.post('/issues', report)
-  // Keep a localStorage mirror so the (still mock-based) feed and profile
-  // can render the new report until they are wired to the backend.
-  const reports = readUserReports() || seedMyReports
-  const local = {
-    id: created._id,
-    title: created.title,
-    area: created.area,
-    by: 'You',
-    time: 'Just now',
-    statusClass: created.statusClass || '',
-    statusLabel: created.statusLabel || 'Open',
-    category: created.category,
-    priority: created.priority,
-    date: created.date,
-    description: created.description,
-    address: created.address,
-    up: created.up ?? 0,
-    down: created.down ?? 0,
-    comments: created.comments ?? 0,
-    photos: created.photos || [],
-    img: created.img || PLACEHOLDER_IMG,
-  }
-  writeUserReports([local, ...reports])
-  return created
+    photos,
+    img: photos[0] || '',
+  })
+  return mapIssue(created)
 }
 
-export function updateReport(id, patch) {
-  const reports = (readUserReports() || seedMyReports).map((r) =>
-    r.id === id ? { ...r, ...patch } : r
-  )
-  writeUserReports(reports)
-  return reports
+export async function updateReport(id, patch) {
+  const photos = await persistPhotos(patch.photos)
+  const updated = await api.put(`/issues/${id}`, {
+    title: patch.title,
+    area: patch.area,
+    category: patch.category,
+    priority: patch.priority,
+    date: patch.date,
+    description: patch.description,
+    address: patch.fullAddress,
+    photos,
+    img: photos[0] || patch.img || '',
+  })
+  return mapIssue(updated)
 }
 
-export function deleteReport(id) {
-  const reports = (readUserReports() || seedMyReports).filter((r) => r.id !== id)
-  writeUserReports(reports)
-  return reports
+export async function deleteReport(id) {
+  await api.del(`/issues/${id}`)
+  return id
+}
+
+export async function toggleUpvote(id) {
+  const issue = await api.patch(`/issues/${id}/upvote`, {})
+  return mapIssue(issue)
+}
+
+export async function getCommentsForIssue(id) {
+  return (await api.get(`/comments/issue/${id}`)).map(mapComment)
+}
+
+export async function addComment(id, text) {
+  const created = await api.post(`/comments/issue/${id}`, { text })
+  return mapComment(created)
 }

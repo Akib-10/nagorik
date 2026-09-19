@@ -110,38 +110,28 @@ function StepProgress({ currentStep }) {
 export default function ReportIssue() {
   const navigate = useNavigate();
   const location = useLocation();
-  const editing = location.state?.editId
-    ? findReport(location.state.editId)
-    : null;
+  const editId = location.state?.editId || null;
+  const [editing, setEditing] = useState(null);
 
   // currentStep is the single source of truth for which step is shown —
   // only changed via goStep(), called from Next/Back/Preview buttons.
   const [currentStep, setCurrentStep] = useState(1);
 
-  const [title, setTitle] = useState(() => editing?.title || "");
-  const [category, setCategory] = useState(
-    () => editing?.category || "Roads & Transportation",
-  );
-  const [priority, setPriority] = useState(() => editing?.priority || "Medium");
-  const [area, setArea] = useState(() => editing?.area || "");
-  const [date, setDate] = useState(() => editing?.date || "");
-  const [description, setDescription] = useState(
-    () => editing?.description || "",
-  );
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("Roads & Transportation");
+  const [priority, setPriority] = useState("Medium");
+  const [area, setArea] = useState("");
+  const [date, setDate] = useState("");
+  const [description, setDescription] = useState("");
 
-  const [roadNo, setRoadNo] = useState(() => editing?.roadNo || "");
-  const [block, setBlock] = useState(() => editing?.block || "");
-  const [addrArea, setAddrArea] = useState(() => editing?.addrArea || "");
-  const [thana, setThana] = useState(() => editing?.thana || "");
-  const [city, setCity] = useState(() => editing?.city || "");
+  const [roadNo, setRoadNo] = useState("");
+  const [block, setBlock] = useState("");
+  const [addrArea, setAddrArea] = useState("");
+  const [thana, setThana] = useState("");
+  const [city, setCity] = useState("");
 
-  const [slots, setSlots] = useState(() => {
-    const photos = editing?.photos || [];
-    return [photos[0] || null, photos[1] || null, photos[2] || null];
-  });
-  const [coordsText, setCoordsText] = useState(
-    () => editing?.coordsText || DEFAULT_COORDS,
-  );
+  const [slots, setSlots] = useState([null, null, null]);
+  const [coordsText, setCoordsText] = useState(DEFAULT_COORDS);
   const activeSlotRef = useRef(null);
   const photoInputRef = useRef(null);
 
@@ -149,6 +139,38 @@ export default function ReportIssue() {
     document.title = "Report an Issue — নাগরিক";
     document.documentElement.lang = "en";
   }, []);
+
+  // Load a report from the backend when editing via ?editId from the profile.
+  useEffect(() => {
+    if (!editId) return;
+    (async () => {
+      try {
+        const found = await findReport(editId);
+        setEditing(found);
+      } catch {
+        alert("Could not load the report for editing.");
+      }
+    })();
+  }, [editId]);
+
+  // Fill the form once the report to edit arrives.
+  useEffect(() => {
+    if (!editing) return;
+    setTitle(editing.title || "");
+    setCategory(editing.category || "Roads & Transportation");
+    setPriority(editing.priority || "Medium");
+    setArea(editing.area || "");
+    setDate(editing.date || "");
+    setDescription(editing.description || "");
+    setRoadNo(editing.roadNo || "");
+    setBlock(editing.block || "");
+    setAddrArea(editing.address || "");
+    setThana(editing.thana || "");
+    setCity(editing.city || "");
+    const photos = editing.photos || [];
+    setSlots([photos[0] || null, photos[1] || null, photos[2] || null]);
+    setCoordsText(editing.coordsText || DEFAULT_COORDS);
+  }, [editing]);
 
   // The only place currentStep is allowed to change — called from explicit
   // Next / Back / Preview button handlers, never from the stepper itself.
@@ -237,9 +259,13 @@ export default function ReportIssue() {
       photos: filledPhotos,
     };
     if (editing) {
-      updateReport(editing.id, reportData);
-      alert("Report updated!");
-      navigate("/user");
+      try {
+        await updateReport(editing.id, reportData);
+        alert("Report updated!");
+        navigate("/user");
+      } catch (err) {
+        alert(err.message || "Failed to update report.");
+      }
     } else {
       try {
         await submitReport(reportData);

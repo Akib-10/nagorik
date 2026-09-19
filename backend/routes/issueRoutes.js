@@ -2,7 +2,9 @@ import express from 'express';
 import { protect } from '../middleware/authMiddleware.js';
 import {
   getIssues,
+  getIssueById,
   getMyIssues,
+  getUpvotedIssues,
   createIssue,
   updateIssue,
   deleteIssue,
@@ -16,6 +18,8 @@ const router = express.Router();
 
 router.get('/', getIssues);              // public — feed-এর জন্য
 router.get('/mine', protect, getMyIssues);
+router.get('/upvoted', protect, getUpvotedIssues);
+router.get('/:id', getIssueById);
 router.post('/', protect, createIssue);
 router.put('/:id', protect, updateIssue);
 router.delete('/:id', protect, deleteIssue);

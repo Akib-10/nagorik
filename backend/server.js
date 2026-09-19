@@ -2,11 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 dotenv.config();
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 import { connectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import issueRoutes from './routes/issueRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 // ==== PROFILE EDIT: START ====
 import profileRoutes from './routes/profileRoutes.js';
 // ==== PROFILE EDIT: END ====
@@ -20,6 +25,8 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use('/api/issues', issueRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // ==== PROFILE EDIT: START ====
 app.use('/api/profile', profileRoutes);
 // ==== PROFILE EDIT: END ====

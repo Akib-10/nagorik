@@ -1,13 +1,42 @@
 import Issue from '../models/Issue.js';
+import Comment from '../models/Comment.js';
 // ==== NOTIFICATION EDIT: START ====
 import { createNotification } from '../services/notificationService.js';
 // ==== NOTIFICATION EDIT: END ====
 
+// Attach comment counts and flatten reporter info so the frontend can
+// render list/single views without extra round-trips.
+async function withMeta(issues) {
+  if (!issues.length) return [];
+  const ids = issues.map((i) => i._id);
+  const counts = await Comment.aggregate([
+    { $match: { issue: { $in: ids } } },
+    { $group: { _id: '$issue', count: { $sum: 1 } } },
+  ]);
+  const countMap = {};
+  counts.forEach((c) => { countMap[String(c._id)] = c.count; });
+  return issues.map((i) => ({
+    ...i.toObject(),
+    comments: countMap[String(i._id)] || 0,
+  }));
+}
+
 // GET /api/issues — public feed
 export async function getIssues(req, res) {
   try {
-    const issues = await Issue.find().sort({ createdAt: -1 });
-    res.json(issues);
+    const issues = await Issue.find().sort({ createdAt: -1 }).populate('user', 'name avatar').select('-photos');
+    res.json(await withMeta(issues));
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+}
+
+// GET /api/issues/:id — public single issue
+export async function getIssueById(req, res) {
+  try {
+    const issue = await Issue.findById(req.params.id).populate('user', 'name avatar');
+    if (!issue) return res.status(404).json({ message: 'Not found' });
+    res.json((await withMeta([issue]))[0]);
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -16,8 +45,18 @@ export async function getIssues(req, res) {
 // GET /api/issues/mine — শুধু নিজেরটা
 export async function getMyIssues(req, res) {
   try {
-    const issues = await Issue.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.json(issues);
+    const issues = await Issue.find({ user: req.user._id }).sort({ createdAt: -1 }).populate('user', 'name avatar');
+    res.json(await withMeta(issues));
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+}
+
+// GET /api/issues/upvoted — issues the current user has upvoted
+export async function getUpvotedIssues(req, res) {
+  try {
+    const issues = await Issue.find({ upvotedBy: req.user._id }).sort({ createdAt: -1 }).populate('user', 'name avatar').select('-photos');
+    res.json(await withMeta(issues));
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

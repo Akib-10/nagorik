@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
-import { getFeedIssues, getTrendingIssues } from "../services/issuesService";
+import { getFeedIssues, getTrendingIssues, toggleUpvote } from "../services/issuesService";
 import heroImg from "../assets/images/artwork_red_container.png"
 import {
   HomeGlyph,
@@ -50,11 +50,22 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
       style={{ cursor: "pointer" }}
     >
       <div className="h-[158px] w-[210px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2 max-[760px]:h-[180px] max-[760px]:w-full">
-        <img
-          src={issue.img}
-          alt={issue.alt}
-          className="h-full w-full object-cover"
-        />
+        {issue.img ? (
+          <img
+            src={issue.img}
+            alt={issue.alt}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-nagorik-muted">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span className="text-[11px] font-semibold">No photo</span>
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col justify-center gap-2.5">
         <span
@@ -134,6 +145,10 @@ export default function BrowseFeed() {
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [votes, setVotes] = useState({});
+  const [feedIssues, setFeedIssues] = useState([]);
+  const [trendingIssues, setTrendingIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -141,8 +156,27 @@ export default function BrowseFeed() {
     document.documentElement.lang = "bn";
   }, []);
 
-  const feedIssues = useMemo(() => getFeedIssues(), []);
-  const trendingIssues = useMemo(() => getTrendingIssues(), []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [feed, trending] = await Promise.all([
+          getFeedIssues(),
+          getTrendingIssues(),
+        ]);
+        setFeedIssues(feed);
+        setTrendingIssues(trending);
+        setVotes(
+          Object.fromEntries(
+            feed.filter((i) => i.myUpvote).map((i) => [i.id, "up"]),
+          ),
+        );
+      } catch (err) {
+        setError(err.message || "Failed to load issues");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const visibleIssues = useMemo(() => {
     let list = feedIssues;
@@ -160,8 +194,20 @@ export default function BrowseFeed() {
     return list;
   }, [feedIssues, activeTab, query]);
 
-  const handleVote = (id, dir) => {
-    setVotes((prev) => ({ ...prev, [id]: prev[id] === dir ? null : dir }));
+  const handleVote = async (id, dir) => {
+    if (dir !== "up") {
+      setVotes((prev) => ({ ...prev, [id]: prev[id] === "down" ? null : "down" }));
+      return;
+    }
+    try {
+      const updated = await toggleUpvote(id);
+      setFeedIssues((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, up: updated.up, myUpvote: updated.myUpvote } : i)),
+      );
+      setVotes((prev) => ({ ...prev, [id]: updated.myUpvote ? "up" : null }));
+    } catch (err) {
+      alert(err.message || "Failed to update vote");
+    }
   };
 
   const openPost = (id) => {
@@ -267,7 +313,15 @@ export default function BrowseFeed() {
       <div className="mx-auto grid max-w-[1160px] grid-cols-[1fr_320px] gap-5 items-start px-7 py-5 pb-[60px] max-[1100px]:grid-cols-1 max-[760px]:px-4">
         {/* Issues Feed */}
         <div className="flex flex-col gap-5" id="issuesList">
-          {visibleIssues.length ? (
+          {loading ? (
+            <p className="py-12 text-center text-[14px] text-nagorik-muted">
+              Loading issues...
+            </p>
+          ) : error ? (
+            <p className="py-12 text-center text-[14px] text-nagorik-red">
+              {error}
+            </p>
+          ) : visibleIssues.length ? (
             visibleIssues.map((issue) => (
               <IssueCard
                 key={issue.id}
@@ -300,11 +354,21 @@ export default function BrowseFeed() {
                 style={{ cursor: "pointer" }}
               >
                 <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[10px] bg-white">
-                  <img
-                    src={item.img}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
+                  {item.img ? (
+                    <img
+                      src={item.img}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[18px] text-nagorik-muted">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <path d="M21 15l-5-5L5 21" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
                   <p className="mb-1.5 text-[13.5px] font-bold leading-[1.3]">

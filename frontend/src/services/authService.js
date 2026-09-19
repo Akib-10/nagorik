@@ -18,6 +18,7 @@ function saveSession(data) {
   localStorage.setItem(
     'nagorik_user',
     JSON.stringify({
+      _id: data._id,
       name: data.name,
       email: data.email,
       isAdmin: data.isAdmin
