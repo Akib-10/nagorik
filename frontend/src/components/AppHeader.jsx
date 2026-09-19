@@ -200,13 +200,13 @@ export default function AppHeader({ logoHref = "/" }) {
                 "max-[760px]:px-3.5",
               )}
             >
-              <PlusIcon />
+            
               <span className="max-[760px]:hidden">REPORT ISSUE</span>
             </Link>
           ) : (
             <Link
               to="/login"
-              state={{ mode: "register", from: "/report" }}
+              state={{ mode: "login", from: "/report" }}
               className={clsx(
                 "flex",
                 "shrink-0",
@@ -229,7 +229,6 @@ export default function AppHeader({ logoHref = "/" }) {
                 "max-[760px]:px-3.5",
               )}
             >
-             
               <span className="max-[760px]:hidden">Sign In</span>
             </Link>
           )}
