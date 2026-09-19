@@ -1,20 +1,13 @@
-import { useMemo, useState, useRef } from 'react'
+import { useMemo, useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
-import { getFeedIssues, getMyReports } from '../services/issuesService'
+import { getIssueById, getCommentsForIssue, addComment, toggleUpvote } from '../services/issuesService'
 import { HomeGlyph, SearchIcon, PinIcon, UserGlyph, ClockIcon, VoteUpIcon, VoteDownIcon, CommentIcon, RepostIcon } from '../components/icons'
 
 const ChevronLeftIcon = ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
 const ChevronRightIcon = ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
 const ChevronDownIcon = ({ size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
 const formatDown = (v) => (isNaN(Number(v)) ? v : String(Number(v)).padStart(2, '0'))
-
-const SEED_COMMENTS = [{
-  id: 'c1', author: 'Abrar Patwary', time: '8h ago',
-  text: 'Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lobortis nisl ut aliquip ex ea commodo consequat.',
-  up: 12, down: '02', timestamp: Date.now() - 28800000,
-  replies: [{ id: 'c1-r1', author: 'Sabbir Hossain', time: '6h ago', text: 'Agreed, this issue needs immediate attention from authorities as soon as possible.', up: 5, down: '00', timestamp: Date.now() - 21600000, replies: [] }],
-}]
 
 const filterComment = (c, q) => {
   const selfMatch = `${c.author} ${c.text}`.toLowerCase().includes(q)
@@ -88,17 +81,36 @@ export default function PostDetails() {
   const navigate = useNavigate()
   const scrollRef = useRef(null)
 
-  const issue = useMemo(() => {
-    const cleanId = String(id).replace('comment-', '')
-    return [...getFeedIssues(), ...getMyReports()].find((i) => String(i.id) === cleanId) || null
-  }, [id])
+  const cleanId = String(id).replace('comment-', '')
 
-  const images = useMemo(() => issue?.images?.length ? issue.images : (issue?.img ? [issue.img] : []), [issue])
+  const [issue, setIssue] = useState(null)
+  const [issueError, setIssueError] = useState('')
+  const [comments, setComments] = useState([])
+  const [myVote, setMyVote] = useState(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [post, commentList] = await Promise.all([
+          getIssueById(cleanId),
+          getCommentsForIssue(cleanId),
+        ])
+        setIssue(post)
+        setComments(commentList)
+        setMyVote(post.myUpvote ? 'up' : null)
+      } catch (err) {
+        setIssueError(err.message || 'This post could not be found.')
+      }
+    })()
+  }, [cleanId])
+
+  const images = useMemo(() => {
+    const set = new Set([issue?.img, ...(issue?.photos || [])].filter(Boolean))
+    return [...set]
+  }, [issue])
 
   const [isDescExpanded, setIsDescExpanded] = useState(false)
-  const [myVote, setMyVote] = useState(null)
   const [isReposted, setIsReposted] = useState(false)
-  const [comments, setComments] = useState(SEED_COMMENTS)
   const [commentVotes, setCommentVotes] = useState({})
   const [sortBy, setSortBy] = useState('best')
   const [commentQuery, setCommentQuery] = useState('')
@@ -107,10 +119,30 @@ export default function PostDetails() {
   const handleScroll = (dir) => scrollRef.current?.scrollBy({ left: dir === 'left' ? -scrollRef.current.clientWidth : scrollRef.current.clientWidth, behavior: 'smooth' })
   const handleCommentVote = (cId, dir) => setCommentVotes((p) => ({ ...p, [cId]: p[cId] === dir ? null : dir }))
 
-  const handleAddComment = () => {
+  const handleVote = async (dir) => {
+    if (dir !== 'up') {
+      setMyVote(myVote === 'down' ? null : 'down')
+      return
+    }
+    try {
+      const updated = await toggleUpvote(cleanId)
+      setIssue((prev) => (prev ? { ...prev, up: updated.up, myUpvote: updated.myUpvote } : prev))
+      setMyVote(updated.myUpvote ? 'up' : null)
+    } catch (err) {
+      alert(err.message || 'Failed to update vote')
+    }
+  }
+
+  const handleAddComment = async () => {
     if (!newComment.trim()) return
-    setComments((p) => [{ id: `c-${Date.now()}`, author: 'You', time: 'just now', text: newComment.trim(), up: 0, down: '00', timestamp: Date.now(), replies: [] }, ...p])
-    setNewComment('')
+    try {
+      const created = await addComment(cleanId, newComment.trim())
+      setComments((p) => [created, ...p])
+      setIssue((prev) => (prev ? { ...prev, comments: prev.comments + 1 } : prev))
+      setNewComment('')
+    } catch (err) {
+      alert(err.message || 'Failed to add comment')
+    }
   }
 
   const handleAddReply = (parentId, text) => {
@@ -132,7 +164,7 @@ export default function PostDetails() {
         <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]} showIconButtons />
         <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px]">
           <Link to="/browse_feed" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline"><ChevronLeftIcon />Feed</Link>
-          <p className="mt-8 text-nagorik-muted">This post could not be found.</p>
+          <p className="mt-8 text-nagorik-muted">{issueError || "Loading post..."}</p>
         </div>
       </>
     )
@@ -150,11 +182,22 @@ export default function PostDetails() {
         </button>
 
         <div className="relative mb-4 w-full overflow-hidden rounded-[18px] bg-nagorik-surface-2">
-          <div ref={scrollRef} className="flex h-[380px] w-full snap-x snap-mandatory overflow-x-auto scroll-smooth max-[760px]:h-[240px]" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {images.map((imgSrc, idx) => (
-              <div key={idx} className="h-full w-full shrink-0 snap-center"><img src={imgSrc} alt="" className="h-full w-full object-cover" /></div>
-            ))}
-          </div>
+          {images.length ? (
+            <div ref={scrollRef} className="flex h-[380px] w-full snap-x snap-mandatory overflow-x-auto scroll-smooth max-[760px]:h-[240px]" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              {images.map((imgSrc, idx) => (
+                <div key={idx} className="h-full w-full shrink-0 snap-center"><img src={imgSrc} alt="" className="h-full w-full object-cover" /></div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex h-[380px] w-full flex-col items-center justify-center gap-2 text-nagorik-muted max-[760px]:h-[240px]">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="M21 15l-5-5L5 21" />
+              </svg>
+              <span className="text-[13px] font-semibold">No photos uploaded</span>
+            </div>
+          )}
           {images.length > 1 && (
             <>
               <button type="button" onClick={() => handleScroll('left')} className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md hover:bg-black/70 cursor-pointer"><ChevronLeftIcon size={18} /></button>
@@ -177,9 +220,9 @@ export default function PostDetails() {
 
         <div className="mb-[22px] flex flex-wrap items-center gap-2.5">
           <div className="flex overflow-hidden rounded-full bg-nagorik-red">
-            <button type="button" className={`flex items-center gap-1.5 px-3.5 py-[9px] text-[13px] font-bold text-white cursor-pointer hover:bg-nagorik-hover-red ${myVote === 'up' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => setMyVote(myVote === 'up' ? null : 'up')}><VoteUpIcon size={14} />{issue.up + (myVote === 'up' ? 1 : 0)}</button>
+            <button type="button" className={`flex items-center gap-1.5 px-3.5 py-[9px] text-[13px] font-bold text-white cursor-pointer hover:bg-nagorik-hover-red ${myVote === 'up' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => handleVote('up')}><VoteUpIcon size={14} />{issue.up + (myVote === 'up' ? 1 : 0)}</button>
             <div className="h-4 w-px bg-white/35 self-center" />
-            <button type="button" className={`flex items-center gap-1.5 px-3.5 py-[9px] text-[13px] font-bold text-white cursor-pointer hover:bg-nagorik-hover-red ${myVote === 'down' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => setMyVote(myVote === 'down' ? null : 'down')}><VoteDownIcon size={14} />{formatDown(Number(issue.down) + (myVote === 'down' ? 1 : 0))}</button>
+            <button type="button" className={`flex items-center gap-1.5 px-3.5 py-[9px] text-[13px] font-bold text-white cursor-pointer hover:bg-nagorik-hover-red ${myVote === 'down' ? 'bg-nagorik-hover-red' : ''}`} onClick={() => handleVote('down')}><VoteDownIcon size={14} />{formatDown(Number(issue.down) + (myVote === 'down' ? 1 : 0))}</button>
           </div>
           <button type="button" className="flex items-center gap-2 rounded-full bg-nagorik-red px-4 py-[9px] text-[13px] font-bold text-white"><CommentIcon size={14} />{issue.comments}</button>
           <button type="button" onClick={() => setIsReposted(!isReposted)} className={`flex h-[38px] w-[38px] items-center justify-center rounded-full text-white cursor-pointer ${isReposted ? 'bg-green-600' : 'bg-nagorik-red hover:bg-nagorik-hover-red'}`}><RepostIcon /></button>
