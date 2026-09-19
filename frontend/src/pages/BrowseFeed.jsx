@@ -26,7 +26,7 @@ function formatDown(value) {
 }
 
 function IssueCard({ issue, myVote, onVote, onOpen }) {
-  const upCount = issue.up + (myVote === "up" ? 1 : 0);
+  const upCount = issue.up;
   const downCount = formatDown(
     Number(issue.down) + (myVote === "down" ? 1 : 0),
   );
