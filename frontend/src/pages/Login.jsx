@@ -26,6 +26,7 @@ export default function BrowseFeed() {
     setMode(next);
     setError("");
   };
+//handle signin, admin sign in, and register functions
 
   const handleSignIn = async (e) => {
   e.preventDefault();
@@ -34,21 +35,29 @@ export default function BrowseFeed() {
     return;
   }
   try {
-    await signIn({ email, password });
-    navigate(redirectTo, { replace: true });
+    const user = await signIn({ email, password });
+    if (user.isAdmin) {
+      navigate("/admin", { replace: true });
+    } else {
+      navigate(redirectTo, { replace: true });
+    }
   } catch (err) {
     setError(err.message);
   }
 };
-
+//admin sign in function
 const handleAdminSignIn = async () => {
   if (!email || !password) {
     setError("Enter your email and password, then use Sign in as Admin.");
     return;
   }
   try {
-    await signIn({ email, password });
-    navigate(redirectTo, { replace: true });
+    const user = await signIn({ email, password });
+    if (!user.isAdmin) {
+      setError("This account doesn't have admin access.");
+      return;
+    }
+    navigate("/admin", { replace: true });
   } catch (err) {
     setError(err.message);
   }
