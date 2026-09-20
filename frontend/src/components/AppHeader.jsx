@@ -372,6 +372,33 @@ export default function AppHeader({ logoHref = "/" }) {
                       Settings
                     </button>
                   </li>
+                  {userData.isAdmin && (
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMenuOpen(false);
+                          navigate("/admin");
+                        }}
+                        className={clsx(
+                          "flex",
+                          "w-full",
+                          "items-center",
+                          "rounded-lg",
+                          "px-3",
+                          "py-2",
+                          "text-left",
+                          "text-[13px]",
+                          "font-semibold",
+                          "text-nagorik-heading",
+                          "hover:bg-nagorik-surface-2",
+                          "cursor-pointer",
+                        )}
+                      >
+                        Admin Panel
+                      </button>
+                    </li>
+                  )}
                   <li
                     className={clsx(
                       "mt-1",
