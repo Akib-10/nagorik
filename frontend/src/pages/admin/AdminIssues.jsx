@@ -229,8 +229,9 @@ export default function AdminIssues() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className={`overflow-x-auto rounded-2xl border border-nagorik-line bg-nagorik-paper transition-opacity ${loading && data ? 'opacity-60' : ''}`}>
+      {/* Table — table-fixed + no min-width keeps every column inside the viewport,
+          so the panel never scrolls sideways. */}
+      <div className={`overflow-hidden rounded-2xl border border-nagorik-line bg-nagorik-paper transition-opacity ${loading && data ? 'opacity-60' : ''}`}>
         {result?.error && !loading ? (
           <div className="p-5">
             <EmptyState text={`Couldn't load issues: ${result.error}`} />
@@ -246,16 +247,16 @@ export default function AdminIssues() {
             />
           </div>
         ) : (
-          <table className="w-full min-w-[1020px] border-collapse text-left">
+          <table className="w-full table-fixed border-collapse text-left">
             <thead>
               <tr className="border-b border-nagorik-line text-[11px] font-bold uppercase tracking-wide text-nagorik-muted">
-                <th className="px-5 py-3">Issue</th>
-                <th className="w-[1%] whitespace-nowrap px-6 py-3 text-center">Category</th>
-                <th className="w-[1%] whitespace-nowrap px-6 py-3 text-center">Priority</th>
-                <th className="w-[1%] whitespace-nowrap px-6 py-3 text-center">Status</th>
-                <th className="w-[1%] whitespace-nowrap px-6 py-3 text-center">Votes</th>
-                <th className="w-[1%] whitespace-nowrap px-6 py-3 text-center">Moderation</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th className="w-[26%] px-4 py-3">Issue</th>
+                <th className="w-[13%] px-2 py-3 text-center">Category</th>
+                <th className="w-[10%] px-2 py-3 text-center">Priority</th>
+                <th className="w-[13%] px-2 py-3 text-center">Status</th>
+                <th className="w-[9%] px-2 py-3 text-center">Votes</th>
+                <th className="w-[17%] px-2 py-3 text-center">Moderation</th>
+                <th className="w-[12%] px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -272,19 +273,19 @@ export default function AdminIssues() {
                     }}
                     className="cursor-pointer border-b border-nagorik-line last:border-0 hover:bg-nagorik-surface-2/60"
                   >
-                    <td className="px-5 py-3.5">
-                      <div className="min-w-0 max-w-[280px]">
+                    <td className="px-4 py-3.5">
+                      <div className="min-w-0 max-w-[320px]">
                         <p className="m-0 truncate text-[13.5px] font-semibold text-nagorik-heading">{issue.title}</p>
-                        <p className="m-0 mt-0.5 text-[11.5px] text-nagorik-muted">
+                        <p className="m-0 mt-0.5 truncate text-[11.5px] text-nagorik-muted">
                           {[issue.area, issue.reporter].filter(Boolean).join(' · ')}
                         </p>
                       </div>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-3.5 text-center text-[12.5px] text-nagorik-secondary">{issue.category}</td>
-                    <td className="whitespace-nowrap px-6 py-3.5 text-center">
+                    <td className="truncate px-2 py-3.5 text-center text-[12.5px] text-nagorik-secondary">{issue.category}</td>
+                    <td className="px-2 py-3.5 text-center">
                       <PriorityDot priority={issue.priority} />
                     </td>
-                    <td className="whitespace-nowrap px-6 py-3.5 text-center">
+                    <td className="px-2 py-3.5 text-center">
                       {badge ? (
                         // Not approved yet / hidden: the lifecycle status doesn't apply.
                         <span className={`inline-flex items-center whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] font-bold ${badge.cls}`}>
@@ -308,12 +309,13 @@ export default function AdminIssues() {
                         </div>
                       )}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-3.5 text-center text-[12.5px] text-nagorik-secondary">
+                    <td className="whitespace-nowrap px-2 py-3.5 text-center text-[12.5px] text-nagorik-secondary">
                       {issue.up} ↑ / {issue.down} ↓
                     </td>
-                    <td className="px-6 py-3.5">
-                      {/* Fixed width so a button growing on hover never shifts the other columns. */}
-                      <div className="mx-auto flex w-[160px] items-center justify-center gap-1.5">
+                    <td className="px-2 py-3.5">
+                      {/* Shrinkable box + shrink-0 buttons: the label can expand on hover
+                          without ever widening the cell, so no horizontal scroll appears. */}
+                      <div className="mx-auto flex w-full max-w-[160px] items-center justify-center gap-1.5">
                         {DECISIONS.map((d) => {
                           const isCurrent = issue.moderationStatus === d.value
                           return (
@@ -325,7 +327,7 @@ export default function AdminIssues() {
                               aria-pressed={isCurrent}
                               aria-label={d.label}
                               title={isCurrent ? `Currently: ${d.label}` : d.label}
-                              className={`group inline-flex h-7 min-w-7 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border px-1.5 text-[11.5px] font-bold transition-colors duration-150 focus-visible:outline-2 disabled:cursor-default disabled:opacity-50 ${
+                              className={`group inline-flex h-7 min-w-7 shrink-0 cursor-pointer items-center justify-center whitespace-nowrap rounded-full border px-1.5 text-[11.5px] font-bold transition-colors duration-150 focus-visible:outline-2 disabled:cursor-default disabled:opacity-50 ${
                                 isCurrent ? d.active : d.idle
                               }`}
                             >
@@ -338,7 +340,7 @@ export default function AdminIssues() {
                         })}
                       </div>
                     </td>
-                    <td className="px-5 py-3.5">
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           type="button"
