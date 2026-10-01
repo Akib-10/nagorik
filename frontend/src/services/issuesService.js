@@ -1,22 +1,31 @@
 // Issues service — the only place components get issue data from.
-// All data now flows through the Express backend (/api/issues, /api/comments).
+// All data flows through the Express backend (/api/issues, /api/comments).
 // Field mapping (DB shape -> UI shape) happens here, so components stay clean.
-// Photos are stored on disk as files; the DB keeps only URLs, so feeds stay light.
+// Media lives in Cloudinary; the DB keeps only metadata references.
 
 import { api } from './api'
+import { uploadIssueVideo, videoPoster } from './mediaService'
 
-// Upload any base64 data-URL photos to /api/upload and return their /uploads URLs.
-// Existing URLs pass through untouched, so edits never re-upload old photos.
-async function persistPhotos(photos) {
-  const list = photos || []
-  if (!list.some((p) => typeof p === 'string' && p.startsWith('data:image/'))) return list
-  return Promise.all(
-    list.map(async (p) => {
-      if (typeof p !== 'string' || !p.startsWith('data:image/')) return p
-      const { url } = await api.post('/upload', { image: p })
-      return url
-    }),
-  )
+// Normalises the issue media list. Falls back to legacy photo/img URLs for
+// documents created before the Cloudinary migration.
+function normalizeMedia(i) {
+  const media = Array.isArray(i.media) ? i.media.filter((m) => m && m.url) : []
+  if (media.length) return media.map((m) => ({ ...m }))
+
+  const legacy = [
+    ...(Array.isArray(i.photos) ? i.photos : []),
+    ...(i.img ? [i.img] : []),
+  ].filter(Boolean)
+  return [...new Set(legacy)].map((url) => ({
+    url,
+    publicId: '',
+    resourceType: 'image',
+    format: '',
+    bytes: 0,
+    width: null,
+    height: null,
+    duration: null,
+  }))
 }
 
 function currentUserId() {
@@ -49,25 +58,39 @@ function formatTime(ts) {
 function mapIssue(i) {
   const me = currentUserId()
   const upvotedBy = (i.upvotedBy || []).map((x) => String(x._id || x))
+  const media = normalizeMedia(i)
+  const firstImage = media.find((m) => m.resourceType === 'image')
+  const firstVideo = media.find((m) => m.resourceType === 'video')
+  const img =
+    firstImage?.url ||
+    (firstVideo ? videoPoster(firstVideo.url) : '') ||
+    i.img ||
+    ''
+
   return {
     id: i._id,
     title: i.title,
     area: i.area,
     reporter: i.user?.name || i.reporter || 'Anonymous',
+    reporterAvatar: i.user?.avatar || i.user?.profilePicture?.url || '',
     time: formatTime(i.createdAt),
     statusClass: i.statusClass || '',
     statusLabel: i.statusLabel || 'Open',
-    moderationStatus: i.moderationStatus || 'approved', // legacy posts have none = approved
-    category: i.category,
-    priority: i.priority,
+    moderationStatus: i.moderationStatus || 'approved',
+category: i.category,
+priority: i.priority,
+coordsText: i.coordsText,
     date: i.date,
     description: i.description,
     address: i.address,
     up: i.up ?? 0,
     down: i.down ?? 0,
     comments: i.comments ?? 0,
-    photos: i.photos || [],
-    img: i.img || (i.photos && i.photos[0]) || '',
+    media,
+    photos: media.filter((m) => m.resourceType === 'image').map((m) => m.url),
+    img,
+    primaryIsVideo: !firstImage && !!firstVideo,
+    hasVideo: !!firstVideo,
     alt: i.title,
     upvotedBy,
     myUpvote: me ? upvotedBy.includes(me) : false,
@@ -102,6 +125,49 @@ function buildCommentTree(list) {
   return roots
 }
 
+// Builds the multipart body for create/update. Images go through the backend;
+// videos are streamed directly to Cloudinary and referenced by publicId.
+async function buildIssueFormData(data) {
+  const form = new FormData()
+
+  const textFields = ['title', 'area', 'category', 'priority', 'date', 'description', 'coordsText']
+  textFields.forEach((key) => {
+    if (data[key] !== undefined && data[key] !== null) form.append(key, data[key])
+  })
+  if (data.fullAddress !== undefined) form.append('address', data.fullAddress)
+
+  const items = data.mediaItems || []
+  const existing = items.filter((item) => item.kind === 'existing' && item.publicId)
+  const newFiles = items.filter((item) => item.kind === 'file' && item.file)
+
+  // Always send the keep-list so the backend can detect removals — even when
+  // every existing item was removed (empty array).
+  form.append('keptMedia', JSON.stringify(existing.map((item) => item.publicId)))
+
+  const directUploads = []
+  for (const item of newFiles) {
+    if (item.resourceType === 'video') {
+      directUploads.push(await uploadIssueVideo(item.file))
+    } else {
+      form.append('media', item.file, item.file.name)
+    }
+  }
+
+  if (directUploads.length) {
+    form.append(
+      'uploadedMedia',
+      JSON.stringify(
+        directUploads.map((m) => ({
+          publicId: m.publicId,
+          resourceType: m.resourceType,
+        })),
+      ),
+    )
+  }
+
+  return form
+}
+
 export async function getFeedIssues() {
   return (await api.get('/issues')).map(mapIssue)
 }
@@ -134,34 +200,14 @@ export async function findReport(id) {
 }
 
 export async function submitReport(data) {
-  const photos = await persistPhotos(data.photos)
-  const created = await api.post('/issues', {
-    title: data.title,
-    area: data.area,
-    category: data.category,
-    priority: data.priority,
-    date: data.date,
-    description: data.description,
-    address: data.fullAddress,
-    photos,
-    img: photos[0] || '',
-  })
+  const form = await buildIssueFormData(data)
+  const created = await api.postForm('/issues', form)
   return mapIssue(created)
 }
 
-export async function updateReport(id, patch) {
-  const photos = await persistPhotos(patch.photos)
-  const updated = await api.put(`/issues/${id}`, {
-    title: patch.title,
-    area: patch.area,
-    category: patch.category,
-    priority: patch.priority,
-    date: patch.date,
-    description: patch.description,
-    address: patch.fullAddress,
-    photos,
-    img: photos[0] || patch.img || '',
-  })
+export async function updateReport(id, data) {
+  const form = await buildIssueFormData(data)
+  const updated = await api.putForm(`/issues/${id}`, form)
   return mapIssue(updated)
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { getMyReports, getUpvotedIssues, deleteReport } from "../services/issuesService";
+import { getMyProfile } from "../services/profileService";
 import { getUser } from "../services/authService";
 import profileBg from "../assets/images/grey-container.png";
 import { HomeGlyph, PinIcon, ClockIcon, VoteUpIcon, CommentIcon, EyeIcon, EditPenIcon, TrashIcon, ShieldIcon, UserGlyph } from "../components/icons";
@@ -107,9 +108,16 @@ export default function UserProfile() {
   const [loadError, setLoadError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [profile, setProfile] = useState(null);
 
   const userData = getUser();
   const displayName = userData.name || "Nagorik User";
+  const avatarUrl =
+    profile?.profilePicture?.url ||
+    profile?.avatar ||
+    userData?.avatar ||
+    userData?.image ||
+    "";
 
   useEffect(() => {
     document.title = "Profile - Nagorik";
@@ -131,6 +139,10 @@ export default function UserProfile() {
         setLoading(false);
       }
     })();
+    // Profile picture lives in Cloudinary; fetch it for the header avatar.
+    getMyProfile()
+      .then(setProfile)
+      .catch(() => {});
   }, []);
 
   const confirmDelete = async () => {
@@ -187,8 +199,8 @@ export default function UserProfile() {
           <div className="flex items-start justify-between gap-4 max-[760px]:flex-col max-[760px]:items-stretch">
             <div className="flex items-center gap-4 max-[760px]:flex-col max-[760px]:items-start max-[760px]:gap-3">
               <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white text-nagorik-red shadow-[0_6px_16px_-8px_rgba(0,0,0,0.35)] dark:border-nagorik-border dark:bg-nagorik-surface-2">
-                {userData?.avatar || userData?.image ? (
-                  <img src={userData.avatar || userData.image} alt={displayName} className="h-full w-full object-cover" />
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-nagorik-soft-red/40 text-nagorik-red dark:bg-nagorik-red/20 dark:text-[#FF7080]">
                     <UserGlyph size={42} />
