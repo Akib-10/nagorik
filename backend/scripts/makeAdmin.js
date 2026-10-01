@@ -1,7 +1,6 @@
 
+import '../config/env.js';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-dotenv.config();
 import User from '../models/User.js';
 
 async function main() {
