@@ -1,49 +1,63 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+  uploadProfilePicture,
+  removeProfilePicture,
+  ALLOWED_IMAGE_TYPES,
+} from '../services/mediaService';
+
+const EMPTY_FORM = {
+  name: '',
+  email: '',
+  phone: '',
+  bio: '',
+  division: '',
+  district: '',
+  subDistrict: '',
+  cityCorporation: '',
+  union: '',
+  wardNumber: '',
+  roadNumber: '',
+  houseNumber: '',
+  privacy: {
+    publicProfile: true,
+    showAddressDetails: true,
+    hideContactInfo: true,
+    showActivityLeaderboard: true,
+    anonymousReportingDefault: false,
+  },
+};
 
 export default function ProfileEdit() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const token = localStorage.getItem('nagorik_token');
 
-  const emptyForm = {
-    name: '',
-    email: '',
-    phone: '',
-    bio: '',
-    avatar: null,
-    division: '',
-    district: '',
-    subDistrict: '',
-    cityCorporation: '',
-    union: '',
-    wardNumber: '',
-    roadNumber: '',
-    houseNumber: '',
-    privacy: {
-      publicProfile: true,
-      showAddressDetails: true,
-      hideContactInfo: true,
-      showActivityLeaderboard: true,
-      anonymousReportingDefault: false,
-    },
-  };
-
-  const [form, setForm] = useState(emptyForm);
-  const [loading, setLoading] = useState(true);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [loading, setLoading] = useState(Boolean(token));
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
+  const [fetchError, setFetchError] = useState(null);
+
+  // Profile picture now lives in Cloudinary; MongoDB stores only its metadata.
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [preview, setPreview] = useState('');
+  const [pictureBusy, setPictureBusy] = useState(false);
+  const [pictureError, setPictureError] = useState('');
+  const [pictureMsg, setPictureMsg] = useState('');
+  const displayAvatar = preview || avatarUrl;
+
+  // Derived rather than stored, so a missing token never needs a setState
+  // inside the fetch effect just to flip the screen into its error state.
+  const error = token
+    ? fetchError
+    : 'You must be logged in to edit your profile.';
 
   useEffect(() => {
     document.title = "Edit Profile — নাগরিক";
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('nagorik_token');
-    if (!token) {
-      setError('You must be logged in to edit your profile.');
-      setLoading(false);
-      return;
-    }
+    if (!token) return;
 
     const abortController = new AbortController();
 
@@ -64,7 +78,6 @@ export default function ProfileEdit() {
           email: data.email || '',
           phone: data.phone || '',
           bio: data.bio || '',
-          avatar: data.avatar || null,
           division: data.address?.division || '',
           district: data.address?.district || '',
           subDistrict: data.address?.subDistrict || '',
@@ -73,12 +86,13 @@ export default function ProfileEdit() {
           wardNumber: data.address?.wardNumber || '',
           roadNumber: data.address?.roadNumber || '',
           houseNumber: data.address?.houseNumber || '',
-          privacy: data.privacy || emptyForm.privacy,
+          privacy: data.privacy || EMPTY_FORM.privacy,
         });
+        setAvatarUrl(data.profilePicture?.url || data.avatar || '');
       })
       .catch((err) => {
         if (err.name !== 'AbortError') {
-          setError(err.message);
+          setFetchError(err.message);
         }
       })
       .finally(() => {
@@ -86,7 +100,7 @@ export default function ProfileEdit() {
       });
 
     return () => abortController.abort(); // Cleanup fetch on unmount
-  }, []);
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -100,12 +114,48 @@ export default function ProfileEdit() {
     }));
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setForm((prev) => ({ ...prev, avatar: reader.result }));
-      reader.readAsDataURL(file);
+    e.target.value = '';
+    if (!file) return;
+
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setPictureMsg('');
+      setPictureError('Profile picture must be a JPEG, PNG or WEBP image.');
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreview(objectUrl);
+    setPictureError('');
+    setPictureMsg('');
+    setPictureBusy(true);
+    try {
+      const result = await uploadProfilePicture(file);
+      setAvatarUrl(result?.profilePicture?.url || result?.avatar || '');
+      setPictureMsg('Profile picture updated.');
+    } catch (err) {
+      setPictureError(err.message || 'Could not upload profile picture.');
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+      setPreview('');
+      setPictureBusy(false);
+    }
+  };
+
+  const handleRemovePicture = async () => {
+    setPictureError('');
+    setPictureMsg('');
+    setPictureBusy(true);
+    try {
+      await removeProfilePicture();
+      setAvatarUrl('');
+      setPreview('');
+      setPictureMsg('Profile picture removed.');
+    } catch (err) {
+      setPictureError(err.message || 'Could not remove profile picture.');
+    } finally {
+      setPictureBusy(false);
     }
   };
 
@@ -127,7 +177,7 @@ export default function ProfileEdit() {
     }
 
     setSaving(true);
-    setError(null);
+    setFetchError(null);
 
     try {
       const res = await fetch('/api/profile', {
@@ -141,7 +191,6 @@ export default function ProfileEdit() {
           email: form.email,
           phone: form.phone,
           bio: form.bio,
-          avatar: form.avatar,
           address: {
             division: form.division,
             district: form.district,
@@ -163,7 +212,7 @@ export default function ProfileEdit() {
 
       navigate(-1);
     } catch (err) {
-      setError(err.message);
+      setFetchError(err.message);
       alert(err.message);
     } finally {
       setSaving(false);
@@ -201,26 +250,53 @@ export default function ProfileEdit() {
             <div className="flex items-center gap-6 mb-6 max-[600px]:flex-col max-[600px]:items-start">
               <div
                 className="group relative flex h-[110px] w-[110px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-4 border-nagorik-red bg-nagorik-surface-2 shadow-lg"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => !pictureBusy && fileInputRef.current?.click()}
               >
-                {form.avatar ? (
-                  <img src={form.avatar} alt="Profile" className="h-full w-full object-cover transition-opacity group-hover:opacity-75" />
+                {displayAvatar ? (
+                  <img src={displayAvatar} alt="Profile" className="h-full w-full object-cover transition-opacity group-hover:opacity-75" />
                 ) : (
                   <svg className="h-12 w-12 text-nagorik-red" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
                   </svg>
                 )}
+                {pictureBusy && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-[11px] font-bold text-white">
+                    Uploading...
+                  </div>
+                )}
               </div>
 
-              <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+              <div className="flex flex-col gap-2">
+                <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/jpeg,image/png,image/webp" className="hidden" />
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="rounded-full bg-nagorik-red px-5 py-2 text-[13px] font-bold text-white transition-transform hover:scale-105 hover:bg-nagorik-hover-red cursor-pointer shadow-sm"
-              >
-                Upload New Photo
-              </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={pictureBusy}
+                    className="rounded-full bg-nagorik-red px-5 py-2 text-[13px] font-bold text-white transition-transform hover:scale-105 hover:bg-nagorik-hover-red cursor-pointer shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {avatarUrl ? 'Replace Photo' : 'Upload New Photo'}
+                  </button>
+                  {(avatarUrl || preview) && (
+                    <button
+                      type="button"
+                      onClick={handleRemovePicture}
+                      disabled={pictureBusy}
+                      className="rounded-full border-2 border-nagorik-border px-5 py-2 text-[13px] font-bold text-nagorik-secondary hover:bg-nagorik-surface-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      Remove Photo
+                    </button>
+                  )}
+                </div>
+
+                {pictureError && (
+                  <span className="text-[12px] font-semibold text-nagorik-red">{pictureError}</span>
+                )}
+                {!pictureError && pictureMsg && (
+                  <span className="text-[12px] font-semibold text-nagorik-green">{pictureMsg}</span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-5 max-[600px]:grid-cols-1">
@@ -321,8 +397,8 @@ export default function ProfileEdit() {
               <div className="p-6 text-white bg-nagorik-red">
                 <div className="flex items-center gap-4">
                   <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-white bg-white shadow-md flex items-center justify-center">
-                    {form.avatar ? (
-                      <img src={form.avatar} alt="Preview" className="h-full w-full object-cover" />
+                    {displayAvatar ? (
+                      <img src={displayAvatar} alt="Preview" className="h-full w-full object-cover" />
                     ) : (
                       <svg className="h-10 w-10 text-nagorik-red" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />

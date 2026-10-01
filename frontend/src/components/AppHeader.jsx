@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import logo from "../assets/images/logo_for_dark_mode.png";
 import { isAuthenticated, getUser, signOut } from "../services/authService";
-import { SearchIcon, PlusIcon, BellIconApp } from "./icons";
+import { SearchIcon, BellIconApp } from "./icons";
 import { useUnreadCount } from "../hooks/useUnreadCount";
 
 export default function AppHeader({ logoHref = "/" }) {

@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
 import { getFeedIssues, getTrendingIssues, toggleUpvote } from "../services/issuesService";
+import { optimizedUrl } from "../services/mediaService";
 import heroImg from "../assets/images/artwork_red_container.png"
 import {
   HomeGlyph,
@@ -51,11 +52,27 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
     >
       <div className="h-[158px] w-[210px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2 max-[760px]:h-[180px] max-[760px]:w-full">
         {issue.img ? (
-          <img
-            src={issue.img}
-            alt={issue.alt}
-            className="h-full w-full object-cover"
-          />
+          <div className="relative h-full w-full">
+            <img
+              src={optimizedUrl(issue.img, { width: 500 })}
+              alt={issue.alt}
+              className="h-full w-full object-cover"
+            />
+            {issue.primaryIsVideo && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+              </span>
+            )}
+            {issue.hasVideo && !issue.primaryIsVideo && (
+              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-2 py-[2px] text-[10px] font-bold text-white">
+                Video
+              </span>
+            )}
+          </div>
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-nagorik-muted">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -181,7 +198,11 @@ export default function BrowseFeed() {
   const visibleIssues = useMemo(() => {
     let list = feedIssues;
     if (activeTab === "ongoing")
-      list = list.filter((i) => i.statusLabel === "Ongoing");
+      // Backend stores 'Open' | 'In progress' | 'Resolved' | 'Rejected'
+      // (adminServices.js STATUS_OPTIONS) — there is no "Ongoing" label.
+      list = list.filter(
+        (i) => i.statusLabel === "Open" || i.statusLabel === "In progress",
+      );
     if (activeTab === "trending") list = [...list].sort((a, b) => b.up - a.up);
     const q = query.trim().toLowerCase();
     if (q) {
@@ -356,7 +377,7 @@ export default function BrowseFeed() {
                 <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[10px] bg-white">
                   {item.img ? (
                     <img
-                      src={item.img}
+                      src={optimizedUrl(item.img, { width: 120 })}
                       alt=""
                       className="h-full w-full object-cover"
                     />
