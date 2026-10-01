@@ -1,7 +1,4 @@
-// One-off utility: promote (or demote) a user to admin by email.
-// Usage:
-//   node scripts/makeAdmin.js someone@example.com
-//   node scripts/makeAdmin.js someone@example.com --remove   (to revoke admin)
+
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 dotenv.config();

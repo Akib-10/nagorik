@@ -4,6 +4,9 @@ import { api } from './api'
 
 export const STATUS_OPTIONS = ['Open', 'In progress', 'Resolved', 'Rejected']
 
+// Moderation: a new report stays "Pending" until an admin approves it.
+export const MODERATION_TABS = ['Pending', 'Approved', 'Spam', 'Rejected']
+
 // The public feed styles issues by statusClass, so keep it in sync with the label.
 const STATUS_CLASS = {
   Open: '',
@@ -29,8 +32,11 @@ export const getAdminUsers = ({ search, role, page, limit } = {}) =>
 export const suspendUser = (id) => api.patch(`/admin/users/${id}/suspend`)
 export const reactivateUser = (id) => api.patch(`/admin/users/${id}/reactivate`)
 
-export const getAdminIssues = ({ search, status, page, limit } = {}) =>
-  api.get(`/admin/issues${toQuery({ search, status, page, limit })}`)
+export const getAdminIssues = ({ search, status, moderation, page, limit } = {}) =>
+  api.get(`/admin/issues${toQuery({ search, status, moderation, page, limit })}`)
+
+// action: 'approve' | 'spam' | 'reject'
+export const moderateIssue = (id, action) => api.patch(`/admin/issues/${id}/moderate`, { action })
 
 // Reuses the existing admin-only endpoint (it also notifies the report owner).
 export const updateIssueStatus = (id, statusLabel) =>

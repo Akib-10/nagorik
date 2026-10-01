@@ -7,6 +7,8 @@ import profileBg from "../assets/images/grey-container.png";
 import { HomeGlyph, PinIcon, ClockIcon, VoteUpIcon, CommentIcon, EyeIcon, EditPenIcon, TrashIcon, ShieldIcon, UserGlyph } from "../components/icons";
 
 const STATUS_BG = { 'In progress': 'bg-[#B87613]', 'Resolved': 'bg-nagorik-green' };
+// Shown to the owner while their report isn't public (approved posts show nothing extra).
+const MODERATION_LABEL = { pending: 'Awaiting approval', spam: 'Flagged as spam', rejected: 'Rejected' };
 
 function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
   const badgeBg = STATUS_BG[issue.statusLabel] || 'bg-nagorik-red';
@@ -44,6 +46,11 @@ function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
           <span className={`inline-flex items-center gap-[5px] rounded-full px-[11px] py-1 text-[10.5px] font-bold text-white ${badgeBg}`}>
             <span className="h-[5px] w-[5px] rounded-full bg-white" />{issue.statusLabel || "Open"}
           </span>
+          {MODERATION_LABEL[issue.moderationStatus] && (
+            <span className="inline-flex items-center rounded-full border border-nagorik-gold/50 bg-nagorik-gold/10 px-[10px] py-[3px] text-[10.5px] font-bold text-nagorik-heading">
+              {MODERATION_LABEL[issue.moderationStatus]}
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3.5 text-[12px] text-nagorik-secondary">
           <span className="flex items-center gap-[5px]"><PinIcon size={12} />{issue.area}</span>
