@@ -68,6 +68,21 @@ const privacySchema = new mongoose.Schema(
   { _id: false }
 );
 
+// Cloudinary reference + metadata only — never the binary/base64 image itself.
+const profilePictureSchema = new mongoose.Schema(
+  {
+    url: { type: String, default: '' },
+    publicId: { type: String, default: '' },
+    resourceType: { type: String, default: 'image' },
+    format: { type: String, default: '' },
+    bytes: { type: Number, default: 0 },
+    width: { type: Number, default: null },
+    height: { type: Number, default: null },
+    folder: { type: String, default: '' },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -102,7 +117,10 @@ const userSchema = new mongoose.Schema(
 
     phone: { type: String, default: '' },
     bio: { type: String, default: '' },
+    // `avatar` is kept as a plain URL string for backward compatibility with the
+    // existing UI. It mirrors profilePicture.url and never holds binary data.
     avatar: { type: String, default: '' },
+    profilePicture: { type: profilePictureSchema, default: null },
 
     address: {
       type: addressSchema, default: () => ({})

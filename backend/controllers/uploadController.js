@@ -1,29 +1,46 @@
 // backend/controllers/uploadController.js
-import { saveBase64Image } from '../services/fileStorage.js';
+// Issues short-lived, signed upload requests so the browser can stream large
+// media directly to Cloudinary. Only the signature + public config is returned;
+// the API secret never leaves the server.
+import { createUploadSignature } from '../services/cloudinaryService.js';
+import { CLOUDINARY_FOLDERS } from '../config/cloudinary.js';
 
-const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+const UPLOAD_TARGETS = {
+  profile: {
+    folder: CLOUDINARY_FOLDERS.userProfile,
+    resourceType: 'image',
+  },
+  'issue-image': {
+    folder: CLOUDINARY_FOLDERS.issueImages,
+    resourceType: 'image',
+  },
+  'issue-video': {
+    folder: CLOUDINARY_FOLDERS.issueVideos,
+    resourceType: 'video',
+  },
+};
 
-// POST /api/upload — accepts { image: "data:image/jpeg;base64,..." }, saves it
-// to the uploads/ folder and returns { url: "/uploads/<file>" }.
-export async function uploadImage(req, res) {
+// POST /api/upload/signature — body: { kind: 'profile' | 'issue-image' | 'issue-video' }
+export async function getUploadSignature(req, res) {
   try {
-    const { image } = req.body;
-    if (!image || typeof image !== 'string' || !image.startsWith('data:image/')) {
-      return res.status(400).json({ message: 'A base64 image is required' });
+    const kind = req.body?.kind ?? req.query?.kind;
+    const target = UPLOAD_TARGETS[kind];
+    if (!target) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Unknown upload kind.' });
     }
 
-    const match = image.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
-    if (!match) return res.status(400).json({ message: 'Unsupported image format' });
-
-    const buf = Buffer.from(match[2], 'base64');
-    if (!buf.length) return res.status(400).json({ message: 'Empty image' });
-    if (buf.length > MAX_BYTES) return res.status(400).json({ message: 'Image too large (max 5MB)' });
-
-    const url = saveBase64Image(image);
-    if (url === image) return res.status(400).json({ message: 'Unsupported image type' });
-
-    res.status(201).json({ url });
+    const signed = await createUploadSignature(target);
+    return res.status(200).json({
+      success: true,
+      message: 'Upload signature generated.',
+      data: signed,
+    });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
+    return res.status(err.statusCode || 500).json({
+      success: false,
+      message: err.statusCode ? err.message : 'Could not create upload signature.',
+    });
   }
 }
