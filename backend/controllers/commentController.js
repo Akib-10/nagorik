@@ -1,6 +1,6 @@
 import Comment from '../models/Comment.js';
 import Issue from '../models/Issue.js';
-import { createNotification } from '../services/notificationService.js';
+import { notify } from '../services/notificationService.js';
 
 // GET /api/comments/issue/:issueId — public, like the issue feed
 export async function getCommentsForIssue(req, res) {
@@ -44,13 +44,14 @@ export async function createComment(req, res) {
     // the report owner. Never notify yourself.
     const recipient = parentComment ? parentComment.user : issue.user;
     if (recipient.toString() !== req.user._id.toString()) {
-      await createNotification({
+      notify({
         recipientId: recipient,
         type: 'comment',
         actorId: req.user._id,
         actorName: req.user.name,
         targetType: 'Comment',
         targetId: comment._id,
+        issueId: issue._id,
         subject: parentComment ? 'your comment' : `your report "${issue.title}"`,
         title: 'New Comment',
       });
