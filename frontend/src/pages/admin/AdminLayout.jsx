@@ -14,6 +14,8 @@ import {
   LogOutIcon,
   MenuIcon,
   XIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from '../../components/icons'
 
 const NAV_ITEMS = [
@@ -34,79 +36,131 @@ const TITLES = {
   '/admin/settings': 'Settings',
 }
 
-function SidebarContent({ userData, onNavigate, onLogout }) {
+const COLLAPSE_KEY = 'nagorik_admin_sidebar_collapsed'
+
+function SidebarContent({ userData, onNavigate, onLogout, collapsed = false, onToggleCollapse }) {
+  // While collapsed the label is removed from the flow, so the icon must centre itself.
+  const navItem = ({ isActive }) =>
+    clsx(
+      'flex items-center rounded-xl text-[13.5px] font-semibold transition-colors duration-150',
+      collapsed ? 'h-10 w-10 shrink-0 justify-center' : 'gap-3 px-3.5 py-2.5',
+      isActive
+        ? 'bg-nagorik-red !text-white'
+        : 'text-nagorik-secondary hover:bg-nagorik-surface-2 hover:text-nagorik-heading',
+    )
+
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 border-b border-nagorik-line px-6 py-5">
-        <img src={logo} alt="নাগরিক" className="h-9 w-auto" />
-        <div className="leading-tight">
-          <p className="m-0 text-[13px] font-extrabold tracking-wide text-nagorik-heading">
-            NAGORIK
-          </p>
-          <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-nagorik-red">
-            Admin Panel
-          </p>
-        </div>
+      <div
+        className={clsx(
+          'flex items-center border-b border-nagorik-line',
+          collapsed ? 'justify-center px-2 py-4' : 'gap-3 px-6 py-5',
+        )}
+      >
+        {collapsed ? (
+          <img src={logo} alt="NAGORIK" className="h-7 w-auto" />
+        ) : (
+          <>
+            <img src={logo} alt="নাগরিক" className="h-9 w-auto" />
+            <div className="leading-tight">
+              <p className="m-0 text-[13px] font-extrabold tracking-wide text-nagorik-heading">
+                NAGORIK
+              </p>
+              <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-nagorik-red">
+                Admin Panel
+              </p>
+            </div>
+          </>
+        )}
       </div>
-      
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
-        <ul className="flex flex-col gap-1">
+
+      <nav className={clsx('flex-1 overflow-y-auto', collapsed ? 'px-3 py-4' : 'px-3 py-4')}>
+        <ul className="flex flex-col items-center gap-1">
           {NAV_ITEMS.map(({ to, end, label, icon: Icon }) => (
-            <li key={to}>
+            <li key={to} className="w-full">
               <NavLink
                 to={to}
                 end={end}
                 onClick={onNavigate}
-                className={({ isActive }) =>
-                  clsx(
-                    'flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13.5px] font-semibold transition-colors duration-150',
-                    isActive
-                      ? 'bg-nagorik-red !text-white'
-                      : 'text-nagorik-secondary hover:bg-nagorik-surface-2 hover:text-nagorik-heading ',
-                  )
-                }
+                title={collapsed ? label : undefined}
+                aria-label={collapsed ? label : undefined}
+                className={navItem}
               >
-                <Icon size={18} />
-                <span>{label}</span>
+                <Icon size={18} className="shrink-0" />
+                {!collapsed && <span className="truncate">{label}</span>}
               </NavLink>
             </li>
           ))}
         </ul>
       </nav>
 
-      <div className="border-t border-nagorik-line px-3 py-4">
-        <div className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-nagorik-red bg-nagorik-surface-2 text-[13px] font-bold text-nagorik-red">
-            {(userData.name || 'A').charAt(0).toUpperCase()}
-          </span>
-          <div className="min-w-0 leading-tight">
-            <p className="m-0 truncate text-[13px] font-bold text-nagorik-heading">
-              {userData.name || 'Admin User'}
-            </p>
-            <p className="m-0 truncate text-[11px] text-nagorik-muted">
-              {userData.email || 'admin@nagorik.app'}
-            </p>
+      <div className={clsx('border-t border-nagorik-line', collapsed ? 'px-3 py-4' : 'px-3 py-4')}>
+        {collapsed ? (
+          <div className="mb-2 flex justify-center">
+            <span
+              title={userData.name || 'Admin User'}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-nagorik-red bg-nagorik-surface-2 text-[13px] font-bold text-nagorik-red"
+            >
+              {(userData.name || 'A').charAt(0).toUpperCase()}
+            </span>
           </div>
-        </div>
+        ) : (
+          <div className="mb-2 flex items-center gap-3 rounded-xl px-3 py-2">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 border-nagorik-red bg-nagorik-surface-2 text-[13px] font-bold text-nagorik-red">
+              {(userData.name || 'A').charAt(0).toUpperCase()}
+            </span>
+            <div className="min-w-0 leading-tight">
+              <p className="m-0 truncate text-[13px] font-bold text-nagorik-heading">
+                {userData.name || 'Admin User'}
+              </p>
+              <p className="m-0 truncate text-[11px] text-nagorik-muted">
+                {userData.email || 'admin@nagorik.app'}
+              </p>
+            </div>
+          </div>
+        )}
 
         <Link
           to="/"
           onClick={onNavigate}
-          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-nagorik-secondary transition-colors duration-150 hover:bg-nagorik-surface-2 hover:text-nagorik-heading"
+          title={collapsed ? 'Back to site' : undefined}
+          aria-label={collapsed ? 'Back to site' : undefined}
+          className={clsx(
+            'flex w-full items-center rounded-xl text-[13px] font-semibold text-nagorik-secondary transition-colors duration-150 hover:bg-nagorik-surface-2 hover:text-nagorik-heading',
+            collapsed ? 'h-10 w-10 shrink-0 justify-center' : 'gap-3 px-3.5 py-2.5',
+          )}
         >
           <HomeGlyph />
-          <span>Back to site</span>
+          {!collapsed && <span>Back to site</span>}
         </Link>
 
         <button
           type="button"
           onClick={onLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-semibold text-nagorik-red transition-colors duration-150 hover:bg-nagorik-red/10 cursor-pointer"
+          title={collapsed ? 'Log out' : undefined}
+          aria-label={collapsed ? 'Log out' : undefined}
+          className={clsx(
+            'flex w-full items-center rounded-xl text-[13px] font-semibold text-nagorik-red transition-colors duration-150 hover:bg-nagorik-red/10 cursor-pointer',
+            collapsed ? 'h-10 w-10 shrink-0 justify-center' : 'gap-3 px-3.5 py-2.5',
+          )}
         >
           <LogOutIcon />
-          <span>Log out</span>
+          {!collapsed && <span>Log out</span>}
         </button>
       </div>
+
+      {/* Collapse / expand toggle sits on the sidebar's right edge. */}
+      {onToggleCollapse && (
+        <button
+          type="button"
+          onClick={onToggleCollapse}
+          aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="absolute -right-3 top-1/2 z-40 hidden h-7 w-7 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-nagorik-line bg-nagorik-paper text-nagorik-secondary shadow-sm transition-colors duration-150 hover:bg-nagorik-surface-2 hover:text-nagorik-heading min-[981px]:flex"
+        >
+          {collapsed ? <ChevronRightIcon size={13} /> : <ChevronLeftIcon size={13} />}
+        </button>
+      )}
     </div>
   )
 }
@@ -115,14 +169,24 @@ export default function AdminLayout() {
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(COLLAPSE_KEY) === 'true',
+  )
 
   useEffect(() => {
     document.title = 'Admin Panel — নাগরিক'
   }, [])
 
- if (!isAuthenticated()) {
-  return <Navigate to="/login?next=/admin" replace />
-}
+  const toggleCollapse = () => {
+    setCollapsed((wasCollapsed) => {
+      localStorage.setItem(COLLAPSE_KEY, String(!wasCollapsed))
+      return !wasCollapsed
+    })
+  }
+
+  if (!isAuthenticated()) {
+    return <Navigate to="/login?next=/admin" replace />
+  }
 
 const userData = getUser()
 
@@ -140,9 +204,19 @@ if (!userData.isAdmin) {
     <div className="min-h-screen bg-nagorik-cream">
       <div className="mx-auto flex max-w-[1440px]">
         {/* Desktop sidebar */}
-        <aside className="hidden w-[268px] shrink-0 border-r border-nagorik-line bg-nagorik-paper min-[981px]:block">
+        <aside
+          className={clsx(
+            'relative hidden shrink-0 border-r border-nagorik-line bg-nagorik-paper transition-[width] duration-200 min-[981px]:block',
+            collapsed ? 'w-[76px]' : 'w-[268px]',
+          )}
+        >
           <div className="sticky top-0 h-screen">
-            <SidebarContent userData={userData} onLogout={handleLogout} />
+            <SidebarContent
+              userData={userData}
+              onLogout={handleLogout}
+              collapsed={collapsed}
+              onToggleCollapse={toggleCollapse}
+            />
           </div>
         </aside>
 

@@ -1,3 +1,5 @@
+import { resetNotificationState } from './notificationStore'
+
 const API_BASE = 'http://localhost:5000/api/auth'
 
 export function isAuthenticated() {
@@ -58,6 +60,7 @@ export function signOut() {
   localStorage.removeItem('nagorik_auth')
   localStorage.removeItem('nagorik_user')
   localStorage.removeItem('nagorik_token')
+  resetNotificationState()
 }
 
 export function getSettings() {

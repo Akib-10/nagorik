@@ -1,7 +1,7 @@
 import Issue from "../models/Issue.js";
 import Comment from "../models/Comment.js";
 // ==== NOTIFICATION EDIT: START ====
-import { createNotification } from "../services/notificationService.js";
+import { notify } from '../services/notificationService.js';
 // ==== NOTIFICATION EDIT: END ====
 
 // Attach comment counts and flatten reporter info so the frontend can
@@ -36,7 +36,7 @@ export async function getIssues(req, res) {
   }
 }
 
-// GET /api/issues/:id — public single issue
+// GET /api/issues/:id — public single issue (for accessing any post)
 export async function getIssueById(req, res) {
   try {
     const issue = await Issue.findById(req.params.id).populate(
@@ -137,22 +137,25 @@ export async function upvoteIssue(req, res) {
     } else {
       issue.upvotedBy.push(req.user._id);
       issue.up += 1;
-
-      if (issue.user.toString() !== userId) {
-        await createNotification({
-          recipientId: issue.user,
-          type: "upvote",
-          actorId: req.user._id,
-          actorName: req.user.name,
-          targetType: "Issue",
-          targetId: issue._id,
-          subject: `your report "${issue.title}"`,
-          title: "New Upvote",
-        });
-      }
     }
 
+    // Commit the primary mutation before notifying so a notification failure
+    // can never cost the user their upvote.
     await issue.save();
+
+    if (!alreadyUpvoted && issue.user.toString() !== userId) {
+      notify({
+        recipientId: issue.user,
+        type: 'upvote',
+        actorId: req.user._id,
+        actorName: req.user.name,
+        targetType: 'Issue',
+        targetId: issue._id,
+        subject: `your report "${issue.title}"`,
+        title: 'New Upvote',
+      });
+    }
+
     res.json(issue);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -176,7 +179,7 @@ export async function updateIssueStatus(req, res) {
     if (statusClass !== undefined) issue.statusClass = statusClass;
     await issue.save();
 
-    await createNotification({
+    notify({
       recipientId: issue.user,
       type: "status",
       targetType: "Issue",

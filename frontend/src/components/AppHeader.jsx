@@ -4,12 +4,14 @@ import clsx from "clsx";
 import logo from "../assets/images/logo_for_dark_mode.png";
 import { isAuthenticated, getUser, signOut } from "../services/authService";
 import { SearchIcon, PlusIcon, BellIconApp } from "./icons";
+import { useUnreadCount } from "../hooks/useUnreadCount";
 
 export default function AppHeader({ logoHref = "/" }) {
   const isAuth = isAuthenticated();
   const userData = getUser();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const unreadCount = useUnreadCount(isAuth);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -243,21 +245,22 @@ export default function AppHeader({ logoHref = "/" }) {
               type="button"
               onClick={handleBellClick}
               className={bellBtnClass}
-              aria-label="Toggle notifications"
+              aria-label={
+                unreadCount > 0
+                  ? `Notifications, ${unreadCount} unread`
+                  : "Notifications"
+              }
             >
               <BellIconApp />
-              {pathname !== "/notifications" && (
+              {unreadCount > 0 && (
                 <span
                   className={clsx(
-                    "absolute",
-                    "top-1.5",
-                    "right-1.5",
-                    "h-2",
-                    "w-2",
-                    "rounded-full",
-                    "bg-nagorik-red",
+                    "absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-nagorik-red px-1 text-[10px] font-bold leading-none text-white",
+                    unreadCount > 9 && "min-w-5",
                   )}
-                />
+                >
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
               )}
             </button>
           )}
