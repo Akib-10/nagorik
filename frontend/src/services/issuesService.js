@@ -57,6 +57,7 @@ function mapIssue(i) {
     time: formatTime(i.createdAt),
     statusClass: i.statusClass || '',
     statusLabel: i.statusLabel || 'Open',
+    moderationStatus: i.moderationStatus || 'approved', // legacy posts have none = approved
     category: i.category,
     priority: i.priority,
     date: i.date,

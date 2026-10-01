@@ -269,8 +269,8 @@ export default function ReportIssue() {
     } else {
       try {
         await submitReport(reportData);
-        alert("Report submitted! Our team will review it soon.");
-        navigate("/browse_feed");
+        alert("Report submitted! It will appear in the public feed once an admin approves it.");
+        navigate("/user"); // it isn't in the feed yet, so send them to their own reports
       } catch (err) {
         alert(err.message || "Failed to submit report. Please try again.");
       }
