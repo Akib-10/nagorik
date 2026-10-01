@@ -19,12 +19,7 @@ export async function getNotifications(req, res) {
 // GET /api/notifications/unread-count
 export async function getUnreadCount(req, res) {
   try {
-    const { unreadCount } = await notificationService.listNotifications({
-      recipientId: req.user._id,
-      filter: 'unread',
-      page: 1,
-      limit: 1,
-    });
+    const unreadCount = await notificationService.countUnread(req.user._id);
     res.json({ unreadCount });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch unread count', error: err.message });
@@ -36,6 +31,9 @@ export async function updateReadState(req, res) {
   try {
     const { id } = req.params;
     const { read = true } = req.body;
+    if (typeof read !== 'boolean') {
+      return res.status(400).json({ message: '`read` must be a boolean' });
+    }
     const updated = await notificationService.markAsRead(id, req.user._id, read);
     if (!updated) return res.status(404).json({ message: 'Notification not found' });
     res.json(updated);
@@ -62,7 +60,7 @@ export async function deleteNotification(req, res) {
     const { id } = req.params;
     const deleted = await notificationService.softDeleteNotification(id, req.user._id);
     if (!deleted) return res.status(404).json({ message: 'Notification not found' });
-    res.json({ message: 'Notification deleted', id: deleted._id });
+    res.json({ message: 'Notification deleted', id: deleted._id.toString(), unreadCount: await notificationService.countUnread(req.user._id) });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete notification', error: err.message });
   }

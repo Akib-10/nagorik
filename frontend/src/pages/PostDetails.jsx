@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
 import { getIssueById, getCommentsForIssue, addComment, toggleUpvote } from '../services/issuesService'
+import { getUser } from '../services/authService'
 import { HomeGlyph, SearchIcon, PinIcon, UserGlyph, ClockIcon, VoteUpIcon, VoteDownIcon, CommentIcon, RepostIcon } from '../components/icons'
 
 const ChevronLeftIcon = ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
@@ -176,6 +177,15 @@ export default function PostDetails() {
     )
   }
 
+  const isAdminViewer = !!getUser()?.isAdmin
+  const backTo = isAdminViewer ? '/admin/issues' : '/browse_feed'
+  const MODERATION_NOTE = {
+    pending: 'This post is waiting for admin approval. Only you and admins can see it right now.',
+    spam: 'This post was flagged as spam and is hidden from the public feed.',
+    rejected: 'This post was rejected and is hidden from the public feed.',
+  }
+  const moderationNote = MODERATION_NOTE[issue.moderationStatus]
+
   const desc = issue.description || 'Residents have noticed large trees in the north section cut down without any visible permits. Workers have been operating in the late evening hours, which has raised concerns among nearby households. This needs urgent investigation from the city corporation.'
   const isLongDesc = desc.length > 150
 
@@ -183,9 +193,15 @@ export default function PostDetails() {
     <>
       <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]} showIconButtons />
       <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px] max-[760px]:px-4">
-        <button type="button" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline cursor-pointer" onClick={() => navigate('/browse_feed')}>
-          <ChevronLeftIcon />Feed
+        <button type="button" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline cursor-pointer" onClick={() => navigate(backTo)}>
+          <ChevronLeftIcon />{isAdminViewer ? 'Manage posts' : 'Feed'}
         </button>
+
+        {moderationNote && (
+          <div className="mb-4 rounded-xl border border-nagorik-gold/40 bg-nagorik-gold/10 px-4 py-3 text-[13px] font-semibold text-nagorik-heading">
+            {moderationNote}
+          </div>
+        )}
 
         <div className="relative mb-4 w-full overflow-hidden rounded-[18px] bg-nagorik-surface-2">
           {images.length ? (

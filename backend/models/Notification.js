@@ -5,6 +5,7 @@ const { Schema } = mongoose;
 const actorSchema = new Schema(
   {
     actorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    actorName: { type: String, default: '' },
     actedAt: { type: Date, default: Date.now },
   },
   { _id: false }
@@ -36,6 +37,16 @@ const notificationSchema = new Schema(
     targetId: {
       type: Schema.Types.ObjectId,
       refPath: 'targetType',
+      default: null,
+    },
+
+    // Denormalized issue behind the notification. Comment notifications point
+    // at a Comment, which has no frontend route of its own, so clients need
+    // the owning issue to build a link. Backfilled on write for every type
+    // that has an issue behind it.
+    issueId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Issue',
       default: null,
     },
 

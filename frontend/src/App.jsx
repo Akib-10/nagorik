@@ -10,7 +10,23 @@ import ReportIssue from './pages/ReportIssue.jsx'
 import Settings from './pages/Settings.jsx'
 import Notification from './pages/Notification.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
-import { getTheme, setTheme } from './services/authService'
+import AdminLayout from './pages/admin/AdminLayout.jsx'
+import AdminOverview from './pages/admin/AdminOverview.jsx'
+import AdminIssues from './pages/admin/AdminIssues.jsx'
+import AdminUsers from './pages/admin/AdminUsers.jsx'
+import AdminCategories from './pages/admin/AdminCategories.jsx'
+import AdminAnalytics from './pages/admin/AdminAnalytics.jsx'
+import AdminSettingsPage from './pages/admin/AdminSettingsPage.jsx'
+import { getTheme, setTheme, isAuthenticated, getUser } from './services/authService'
+
+// Admins land in the admin panel instead of the public homepage —
+// covers page refreshes / direct visits to "/", not just the login moment.
+function HomeRoute() {
+  if (isAuthenticated() && getUser().isAdmin) {
+    return <Navigate to="/admin" replace />
+  }
+  return <Home />
+}
 
 export default function App() {
   useEffect(() => {
@@ -21,7 +37,7 @@ export default function App() {
     <>
       <ScrollToTop />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<HomeRoute />} />
         <Route path="/login" element={<Login />} />
         <Route path="/browse_feed" element={<BrowseFeed />} />
         <Route path="/post/:id" element={<PostDetails />} />
@@ -30,6 +46,14 @@ export default function App() {
         <Route path="/report" element={<ReportIssue />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/notifications" element={<Notification />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminOverview />} />
+          <Route path="issues" element={<AdminIssues />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="categories" element={<AdminCategories />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="settings" element={<AdminSettingsPage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
