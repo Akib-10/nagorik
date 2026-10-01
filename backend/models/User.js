@@ -90,6 +90,15 @@ const userSchema = new mongoose.Schema(
       default: false,
       required: false,
     },
+    isSuspended: {
+      type: Boolean,
+      default: false,
+      required: false,
+    },
+    suspendedAt: {
+      type: Date,
+      default: null,
+    },
 
     phone: { type: String, default: '' },
     bio: { type: String, default: '' },
