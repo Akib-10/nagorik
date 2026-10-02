@@ -9,8 +9,29 @@ import User from '../models/User.js';
 import Issue from '../models/Issue.js';
 import Comment from '../models/Comment.js';
 import Notification from '../models/Notification.js';
+import { deleteAssets } from '../services/cloudinaryService.js';
+import { isCloudinaryConfigured } from '../config/cloudinary.js';
 
 const STATUSES = ['Open', 'In progress', 'Resolved', 'Rejected'];
+
+// Admin moderation. Mirrors the tab labels in frontend/src/services/adminServices.js
+// (MODERATION_TABS) plus the synthetic 'All' tab.
+const MODERATION_STATUSES = ['pending', 'approved', 'spam', 'rejected'];
+const MODERATION_TABS = ['All', 'Pending', 'Approved', 'Spam', 'Rejected'];
+const MODERATION_TAB_TO_STATUS = {
+  Pending: 'pending',
+  Approved: 'approved',
+  Spam: 'spam',
+  Rejected: 'rejected',
+};
+
+// Frontend sends an action name; store the canonical status value.
+const MODERATION_ACTION_TO_STATUS = {
+  approve: 'approved',
+  spam: 'spam',
+  reject: 'rejected',
+  pending: 'pending',
+};
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -40,6 +61,30 @@ async function statusCounts() {
   rows.forEach((r) => {
     all += r.count;
     if (r._id in counts) counts[r._id] = r.count;
+  });
+  counts.All = all;
+  return counts;
+}
+
+// { Pending|Approved|Spam|Rejected -> count, All -> total } for the moderation
+// tabs. Documents predating the moderationStatus field count as "approved",
+// which is the schema default.
+async function moderationCounts() {
+  const rows = await Issue.aggregate([
+    {
+      $group: {
+        _id: { $ifNull: ['$moderationStatus', 'approved'] },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+  const byStatus = Object.fromEntries(rows.map((r) => [r._id, r.count]));
+  const counts = {};
+  let all = 0;
+  MODERATION_TABS.forEach((tab) => {
+    const n = tab === 'All' ? 0 : byStatus[MODERATION_TAB_TO_STATUS[tab]] || 0;
+    counts[tab] = n;
+    all += n;
   });
   counts.All = all;
   return counts;
@@ -189,16 +234,24 @@ export async function listUsers(req, res) {
   }
 }
 
-// GET /api/admin/issues?status=All|Open|In progress|Resolved|Rejected&search=&page=1&limit=20
+// GET /api/admin/issues?status=All|Open|In progress|Resolved|Rejected
+//                  &moderation=All|Pending|Approved|Spam|Rejected&search=&page=1&limit=20
 export async function listIssues(req, res) {
   try {
-    const { search = '', status = 'All' } = req.query;
+    const { search = '', status = 'All', moderation = 'All' } = req.query;
     const { page, limit, skip } = getPaging(req.query);
 
     const filter = {};
     if (STATUSES.includes(status)) {
       // Documents with no statusLabel behave as "Open" (schema default).
       filter.statusLabel = status === 'Open' ? { $in: ['Open', null] } : status;
+    }
+
+    // Moderation filter. "Approved" must also match docs written before the
+    // field existed, hence the $in rather than an equality test.
+    if (moderation !== 'All' && MODERATION_TAB_TO_STATUS[moderation]) {
+      const wanted = MODERATION_TAB_TO_STATUS[moderation];
+      filter.moderationStatus = wanted === 'approved' ? { $in: ['approved', null] } : wanted;
     }
 
     const q = String(search).trim();
@@ -213,7 +266,7 @@ export async function listIssues(req, res) {
       ];
     }
 
-    const [issues, total, counts] = await Promise.all([
+    const [issues, total, counts, modCounts] = await Promise.all([
       Issue.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -223,6 +276,7 @@ export async function listIssues(req, res) {
         .lean(),
       Issue.countDocuments(filter),
       statusCounts(),
+      moderationCounts(),
     ]);
 
     const cMap = await commentCounts(issues.map((i) => i._id));
@@ -237,6 +291,7 @@ export async function listIssues(req, res) {
         category: i.category || 'Uncategorized',
         priority: i.priority || 'Medium',
         statusLabel: i.statusLabel || 'Open',
+        moderationStatus: i.moderationStatus || 'approved',
         reporter: i.user?.name || 'Removed user',
         up: i.up || 0,
         down: i.down || 0,
@@ -248,9 +303,42 @@ export async function listIssues(req, res) {
       page,
       limit,
       counts,
+      moderationCounts: modCounts,
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+}
+
+// PATCH /api/admin/issues/:id/moderate  body: { action: 'approve'|'spam'|'reject' }
+export async function moderateIssue(req, res) {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: 'Invalid issue id' });
+    }
+
+    const action = String(req.body?.action || '');
+    const moderationStatus = MODERATION_ACTION_TO_STATUS[action];
+    if (!moderationStatus) {
+      return res.status(400).json({ message: 'Unknown moderation action.' });
+    }
+
+    const issue = await Issue.findById(id).select('_id moderationStatus');
+    if (!issue) return res.status(404).json({ message: 'Not found' });
+
+    issue.moderationStatus = moderationStatus;
+    issue.moderatedAt = new Date();
+    issue.moderatedBy = req.user._id;
+    await issue.save();
+
+    return res.json({
+      id: issue._id,
+      moderationStatus,
+      message: 'Moderation updated.',
+    });
+  } catch (err) {
+    return res.status(500).json({ message: 'Server error', error: err.message });
   }
 }
 
@@ -293,8 +381,28 @@ export async function deleteIssue(req, res) {
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ message: 'Invalid issue id' });
     }
-    const issue = await Issue.findById(id).select('_id');
+    const issue = await Issue.findById(id).select('_id media');
     if (!issue) return res.status(404).json({ message: 'Not found' });
+
+    const media = issue.media || [];
+
+    // Remove Cloudinary assets first; abort while Cloudinary is configured so
+    // orphaned media never goes untracked.
+    if (media.length && isCloudinaryConfigured) {
+      const failures = await deleteAssets(
+        media.map((m) => ({ publicId: m.publicId, resourceType: m.resourceType })),
+      );
+      if (failures.length) {
+        console.error(
+          '[admin] Cloudinary deletion failed; keeping issue record:',
+          JSON.stringify(failures),
+        );
+        return res.status(502).json({
+          message:
+            'Some media could not be removed from storage. The report was not deleted — please try again.',
+        });
+      }
+    }
 
     await Promise.all([
       Comment.deleteMany({ issue: issue._id }),

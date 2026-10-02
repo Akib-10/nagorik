@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
-import { getFeedIssues, getTrendingIssues, toggleUpvote } from "../services/issuesService";
+import { getFeedIssues, getTrendingIssues, toggleUpvote, hideReport } from "../services/issuesService";
+import { isAuthenticated } from "../services/authService";
+import { optimizedUrl } from "../services/mediaService";
 import heroImg from "../assets/images/artwork_red_container.png"
 import {
   HomeGlyph,
@@ -15,6 +17,7 @@ import {
   CommentIcon,
   RepostIcon,
   PlusIcon,
+  DotsIcon,
 } from "../components/icons";
 
 const TABS = ["latest", "ongoing", "trending", "all"];
@@ -24,7 +27,27 @@ function formatDown(value) {
   return Number.isNaN(n) ? value : String(n).padStart(2, "0");
 }
 
-function IssueCard({ issue, myVote, onVote, onOpen }) {
+function IssueCard({ issue, myVote, onVote, onOpen, onHide }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close the 3-dot menu on outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
   const upCount = issue.up;
   const downCount = formatDown(
     Number(issue.down) + (myVote === "down" ? 1 : 0),
@@ -44,17 +67,33 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
 
   return (
     <article
-      className="flex gap-5 rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] p-3.5 transition-all duration-150 dark:bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] max-[760px]:flex-col"
+      className="relative flex gap-5 rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] p-3.5 transition-all duration-150 dark:bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] max-[760px]:flex-col"
       onClick={() => onOpen(issue.id)}
       style={{ cursor: "pointer" }}
     >
       <div className="h-[158px] w-[210px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2 max-[760px]:h-[180px] max-[760px]:w-full">
         {issue.img ? (
-          <img
-            src={issue.img}
-            alt={issue.alt}
-            className="h-full w-full object-cover"
-          />
+          <div className="relative h-full w-full">
+            <img
+              src={optimizedUrl(issue.img, { width: 500 })}
+              alt={issue.alt}
+              className="h-full w-full object-cover"
+            />
+            {issue.primaryIsVideo && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+              </span>
+            )}
+            {issue.hasVideo && !issue.primaryIsVideo && (
+              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-2 py-[2px] text-[10px] font-bold text-white">
+                Video
+              </span>
+            )}
+          </div>
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-nagorik-muted">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -66,6 +105,41 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
           </div>
         )}
       </div>
+      {/* 3-dot menu (top right of the card) */}
+      <div
+        ref={menuRef}
+        className="absolute right-3 top-3 z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          aria-label="More options"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-nagorik-secondary transition-colors duration-150 hover:bg-nagorik-red hover:text-white"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <DotsIcon size={18} />
+        </button>
+        {menuOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 top-9 min-w-[140px] overflow-hidden rounded-xl border border-nagorik-border bg-nagorik-paper shadow-lg"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="block w-full cursor-pointer px-4 py-2.5 text-left text-[13px] font-bold text-nagorik-red transition-colors duration-150 hover:bg-nagorik-light-red dark:text-[#FF7080]"
+              onClick={() => {
+                setMenuOpen(false);
+                onHide(issue.id);
+              }}
+            >
+              Hide post
+            </button>
+          </div>
+        )}
+      </div>
       <div className="flex flex-1 flex-col justify-center gap-2.5">
         <span
           className={`inline-flex w-fit items-center gap-1.5 rounded-full py-[5px] pl-[10px] pr-[14px] text-[12px] font-bold text-white ${badgeBg}`}
@@ -73,7 +147,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
           <span className="h-[6px] w-[6px] rounded-full bg-white"></span>
           {issue.statusLabel}
         </span>
-        <h3 className="m-0 text-[18px] font-extrabold text-nagorik-red dark:text-[#FF7080]">
+        <h3 className="m-0 pr-8 text-[18px] font-extrabold text-nagorik-red dark:text-[#FF7080]">
           {issue.title}
         </h3>
         <div className="flex flex-wrap items-center gap-[22px] text-[13px] text-nagorik-secondary">
@@ -172,7 +246,11 @@ export default function BrowseFeed() {
   const visibleIssues = useMemo(() => {
     let list = feedIssues;
     if (activeTab === "ongoing")
-      list = list.filter((i) => i.statusLabel === "Ongoing");
+      // Backend stores 'Open' | 'In progress' | 'Resolved' | 'Rejected'
+      // (adminServices.js STATUS_OPTIONS) — there is no "Ongoing" label.
+      list = list.filter(
+        (i) => i.statusLabel === "Open" || i.statusLabel === "In progress",
+      );
     if (activeTab === "trending") list = [...list].sort((a, b) => b.up - a.up);
     const q = query.trim().toLowerCase();
     if (q) {
@@ -203,6 +281,21 @@ export default function BrowseFeed() {
 
   const openPost = (id) => {
     navigate(`/post/${id}`);
+  };
+
+  // "Hide post": removes the post from this user's feed (saved server-side).
+  const handleHide = async (id) => {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
+    try {
+      await hideReport(id);
+      setFeedIssues((prev) => prev.filter((i) => i.id !== id));
+      setTrendingIssues((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      alert(err.message || "Failed to hide post");
+    }
   };
 
   return (
@@ -320,6 +413,7 @@ export default function BrowseFeed() {
                 myVote={votes[issue.id] || null}
                 onVote={handleVote}
                 onOpen={openPost}
+                onHide={handleHide}
               />
             ))
           ) : (
@@ -347,7 +441,7 @@ export default function BrowseFeed() {
                 <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[10px] bg-white">
                   {item.img ? (
                     <img
-                      src={item.img}
+                      src={optimizedUrl(item.img, { width: 120 })}
                       alt=""
                       className="h-full w-full object-cover"
                     />

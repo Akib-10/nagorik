@@ -6,6 +6,7 @@ import {
   getOverview,
   listUsers,
   listIssues,
+  moderateIssue,
   deleteIssue,
   suspendUser,
   reactivateUser,
@@ -21,6 +22,7 @@ router.get('/users', listUsers);
 router.patch('/users/:id/suspend', suspendUser);
 router.patch('/users/:id/reactivate', reactivateUser);
 router.get('/issues', listIssues);
+router.patch('/issues/:id/moderate', moderateIssue);
 router.delete('/issues/:id', deleteIssue);
 
 export default router;
