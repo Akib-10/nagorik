@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import logo from "../assets/images/logo_for_dark_mode.png";
 import { isAuthenticated, getUser, signOut } from "../services/authService";
-import { SearchIcon, PlusIcon, BellIconApp } from "./icons";
+import { SearchIcon, BellIconApp } from "./icons";
 import { useUnreadCount } from "../hooks/useUnreadCount";
 
 export default function AppHeader({ logoHref = "/" }) {
@@ -70,12 +70,8 @@ export default function AppHeader({ logoHref = "/" }) {
     "max-[420px]:h-[34px]",
     "max-[420px]:w-[34px]",
     pathname === "/notifications"
-      ? ["bg-nagorik-red", 
-        "text-white"]
-      : ["bg-transparent", 
-        "text-nagorik-red", 
-        "hover:bg-nagorik-light-red", 
-        "!hover:text-white"],
+      ? ["bg-nagorik-red", "text-white"]
+      : ["bg-transparent", "text-nagorik-red", "hover:bg-nagorik-red", "hover:text-white"],
   );
 
   return (
@@ -119,7 +115,7 @@ export default function AppHeader({ logoHref = "/" }) {
           )}
         >
           <Link
-            to={logoHref}
+            to={isAuth ? "/browse_feed" : logoHref}
             className={clsx("flex", "shrink-0", "items-center")}
             aria-label="নাগরিক home"
           >
@@ -222,7 +218,7 @@ export default function AppHeader({ logoHref = "/" }) {
                 "rounded-full",
                 "bg-transparent",
                 "border-2",
-                "border-red",
+                "border-nagorik-red",
                 "px-[22px]",
                 "py-[11px]",
                 "text-[14px]",
@@ -230,12 +226,11 @@ export default function AppHeader({ logoHref = "/" }) {
                 "!text-nagorik-red",
                 "transition-colors",
                 "duration-150",
-                "hover:bg-nagorik-hover-red",
+                "hover:bg-nagorik-red",
                 "hover:!text-white",
                 "max-[760px]:px-3.5",
               )}
             >
-           
               <span className="max-[760px]:hidden">Sign In</span>
             </Link>
           )}

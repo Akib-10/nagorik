@@ -52,15 +52,42 @@ npm run preview  # preview the production build
 npm run lint     # eslint
 ```
 
-## Run the backend (placeholder)
+## Run the backend
 
 ```bash
 cd backend
 npm install
-npm start        # Express on http://localhost:5000
+copy .env.example .env   # cp on macOS/Linux — then fill in the values
+npm start                # Express on http://localhost:5000
 ```
 
-The Vite dev server proxies `/api/*` requests to `http://localhost:5000`, so future frontend API calls can target relative `/api/...` paths during development.
+The Vite dev server proxies `/api/*` requests to `http://localhost:5000`, so frontend API calls target relative `/api/...` paths during development.
+
+## Media storage (Cloudinary)
+
+All user media (profile pictures, issue photos and videos) is stored in **Cloudinary**;
+MongoDB only keeps metadata references (`publicId`, `url`, `resourceType`, dimensions).
+Nothing is written to disk and no base64 blobs are stored in the database.
+
+Set the following in `backend/.env` (see `backend/.env.example`):
+
+```text
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+MAX_IMAGE_SIZE_MB=10
+MAX_VIDEO_SIZE_MB=200
+MAX_ISSUE_MEDIA_COUNT=5
+```
+
+- Small images upload through the backend (`POST /api/issues`, `PUT /api/issues/:id`, `POST /api/profile/picture`).
+- Large videos use a signed **browser → Cloudinary** direct upload via `POST /api/upload/signature`, so they never pass through Express.
+- Files are validated server-side by magic-byte sniffing, not client MIME type.
+- Folders: `nagorik/users/profile`, `nagorik/issues/images`, `nagorik/issues/videos`.
+- If Cloudinary env vars are missing, the server still boots but media routes return `503`.
+- To migrate legacy base64 / `/uploads` media into Cloudinary, run `node scripts/migrateMediaToCloudinary.js` (requires credentials).
+
+
 
 ## Architecture notes
 

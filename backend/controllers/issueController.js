@@ -1,8 +1,26 @@
+import mongoose from "mongoose";
 import Issue from "../models/Issue.js";
 import Comment from "../models/Comment.js";
+import User from "../models/User.js";
 // ==== NOTIFICATION EDIT: START ====
 import { notify } from '../services/notificationService.js';
 // ==== NOTIFICATION EDIT: END ====
+import {
+  CLOUDINARY_FOLDERS,
+  uploadBuffer,
+  fetchAsset,
+  deleteAssets,
+  isOwnedPublicId,
+} from "../services/cloudinaryService.js";
+import { isCloudinaryConfigured } from "../config/cloudinary.js";
+import { validateMediaFile } from "../utils/mediaValidation.js";
+import { MAX_ISSUE_MEDIA_COUNT } from "../config/media.js";
+
+function badRequest(message) {
+  const err = new Error(message);
+  err.statusCode = 400;
+  return err;
+}
 
 // Attach comment counts and flatten reporter info so the frontend can
 // render list/single views without extra round-trips.
@@ -23,12 +41,115 @@ async function withMeta(issues) {
   }));
 }
 
-// GET /api/issues — public feed
+// Files uploaded through the backend (small/medium media). Validates the real
+// content of each file, streams it to the correct Cloudinary folder and rolls
+// back anything already uploaded if a later file fails.
+async function uploadIssueFiles(files = []) {
+  const uploaded = [];
+  try {
+    for (const file of files) {
+      const check = validateMediaFile(file, ["image", "video"]);
+      if (!check.ok) throw badRequest(check.error);
+
+      const folder =
+        check.resourceType === "image"
+          ? CLOUDINARY_FOLDERS.issueImages
+          : CLOUDINARY_FOLDERS.issueVideos;
+
+      const asset = await uploadBuffer(file.buffer, {
+        resourceType: check.resourceType,
+        folder,
+      });
+      uploaded.push(asset);
+    }
+    return uploaded;
+  } catch (err) {
+    await deleteAssets(
+      uploaded.map((a) => ({ publicId: a.publicId, resourceType: a.resourceType })),
+    );
+    throw err;
+  }
+}
+
+// Media uploaded straight from the browser via a signed request. The client
+// only sends a publicId + resourceType; we re-fetch authoritative metadata
+// from Cloudinary and reject anything outside our folders.
+async function resolveClientMedia(raw) {
+  if (raw === undefined || raw === null || raw === "") return [];
+  let list;
+  try {
+    list = typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch {
+    throw badRequest("Invalid media reference.");
+  }
+  if (!Array.isArray(list)) throw badRequest("Invalid media reference.");
+
+  const resolved = [];
+  for (const item of list) {
+    const publicId = item?.publicId;
+    const resourceType = item?.resourceType;
+    if (!publicId || !["image", "video"].includes(resourceType)) {
+      throw badRequest("Invalid media reference.");
+    }
+    const allowedFolders =
+      resourceType === "image"
+        ? [CLOUDINARY_FOLDERS.issueImages]
+        : [CLOUDINARY_FOLDERS.issueVideos];
+
+    if (!isOwnedPublicId(publicId, allowedFolders)) {
+      throw badRequest("Uploaded media does not belong to an allowed folder.");
+    }
+    resolved.push(await fetchAsset(publicId, resourceType));
+  }
+  return resolved;
+}
+
+// Existing media the client chose to keep (array of publicIds or { publicId }).
+function parseKeptPublicIds(raw, existing = []) {
+  if (raw === undefined || raw === null || raw === "") {
+    return existing.map((m) => m.publicId);
+  }
+  let list;
+  try {
+    list = typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch {
+    throw badRequest("Invalid media selection.");
+  }
+  if (!Array.isArray(list)) throw badRequest("Invalid media selection.");
+  return list.map((item) =>
+    typeof item === "string" ? item : item?.publicId,
+  ).filter(Boolean);
+}
+
+// Mirror image URLs into the legacy `photos`/`img` fields so existing feed
+// components keep working without changes.
+function buildLegacyFields(media = []) {
+  const photos = media.filter((m) => m.resourceType === "image").map((m) => m.url);
+  return { photos, img: photos[0] || "" };
+}
+
+// Only approved reports are public. A new report starts as "pending" and shows
+// up in the feed after an admin approves it; until then only its owner (on their
+// profile) and admins can see it. Documents written before the moderationStatus
+// field existed have no value and count as approved, hence the `null` in $in
+// (it matches missing fields too).
+const PUBLICLY_VISIBLE = { moderationStatus: { $in: ['approved', null] } };
+
+function isPublic(issue) {
+  return !issue.moderationStatus || issue.moderationStatus === 'approved';
+}
+
+// GET /api/issues — public feed (optionalAuth: signed-in users don't get the
+// posts they hid)
 export async function getIssues(req, res) {
   try {
-    const issues = await Issue.find()
+    const filter = { ...PUBLICLY_VISIBLE };
+    if (req.user?.hiddenIssues?.length) {
+      filter._id = { $nin: req.user.hiddenIssues };
+    }
+    const issues = await Issue.find(filter)
       .sort({ createdAt: -1 })
-      .populate("user", "name avatar")
+      .populate("user", "name avatar profilePicture")
       .select("-photos");
     res.json(await withMeta(issues));
   } catch (err) {
@@ -41,21 +162,29 @@ export async function getIssueById(req, res) {
   try {
     const issue = await Issue.findById(req.params.id).populate(
       "user",
-      "name avatar",
+      "name avatar profilePicture",
     );
     if (!issue) return res.status(404).json({ message: "Not found" });
+    // Non-public posts (pending / spam / rejected) 404 rather than 403 so their
+    // existence is not leaked. The owner and admins may still open them.
+    if (!isPublic(issue)) {
+      const ownerId = String(issue.user?._id || issue.user);
+      const canSee =
+        req.user && (req.user.isAdmin || String(req.user._id) === ownerId);
+      if (!canSee) return res.status(404).json({ message: "Not found" });
+    }
     res.json((await withMeta([issue]))[0]);
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 }
 
-// GET /api/issues/mine — শুধু নিজেরটা
+// GET /api/issues/mine
 export async function getMyIssues(req, res) {
   try {
     const issues = await Issue.find({ user: req.user._id })
       .sort({ createdAt: -1 })
-      .populate("user", "name avatar");
+      .populate("user", "name avatar profilePicture");
     res.json(await withMeta(issues));
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
@@ -65,9 +194,9 @@ export async function getMyIssues(req, res) {
 // GET /api/issues/upvoted — issues the current user has upvoted
 export async function getUpvotedIssues(req, res) {
   try {
-    const issues = await Issue.find({ upvotedBy: req.user._id })
+    const issues = await Issue.find({ upvotedBy: req.user._id, ...PUBLICLY_VISIBLE })
       .sort({ createdAt: -1 })
-      .populate("user", "name avatar")
+      .populate("user", "name avatar profilePicture")
       .select("-photos");
     res.json(await withMeta(issues));
   } catch (err) {
@@ -75,17 +204,55 @@ export async function getUpvotedIssues(req, res) {
   }
 }
 
-// POST /api/issues
+// POST /api/issues — multipart/form-data with optional `media` files and a
+// JSON `uploadedMedia` field for assets already uploaded directly to Cloudinary.
 export async function createIssue(req, res) {
+  const files = req.files || [];
   try {
-    const issue = await Issue.create({ ...req.body, user: req.user._id });
+    const direct = await resolveClientMedia(req.body.uploadedMedia);
+
+    if (files.length + direct.length > MAX_ISSUE_MEDIA_COUNT) {
+      throw badRequest(
+        `Too many media files. Maximum is ${MAX_ISSUE_MEDIA_COUNT}.`,
+      );
+    }
+
+    const uploaded = await uploadIssueFiles(files);
+    const media = [...uploaded, ...direct];
+
+    const data = { ...req.body };
+    delete data.media;
+    delete data.uploadedMedia;
+    delete data.keptMedia;
+    delete data.user;
+    // Moderation and vote fields are server-controlled; never trust the client.
+    delete data.moderationStatus;
+    delete data.moderatedAt;
+    delete data.moderatedBy;
+    delete data.up;
+    delete data.down;
+    delete data.upvotedBy;
+
+    const issue = await Issue.create({
+      ...data,
+      ...buildLegacyFields(media),
+      media,
+      user: req.user._id,
+    });
+    // Match the read endpoints, which populate the reporter; otherwise every
+    // consumer sees a bare ObjectId for `user`.
+    await issue.populate("user", "name avatar profilePicture");
     res.status(201).json(issue);
   } catch (err) {
-    res.status(400).json({ message: "Invalid data", error: err.message });
+    const status = err.statusCode || 400;
+    res.status(status).json({
+      message: err.message || "Could not create issue.",
+      code: err.code,
+    });
   }
 }
 
-// PUT /api/issues/:id — মালিক ছাড়া কেউ এডিট করতে পারবে না
+// PUT /api/issues/:id — malik chara keo edit korte parbe na
 export async function updateIssue(req, res) {
   try {
     const issue = await Issue.findById(req.params.id);
@@ -93,11 +260,76 @@ export async function updateIssue(req, res) {
     if (issue.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not allowed" });
     }
-    Object.assign(issue, req.body);
+
+    const files = req.files || [];
+    const existingMedia = issue.media || [];
+    const structured =
+      files.length > 0 ||
+      req.body.uploadedMedia !== undefined ||
+      req.body.keptMedia !== undefined;
+
+    const data = { ...req.body };
+    delete data.media;
+    delete data.uploadedMedia;
+    delete data.keptMedia;
+    delete data.user;
+    // Otherwise an owner could approve their own report with a crafted request.
+    delete data.moderationStatus;
+    delete data.moderatedAt;
+    delete data.moderatedBy;
+    delete data.up;
+    delete data.down;
+    delete data.upvotedBy;
+
+    if (!structured) {
+      // Legacy JSON update: keep existing media fields untouched.
+      Object.assign(issue, data);
+      await issue.save();
+      await issue.populate("user", "name avatar profilePicture");
+      return res.json(issue);
+    }
+
+    const keptIds = parseKeptPublicIds(req.body.keptMedia, existingMedia);
+    const kept = existingMedia.filter((m) => keptIds.includes(m.publicId));
+    const removed = existingMedia.filter(
+      (m) => !keptIds.includes(m.publicId),
+    );
+
+    const uploaded = await uploadIssueFiles(files);
+    const direct = await resolveClientMedia(req.body.uploadedMedia);
+    const media = [...kept, ...uploaded, ...direct];
+
+    if (media.length > MAX_ISSUE_MEDIA_COUNT) {
+      await deleteAssets(
+        [...uploaded, ...direct].map((a) => ({
+          publicId: a.publicId,
+          resourceType: a.resourceType,
+        })),
+      );
+      throw badRequest(
+        `Too many media files. Maximum is ${MAX_ISSUE_MEDIA_COUNT}.`,
+      );
+    }
+
+    Object.assign(issue, data, buildLegacyFields(media), { media });
     await issue.save();
-    res.json(issue);
+
+    if (removed.length) {
+      const failures = await deleteAssets(
+        removed.map((m) => ({ publicId: m.publicId, resourceType: m.resourceType })),
+      );
+      if (failures.length) {
+        console.error(
+          "[issue] Orphaned Cloudinary assets after update:",
+          JSON.stringify(failures),
+        );
+      }
+    }
+
+    res.json(await issue.populate("user", "name avatar profilePicture"));
   } catch (err) {
-    res.status(400).json({ message: "Update failed", error: err.message });
+    const status = err.statusCode || 400;
+    res.status(status).json({ message: err.message || "Update failed" });
   }
 }
 
@@ -109,10 +341,31 @@ export async function deleteIssue(req, res) {
     if (issue.user.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Not allowed" });
     }
+
+    const media = issue.media || [];
+
+    // Remove Cloudinary assets first. If this fails while Cloudinary is
+    // configured, abort so we never lose track of orphaned media.
+    if (media.length && isCloudinaryConfigured) {
+      const failures = await deleteAssets(
+        media.map((m) => ({ publicId: m.publicId, resourceType: m.resourceType })),
+      );
+      if (failures.length) {
+        console.error(
+          "[issue] Cloudinary deletion failed; keeping issue record:",
+          JSON.stringify(failures),
+        );
+        return res.status(502).json({
+          message:
+            "Some media could not be removed from storage. The report was not deleted — please try again.",
+        });
+      }
+    }
+
     await issue.deleteOne();
     res.json({ message: "Deleted" });
   } catch (err) {
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(err.statusCode || 500).json({ message: "Server error", error: err.message });
   }
 }
 
@@ -121,7 +374,9 @@ export async function deleteIssue(req, res) {
 export async function upvoteIssue(req, res) {
   try {
     const issue = await Issue.findById(req.params.id);
-    if (!issue) return res.status(404).json({ message: "Not found" });
+    if (!issue || !isPublic(issue)) {
+      return res.status(404).json({ message: "Not found" });
+    }
 
     const userId = req.user._id.toString();
     const alreadyUpvoted = issue.upvotedBy.some(
@@ -157,6 +412,27 @@ export async function upvoteIssue(req, res) {
     }
 
     res.json(issue);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+}
+
+// PATCH /api/issues/:id/hide — hide a post from the current user's feed only
+export async function hideIssue(req, res) {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid issue id" });
+    }
+    const exists = await Issue.exists({ _id: id });
+    if (!exists) return res.status(404).json({ message: "Not found" });
+
+    // $addToSet keeps the list free of duplicates if the request is repeated.
+    await User.updateOne(
+      { _id: req.user._id },
+      { $addToSet: { hiddenIssues: id } },
+    );
+    res.json({ id, hidden: true });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

@@ -2,6 +2,7 @@ import { useMemo, useState, useRef, useEffect } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AppHeader from '../components/AppHeader'
 import { getIssueById, getCommentsForIssue, addComment, toggleUpvote } from '../services/issuesService'
+import { optimizedUrl } from '../services/mediaService'
 import { getUser } from '../services/authService'
 import { HomeGlyph, PinIcon, UserGlyph, ClockIcon, VoteUpIcon, VoteDownIcon, CommentIcon, RepostIcon } from '../components/icons'
 
@@ -99,10 +100,7 @@ export default function PostDetails() {
     })()
   }, [cleanId])
 
-  const images = useMemo(() => {
-    const set = new Set([issue?.img, ...(issue?.photos || [])].filter(Boolean))
-    return [...set]
-  }, [issue])
+  const mediaItems = useMemo(() => issue?.media || [], [issue])
 
   const [isDescExpanded, setIsDescExpanded] = useState(false)
   const [isReposted, setIsReposted] = useState(false)
@@ -196,10 +194,16 @@ export default function PostDetails() {
         )}
 
         <div className="relative mb-4 w-full overflow-hidden rounded-[18px] bg-nagorik-surface-2">
-          {images.length ? (
+          {mediaItems.length ? (
             <div ref={scrollRef} className="flex h-[380px] w-full snap-x snap-mandatory overflow-x-auto scroll-smooth max-[760px]:h-[240px]" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {images.map((imgSrc, idx) => (
-                <div key={idx} className="h-full w-full shrink-0 snap-center"><img src={imgSrc} alt="" className="h-full w-full object-cover" /></div>
+              {mediaItems.map((item, idx) => (
+                <div key={item.publicId || item.url || idx} className="h-full w-full shrink-0 snap-center">
+                  {item.resourceType === 'video' ? (
+                    <video src={item.url} className="h-full w-full object-cover" controls playsInline preload="metadata" />
+                  ) : (
+                    <img src={optimizedUrl(item.url, { width: 1200 })} alt="" className="h-full w-full object-cover" />
+                  )}
+                </div>
               ))}
             </div>
           ) : (
@@ -209,10 +213,10 @@ export default function PostDetails() {
                 <circle cx="8.5" cy="8.5" r="1.5" />
                 <path d="M21 15l-5-5L5 21" />
               </svg>
-              <span className="text-[13px] font-semibold">No photos uploaded</span>
+              <span className="text-[13px] font-semibold">No media uploaded</span>
             </div>
           )}
-          {images.length > 1 && (
+          {mediaItems.length > 1 && (
             <>
               <button type="button" onClick={() => handleScroll('left')} className="absolute left-3 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md hover:bg-black/70 cursor-pointer"><ChevronLeftIcon size={18} /></button>
               <button type="button" onClick={() => handleScroll('right')} className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md hover:bg-black/70 cursor-pointer"><ChevronRightIcon size={18} /></button>
