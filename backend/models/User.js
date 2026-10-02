@@ -128,6 +128,10 @@ const userSchema = new mongoose.Schema(
     privacy: {
       type: privacySchema, default: () => ({})
     },
+
+    // Posts this user chose to hide from their own browse feed ("Hide post").
+    // Only affects this user's feed; the posts stay public for everyone else.
+    hiddenIssues: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Issue' }],
   },
 
   { timestamps: true }

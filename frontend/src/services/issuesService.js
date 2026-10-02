@@ -216,6 +216,13 @@ export async function deleteReport(id) {
   return id
 }
 
+// Hides a post from the current user's feed only (stored on the server so it
+// follows the user across devices).
+export async function hideReport(id) {
+  await api.patch(`/issues/${id}/hide`, {})
+  return id
+}
+
 export async function toggleUpvote(id) {
   const issue = await api.patch(`/issues/${id}/upvote`, {})
   return mapIssue(issue)
