@@ -115,7 +115,7 @@ export default function AppHeader({ logoHref = "/" }) {
           )}
         >
           <Link
-            to={logoHref}
+            to={isAuth ? "/browse_feed" : logoHref}
             className={clsx("flex", "shrink-0", "items-center")}
             aria-label="নাগরিক home"
           >

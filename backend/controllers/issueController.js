@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import Issue from "../models/Issue.js";
 import Comment from "../models/Comment.js";
+import User from "../models/User.js";
 // ==== NOTIFICATION EDIT: START ====
 import { notify } from '../services/notificationService.js';
 // ==== NOTIFICATION EDIT: END ====
@@ -126,16 +128,26 @@ function buildLegacyFields(media = []) {
   return { photos, img: photos[0] || "" };
 }
 
-// Moderation states that are hidden from the public. "pending" stays visible so
-// the app never silently swallows a freshly posted report; admins can still park
-// something in the Pending queue for review without it disappearing.
-const HIDDEN_FROM_PUBLIC = ['spam', 'rejected'];
-const PUBLICLY_VISIBLE = { moderationStatus: { $nin: HIDDEN_FROM_PUBLIC } };
+// Only approved reports are public. A new report starts as "pending" and shows
+// up in the feed after an admin approves it; until then only its owner (on their
+// profile) and admins can see it. Documents written before the moderationStatus
+// field existed have no value and count as approved, hence the `null` in $in
+// (it matches missing fields too).
+const PUBLICLY_VISIBLE = { moderationStatus: { $in: ['approved', null] } };
 
-// GET /api/issues — public feed
+function isPublic(issue) {
+  return !issue.moderationStatus || issue.moderationStatus === 'approved';
+}
+
+// GET /api/issues — public feed (optionalAuth: signed-in users don't get the
+// posts they hid)
 export async function getIssues(req, res) {
   try {
-    const issues = await Issue.find(PUBLICLY_VISIBLE)
+    const filter = { ...PUBLICLY_VISIBLE };
+    if (req.user?.hiddenIssues?.length) {
+      filter._id = { $nin: req.user.hiddenIssues };
+    }
+    const issues = await Issue.find(filter)
       .sort({ createdAt: -1 })
       .populate("user", "name avatar profilePicture")
       .select("-photos");
@@ -153,9 +165,13 @@ export async function getIssueById(req, res) {
       "name avatar profilePicture",
     );
     if (!issue) return res.status(404).json({ message: "Not found" });
-    // Hidden posts 404 here rather than 403 so their existence is not leaked.
-    if (HIDDEN_FROM_PUBLIC.includes(issue.moderationStatus)) {
-      return res.status(404).json({ message: "Not found" });
+    // Non-public posts (pending / spam / rejected) 404 rather than 403 so their
+    // existence is not leaked. The owner and admins may still open them.
+    if (!isPublic(issue)) {
+      const ownerId = String(issue.user?._id || issue.user);
+      const canSee =
+        req.user && (req.user.isAdmin || String(req.user._id) === ownerId);
+      if (!canSee) return res.status(404).json({ message: "Not found" });
     }
     res.json((await withMeta([issue]))[0]);
   } catch (err) {
@@ -178,7 +194,7 @@ export async function getMyIssues(req, res) {
 // GET /api/issues/upvoted — issues the current user has upvoted
 export async function getUpvotedIssues(req, res) {
   try {
-    const issues = await Issue.find({ upvotedBy: req.user._id })
+    const issues = await Issue.find({ upvotedBy: req.user._id, ...PUBLICLY_VISIBLE })
       .sort({ createdAt: -1 })
       .populate("user", "name avatar profilePicture")
       .select("-photos");
@@ -209,6 +225,13 @@ export async function createIssue(req, res) {
     delete data.uploadedMedia;
     delete data.keptMedia;
     delete data.user;
+    // Moderation and vote fields are server-controlled; never trust the client.
+    delete data.moderationStatus;
+    delete data.moderatedAt;
+    delete data.moderatedBy;
+    delete data.up;
+    delete data.down;
+    delete data.upvotedBy;
 
     const issue = await Issue.create({
       ...data,
@@ -250,6 +273,13 @@ export async function updateIssue(req, res) {
     delete data.uploadedMedia;
     delete data.keptMedia;
     delete data.user;
+    // Otherwise an owner could approve their own report with a crafted request.
+    delete data.moderationStatus;
+    delete data.moderatedAt;
+    delete data.moderatedBy;
+    delete data.up;
+    delete data.down;
+    delete data.upvotedBy;
 
     if (!structured) {
       // Legacy JSON update: keep existing media fields untouched.
@@ -344,7 +374,9 @@ export async function deleteIssue(req, res) {
 export async function upvoteIssue(req, res) {
   try {
     const issue = await Issue.findById(req.params.id);
-    if (!issue) return res.status(404).json({ message: "Not found" });
+    if (!issue || !isPublic(issue)) {
+      return res.status(404).json({ message: "Not found" });
+    }
 
     const userId = req.user._id.toString();
     const alreadyUpvoted = issue.upvotedBy.some(
@@ -380,6 +412,27 @@ export async function upvoteIssue(req, res) {
     }
 
     res.json(issue);
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+}
+
+// PATCH /api/issues/:id/hide — hide a post from the current user's feed only
+export async function hideIssue(req, res) {
+  try {
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ message: "Invalid issue id" });
+    }
+    const exists = await Issue.exists({ _id: id });
+    if (!exists) return res.status(404).json({ message: "Not found" });
+
+    // $addToSet keeps the list free of duplicates if the request is repeated.
+    await User.updateOne(
+      { _id: req.user._id },
+      { $addToSet: { hiddenIssues: id } },
+    );
+    res.json({ id, hidden: true });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

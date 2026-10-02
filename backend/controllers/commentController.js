@@ -22,6 +22,10 @@ export async function createComment(req, res) {
 
     const issue = await Issue.findById(req.params.issueId);
     if (!issue) return res.status(404).json({ message: 'Issue not found' });
+    // Only approved (public) reports can be commented on.
+    if (issue.moderationStatus && issue.moderationStatus !== 'approved') {
+      return res.status(404).json({ message: 'Issue not found' });
+    }
 
     // Resolve the comment being replied to, if any. It must belong to the
     // same issue so replies can't be attached across posts.

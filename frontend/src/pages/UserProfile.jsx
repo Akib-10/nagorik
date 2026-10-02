@@ -9,7 +9,7 @@ import { HomeGlyph, PinIcon, ClockIcon, VoteUpIcon, CommentIcon, EyeIcon, EditPe
 
 const STATUS_BG = { 'In progress': 'bg-[#B87613]', 'Resolved': 'bg-nagorik-green' };
 // Shown to the owner while their report isn't public (approved posts show nothing extra).
-const MODERATION_LABEL = { pending: 'Awaiting approval', spam: 'Flagged as spam', rejected: 'Rejected' };
+const MODERATION_LABEL = { pending: 'Waiting for approval', spam: 'Flagged as spam', rejected: 'Rejected' };
 
 function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
   const badgeBg = STATUS_BG[issue.statusLabel] || 'bg-nagorik-red';
@@ -161,8 +161,12 @@ export default function UserProfile() {
     list.map((r) => ({ ...r, id: prefix ? `${prefix}-${r.id}` : r.id, activityBadge: badge, canEdit, statusLabel: r.statusLabel || "Open" }));
 
   const getDisplayedItems = () => {
+    // A report you also upvoted would otherwise show up twice (and share a
+    // React key), so list each issue once: reported wins over upvoted.
+    const reportedIds = new Set(reports.map((r) => String(r.id)));
+    const upvotedOnly = upvotedIssues.filter((r) => !reportedIds.has(String(r.id)));
     const categories = {
-      recent: [...format(reports, "Reported by you", true), ...format(upvotedIssues, "Upvoted by you"), ...format(reports.slice(0, 1), "Commented by you", false, "comment")],
+      recent: [...format(reports, "Reported by you", true), ...format(upvotedOnly, "Upvoted by you")],
       reported: format(reports, "Reported by you", true),
       upvoted: format(upvotedIssues, "Upvoted by you"),
       commented: format(reports.slice(0, 2), "Commented by you"),

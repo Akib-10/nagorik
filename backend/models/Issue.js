@@ -55,13 +55,15 @@ const issueSchema = new mongoose.Schema(
     statusLabel: { type: String, default: 'Open' },
     statusClass: { type: String, default: '' },
 
-    // Admin moderation. Reports are visible by default; only "spam" and
-    // "rejected" are hidden from the public feed (see issueController.js).
-    // "pending" exists so the admin queue can hold posts an admin parked.
+    // Admin moderation. New reports start as "pending" and only appear in the
+    // public feed once an admin approves them (see issueController.js). The
+    // reporter can still see their own pending report on their profile.
+    // Documents created before this field existed have no value and are
+    // treated as "approved".
     moderationStatus: {
       type: String,
       enum: ['pending', 'approved', 'spam', 'rejected'],
-      default: 'approved',
+      default: 'pending',
     },
     moderatedAt: { type: Date, default: null },
     moderatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
