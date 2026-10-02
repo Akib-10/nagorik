@@ -71,7 +71,7 @@ export default function AppHeader({ logoHref = "/" }) {
     "max-[420px]:w-[34px]",
     pathname === "/notifications"
       ? ["bg-nagorik-red", "text-white"]
-      : ["bg-transparent", "text-nagorik-red", "hover:bg-nagorik-light-red", "hover:text-white"],
+      : ["bg-transparent", "text-nagorik-red", "hover:bg-nagorik-red", "hover:text-white"],
   );
 
   return (
@@ -198,7 +198,7 @@ export default function AppHeader({ logoHref = "/" }) {
                 "transition-colors",
                 "duration-150",
                 "hover:bg-nagorik-red",
-                "hover:text-white",
+                "hover:!text-white",
                 "max-[760px]:px-3.5",
               )}
             >
