@@ -14,7 +14,6 @@ import {
   VoteDownIcon,
   CommentIcon,
   RepostIcon,
-  ShareNodesIcon,
   PlusIcon,
 } from "../components/icons";
 
@@ -125,14 +124,6 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
             onClick={stop(() => {})}
           >
             <RepostIcon />
-          </button>
-          <button
-            type="button"
-            className="flex items-center gap-2 rounded-full bg-nagorik-red px-4 py-[9px] text-[13px] font-bold text-white transition-colors duration-150 hover:bg-nagorik-hover-red"
-            onClick={stop(() => {})}
-          >
-            <ShareNodesIcon />
-            share
           </button>
         </div>
       </div>
