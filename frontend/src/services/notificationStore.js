@@ -83,7 +83,13 @@ function toViewModel(n) {
     message: n.message,
     time: timeAgo(n.createdAt),
     read: n.read,
-    targetUrl: issueId ? `/post/${issueId}` : null,
+    // "New report awaiting review" goes to the admin's Manage Issues page with
+    // that post highlighted; every other notification opens the post itself.
+    targetUrl: issueId
+      ? n.type === 'moderation'
+        ? `/admin/issues?focus=${issueId}`
+        : `/post/${issueId}`
+      : null,
   }
 }
 

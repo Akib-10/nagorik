@@ -3,7 +3,8 @@ import Issue from "../models/Issue.js";
 import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 // ==== NOTIFICATION EDIT: START ====
-import { notify } from '../services/notificationService.js';
+import { notify, notifyAdmins } from '../services/notificationService.js';
+import { getApprovalMode } from '../services/settingsService.js';
 // ==== NOTIFICATION EDIT: END ====
 import {
   CLOUDINARY_FOLDERS,
@@ -128,11 +129,14 @@ function buildLegacyFields(media = []) {
   return { photos, img: photos[0] || "" };
 }
 
-// Only approved reports are public. A new report starts as "pending" and shows
-// up in the feed after an admin approves it; until then only its owner (on their
-// profile) and admins can see it. Documents written before the moderationStatus
-// field existed have no value and count as approved, hence the `null` in $in
-// (it matches missing fields too).
+// Only approved reports are public. What happens to a NEW report depends on
+// the admin setting `approvalMode` (see settingsService.js): in "manual" mode
+// (the default) it waits as "pending" until an admin approves it; in "all" mode
+// it is approved immediately. Admins can also take a post down later by
+// flagging it as spam or rejecting it. While a post is not approved, its owner
+// (on their profile) and admins are the only ones who can see it. Documents
+// written before the moderationStatus field existed have no value and count as
+// approved, hence the `null` in $in (it matches missing fields too).
 const PUBLICLY_VISIBLE = { moderationStatus: { $in: ['approved', null] } };
 
 function isPublic(issue) {
@@ -233,12 +237,37 @@ export async function createIssue(req, res) {
     delete data.down;
     delete data.upvotedBy;
 
+    // Admins' own reports skip the queue (nobody else could approve them
+    // anyway); everyone else follows the approvalMode setting.
+    const approvalMode = await getApprovalMode();
+    const autoApprove = req.user.isAdmin || approvalMode === 'all';
+
     const issue = await Issue.create({
       ...data,
       ...buildLegacyFields(media),
       media,
+      moderationStatus: autoApprove ? 'approved' : 'pending',
+      moderatedAt: autoApprove ? new Date() : null,
+      moderatedBy: autoApprove && req.user.isAdmin ? req.user._id : null,
       user: req.user._id,
     });
+
+    // Waiting for review: tell the admins. The notification opens Manage
+    // Issues with this post highlighted (see notificationStore.js).
+    if (!autoApprove) {
+      notifyAdmins({
+        exceptUserId: req.user._id,
+        type: 'moderation',
+        actorId: req.user._id,
+        actorName: req.user.name,
+        targetType: 'Issue',
+        targetId: issue._id,
+        issueId: issue._id,
+        title: 'New report awaiting review',
+        message: `${req.user.name} submitted "${issue.title}". Approve, flag or reject it.`,
+      });
+    }
+
     // Match the read endpoints, which populate the reporter; otherwise every
     // consumer sees a bare ObjectId for `user`.
     await issue.populate("user", "name avatar profilePicture");

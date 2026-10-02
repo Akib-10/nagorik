@@ -68,7 +68,7 @@ export default function Settings() {
 
   const handleLogout = () => {
     signOut()
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   return (

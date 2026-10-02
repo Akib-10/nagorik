@@ -1,4 +1,5 @@
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 
 const AGGREGATABLE_TYPES = ['upvote', 'comment'];
 const VALID_FILTERS = ['all', 'unread', 'status', 'activity'];
@@ -92,12 +93,28 @@ export async function notify(payload) {
   }
 }
 
+// Tell every admin about something that needs their attention (e.g. a new
+// report waiting for approval). `exceptUserId` skips the person who caused it.
+// Best-effort like notify(): never throws.
+export async function notifyAdmins({ exceptUserId = null, ...payload }) {
+  try {
+    const filter = { isAdmin: true };
+    if (exceptUserId) filter._id = { $ne: exceptUserId };
+    const admins = await User.find(filter).select('_id').lean();
+    await Promise.all(
+      admins.map((a) => notify({ ...payload, recipientId: a._id }))
+    );
+  } catch (err) {
+    console.error('[notification] failed to notify admins:', err.message);
+  }
+}
+
 export async function listNotifications({ recipientId, filter = 'all', page = 1, limit = DEFAULT_LIMIT }) {
   const query = { recipient: recipientId, isDeleted: false };
 
   const activeFilter = VALID_FILTERS.includes(filter) ? filter : 'all';
   if (activeFilter === 'unread') query.read = false;
-  else if (activeFilter === 'status') query.type = 'status';
+  else if (activeFilter === 'status') query.type = { $in: ['status', 'moderation'] };
   else if (activeFilter === 'activity') query.type = { $in: ['upvote', 'comment'] };
 
   const pageNum = Math.max(1, Math.floor(Number(page)) || 1);

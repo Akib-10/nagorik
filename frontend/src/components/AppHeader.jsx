@@ -13,6 +13,14 @@ export default function AppHeader({ logoHref = "/" }) {
   const { pathname } = useLocation();
   const unreadCount = useUnreadCount(isAuth);
 
+  // The logo is "home": admins land in the admin panel (Manage Issues),
+  // everyone else in the browse feed, signed-out visitors on logoHref.
+  const logoTarget = isAuth
+    ? userData.isAdmin
+      ? "/admin/issues"
+      : "/browse_feed"
+    : logoHref;
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const menuToggleRef = useRef(null);
@@ -52,7 +60,7 @@ export default function AppHeader({ logoHref = "/" }) {
   const handleLogout = () => {
     setMenuOpen(false);
     signOut();
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   const bellBtnClass = clsx(
@@ -115,7 +123,7 @@ export default function AppHeader({ logoHref = "/" }) {
           )}
         >
           <Link
-            to={isAuth ? "/browse_feed" : logoHref}
+            to={logoTarget}
             className={clsx("flex", "shrink-0", "items-center")}
             aria-label="নাগরিক home"
           >
