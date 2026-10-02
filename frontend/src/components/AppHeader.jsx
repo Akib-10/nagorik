@@ -13,6 +13,19 @@ export default function AppHeader({ logoHref = "/" }) {
   const { pathname } = useLocation();
   const unreadCount = useUnreadCount(isAuth);
 
+  // Badge text: the exact number for 1-5, just "+" for anything above that.
+  const badgeText = unreadCount > 5 ? "+" : String(unreadCount);
+
+  // Ring the bell whenever the count goes UP (a new comment/upvote arrived).
+  // Comparing during render is React's recommended alternative to an effect
+  // that sets state from a previous value.
+  const [prevUnread, setPrevUnread] = useState(unreadCount);
+  const [ringKey, setRingKey] = useState(0);
+  if (unreadCount !== prevUnread) {
+    setPrevUnread(unreadCount);
+    if (unreadCount > prevUnread) setRingKey((k) => k + 1);
+  }
+
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const menuToggleRef = useRef(null);
@@ -71,7 +84,9 @@ export default function AppHeader({ logoHref = "/" }) {
     "max-[420px]:w-[34px]",
     pathname === "/notifications"
       ? ["bg-nagorik-red", "text-white"]
-      : ["bg-transparent", "text-nagorik-red", "hover:bg-nagorik-red", "hover:text-white"],
+      : unreadCount > 0
+        ? ["bg-nagorik-light-red", "text-nagorik-red", "hover:bg-nagorik-red", "hover:text-white"]
+        : ["bg-transparent", "text-nagorik-red", "hover:bg-nagorik-red", "hover:text-white"],
   );
 
   return (
@@ -246,15 +261,18 @@ export default function AppHeader({ logoHref = "/" }) {
                   : "Notifications"
               }
             >
-              <BellIconApp />
+              <span
+                key={ringKey}
+                className={clsx("flex", ringKey > 0 && "bell-ring")}
+              >
+                <BellIconApp />
+              </span>
               {unreadCount > 0 && (
                 <span
-                  className={clsx(
-                    "absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-nagorik-red px-1 text-[10px] font-bold leading-none text-white",
-                    unreadCount > 9 && "min-w-5",
-                  )}
+                  key={badgeText}
+                  className="badge-pop absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-nagorik-cream bg-nagorik-red px-1 text-[10px] font-bold leading-none text-white"
                 >
-                  {unreadCount > 99 ? "99+" : unreadCount}
+                  {badgeText}
                 </span>
               )}
             </button>
