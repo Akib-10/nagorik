@@ -329,8 +329,12 @@ export default function ReportIssue() {
         await updateReport(editing.id, reportData);
         alert("Report updated!");
       } else {
-        await submitReport(reportData);
-        alert("Report submitted! It will appear in the public feed once an admin approves it.");
+        const created = await submitReport(reportData);
+        alert(
+          created?.moderationStatus === "pending"
+            ? "Report submitted! It will appear in the public feed once an admin approves it."
+            : "Report submitted! It is now live in the public feed.",
+        );
       }
       mediaItems.forEach((m) => {
         if (m.kind === "file" && m.url?.startsWith("blob:")) {
@@ -814,7 +818,16 @@ export default function ReportIssue() {
                 <span className="shrink-0 font-semibold text-nagorik-muted sm:w-[190px]">
                   {k}
                 </span>
-                <span className="break-words font-bold text-nagorik-heading sm:text-right">
+                {/* min-w-0 + flex-1 makes the value fill the row. The description
+                    is justified with its last line pushed to the right edge. */}
+                <span
+                  className={clsx(
+                    "min-w-0 flex-1 break-words font-bold text-nagorik-heading",
+                    k === "Description"
+                      ? "whitespace-pre-line text-justify [text-align-last:right] [hyphens:auto]"
+                      : "sm:text-right",
+                  )}
+                >
                   {v || "—"}
                 </span>
               </div>

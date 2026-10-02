@@ -14,7 +14,7 @@ export default function AppHeader({ logoHref = "/" }) {
   const unreadCount = useUnreadCount(isAuth);
 
   // Badge text: the exact number for 1-5, just "+" for anything above that.
-  const badgeText = unreadCount > 5 ? "+" : String(unreadCount);
+  const badgeText = unreadCount > 5 ? "5+" : String(unreadCount);
 
   // Ring the bell whenever the count goes UP (a new comment/upvote arrived).
   // Comparing during render is React's recommended alternative to an effect
@@ -25,6 +25,14 @@ export default function AppHeader({ logoHref = "/" }) {
     setPrevUnread(unreadCount);
     if (unreadCount > prevUnread) setRingKey((k) => k + 1);
   }
+
+  // The logo is "home": admins land in the admin panel (Manage Issues),
+  // everyone else in the browse feed, signed-out visitors on logoHref.
+  const logoTarget = isAuth
+    ? userData.isAdmin
+      ? "/admin/issues"
+      : "/browse_feed"
+    : logoHref;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -65,7 +73,7 @@ export default function AppHeader({ logoHref = "/" }) {
   const handleLogout = () => {
     setMenuOpen(false);
     signOut();
-    navigate("/");
+    navigate("/", { replace: true });
   };
 
   const bellBtnClass = clsx(
@@ -130,7 +138,7 @@ export default function AppHeader({ logoHref = "/" }) {
           )}
         >
           <Link
-            to={isAuth ? "/browse_feed" : logoHref}
+            to={logoTarget}
             className={clsx("flex", "shrink-0", "items-center")}
             aria-label="নাগরিক home"
           >

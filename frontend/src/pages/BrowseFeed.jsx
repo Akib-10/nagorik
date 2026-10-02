@@ -8,7 +8,6 @@ import { optimizedUrl } from "../services/mediaService";
 import heroImg from "../assets/images/artwork_red_container.png"
 import {
   HomeGlyph,
-  SearchIcon,
   PinIcon,
   UserGlyph,
   ClockIcon,
@@ -207,8 +206,12 @@ function IssueCard({ issue, myVote, onVote, onOpen, onHide }) {
 
 export default function BrowseFeed() {
   const [activeTab, setActiveTab] = useState("latest");
-  const [searchParams] = useSearchParams();
-  const [query, setQuery] = useState(searchParams.get("q") || "");
+  // The navbar search box navigates to /browse_feed?q=..., so the URL is the
+  // single source of truth for the search text.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get("q") || "";
+  // Clicking Open / In progress / Resolved in the hero filters the feed.
+  const [statusFilter, setStatusFilter] = useState(null);
   const [votes, setVotes] = useState({});
   const [feedIssues, setFeedIssues] = useState([]);
   const [trendingIssues, setTrendingIssues] = useState([]);
@@ -252,6 +255,7 @@ export default function BrowseFeed() {
         (i) => i.statusLabel === "Open" || i.statusLabel === "In progress",
       );
     if (activeTab === "trending") list = [...list].sort((a, b) => b.up - a.up);
+    if (statusFilter) list = list.filter((i) => i.statusLabel === statusFilter);
     const q = query.trim().toLowerCase();
     if (q) {
       list = list.filter((i) =>
@@ -261,7 +265,22 @@ export default function BrowseFeed() {
       );
     }
     return list;
-  }, [feedIssues, activeTab, query]);
+  }, [feedIssues, activeTab, query, statusFilter]);
+
+  // Live issue counts for the hero (all public issues in the feed).
+  const stats = useMemo(() => {
+    const count = (label) => feedIssues.filter((i) => i.statusLabel === label).length;
+    return [
+      { label: "Open", value: count("Open") },
+      { label: "In progress", value: count("In progress") },
+      { label: "Resolved", value: count("Resolved") },
+    ];
+  }, [feedIssues]);
+
+  const clearFilters = () => {
+    setStatusFilter(null);
+    setSearchParams({});
+  };
 
   const handleVote = async (id, dir) => {
     if (dir !== "up") {
@@ -335,38 +354,31 @@ export default function BrowseFeed() {
             <p className="mb-8 hidden text-[14px] text-white/90 leading-relaxed max-[760px]:block">
               Report problem and track resolution progress.
             </p>
-            <div className="mt-4 flex max-w-[380px] items-center gap-3 rounded-full bg-white px-4 py-[9px] w-full">
-              <SearchIcon size={18} />
-              <div className="h-[18px] w-px bg-nagorik-border"></div>
-              <input
-                type="text"
-                placeholder="Search issues by title, area, category"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full border-0 bg-transparent text-[14px] text-nagorik-body-text font-[inherit] outline-none placeholder:text-nagorik-muted"
-              />
-            </div>
-          </div>
-          <div className="relative z-[1] ml-6 flex shrink-0 flex-col gap-[10px] text-right max-[1100px]:ml-0 max-[1100px]:flex-row max-[1100px]:text-left max-[1100px]:justify-between max-[1100px]:w-full max-[1100px]:gap-20">
-            <div className="flex flex-col items-center">
-              <div className="text-[24px] font-extrabold leading-none text-white">
-                45
-              </div>
-              <div className="mt-0.5 text-center text-[11px] text-white/85">Open</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-[24px] font-extrabold leading-none text-white">
-                31
-              </div>
-              <div className="mt-0.5 text-center text-[11px] text-white/85">
-                Progressing 
-              </div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-[24px] font-extrabold leading-none text-white">
-                14
-              </div>
-              <div className="mt-0.5 text-center text-[11px] text-white/85">received</div>
+            <div className="mt-4 flex items-center gap-3 max-[760px]:gap-1.5">
+              {stats.map((s) => {
+                const active = statusFilter === s.label;
+                return (
+                  <button
+                    key={s.label}
+                    type="button"
+                    aria-pressed={active}
+                    title={active ? "Show all issues" : `Show ${s.label.toLowerCase()} issues`}
+                    onClick={() => setStatusFilter(active ? null : s.label)}
+                    className={`flex min-w-[88px] cursor-pointer flex-col items-center rounded-xl px-4 py-2 transition-colors duration-150 ${
+                      active
+                        ? "bg-white/25 ring-1 ring-white/70"
+                        : "bg-transparent hover:bg-white/15"
+                    }`}
+                  >
+                    <span className="text-[24px] font-extrabold leading-none text-white">
+                      {loading ? "–" : s.value}
+                    </span>
+                    <span className="mt-1 text-center text-[11px] text-white/85">
+                      {s.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -392,6 +404,30 @@ export default function BrowseFeed() {
           </button>
         ))}
       </div>
+
+      {/* ============ ACTIVE FILTERS (search / status) ============ */}
+      {(query.trim() || statusFilter) && (
+        <div className="mx-auto flex max-w-[1160px] flex-wrap items-center gap-2 px-7 pt-4 text-[13px] text-nagorik-muted max-[760px]:px-4">
+          <span>Showing</span>
+          {statusFilter && (
+            <span className="rounded-full bg-nagorik-light-red px-3 py-1 font-bold text-nagorik-red dark:text-[#FF7080]">
+              {statusFilter}
+            </span>
+          )}
+          {query.trim() && (
+            <span className="rounded-full bg-nagorik-light-red px-3 py-1 font-bold text-nagorik-red dark:text-[#FF7080]">
+              “{query.trim()}”
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="cursor-pointer font-bold text-nagorik-red underline dark:text-[#FF7080]"
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {/* ================= MAIN LAYOUT ================= */}
       <div className="mx-auto grid max-w-[1160px] grid-cols-[1fr_320px] gap-5 items-start px-7 py-5 pb-[60px] max-[1100px]:grid-cols-1 max-[760px]:px-4">
