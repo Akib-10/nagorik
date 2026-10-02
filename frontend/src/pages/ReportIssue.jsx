@@ -7,6 +7,12 @@ import {
   updateReport,
 } from "../services/issuesService";
 import {
+  MAX_ISSUE_MEDIA_COUNT,
+  validateMediaFile,
+  mediaResourceType,
+  formatBytes,
+} from "../services/mediaService";
+import {
   PinIcon,
   ClockIcon,
   UploadCameraIcon,
@@ -110,45 +116,87 @@ function StepProgress({ currentStep }) {
 export default function ReportIssue() {
   const navigate = useNavigate();
   const location = useLocation();
-  const editing = location.state?.editId
-    ? findReport(location.state.editId)
-    : null;
+  const editId = location.state?.editId || null;
+  const [editing, setEditing] = useState(null);
 
   // currentStep is the single source of truth for which step is shown —
   // only changed via goStep(), called from Next/Back/Preview buttons.
   const [currentStep, setCurrentStep] = useState(1);
 
-  const [title, setTitle] = useState(() => editing?.title || "");
-  const [category, setCategory] = useState(
-    () => editing?.category || "Roads & Transportation",
-  );
-  const [priority, setPriority] = useState(() => editing?.priority || "Medium");
-  const [area, setArea] = useState(() => editing?.area || "");
-  const [date, setDate] = useState(() => editing?.date || "");
-  const [description, setDescription] = useState(
-    () => editing?.description || "",
-  );
+  const [title, setTitle] = useState("");
+  const [category, setCategory] = useState("Roads & Transportation");
+  const [priority, setPriority] = useState("Medium");
+  const [area, setArea] = useState("");
+  const [date, setDate] = useState("");
+  const [description, setDescription] = useState("");
 
-  const [roadNo, setRoadNo] = useState(() => editing?.roadNo || "");
-  const [block, setBlock] = useState(() => editing?.block || "");
-  const [addrArea, setAddrArea] = useState(() => editing?.addrArea || "");
-  const [thana, setThana] = useState(() => editing?.thana || "");
-  const [city, setCity] = useState(() => editing?.city || "");
-
-  const [slots, setSlots] = useState(() => {
-    const photos = editing?.photos || [];
-    return [photos[0] || null, photos[1] || null, photos[2] || null];
-  });
-  const [coordsText, setCoordsText] = useState(
-    () => editing?.coordsText || DEFAULT_COORDS,
-  );
-  const activeSlotRef = useRef(null);
+  const [roadNo, setRoadNo] = useState("");
+  const [block, setBlock] = useState("");
+  const [addrArea, setAddrArea] = useState("");
+  const [thana, setThana] = useState("");
+  const [city, setCity] = useState("");
+  
+  //for pic stored
+  // Each item: { id, kind: 'file'|'existing', file?, url, resourceType,
+  //              name, size, publicId? }. New files are uploaded to Cloudinary
+  // on submit — never stored as base64 or in localStorage.
+  const [mediaItems, setMediaItems] = useState([]);
+  const [mediaError, setMediaError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [coordsText, setCoordsText] = useState(DEFAULT_COORDS);
   const photoInputRef = useRef(null);
 
   useEffect(() => {
     document.title = "Report an Issue — নাগরিক";
     document.documentElement.lang = "en";
   }, []);
+
+  // Load a report from the backend when editing via ?editId from the profile,
+  // and seed the form from it in the same async flow. Doing this in a separate
+  // effect that reacts to `editing` would setState synchronously in the effect
+  // body and cause an extra cascading render on every load.
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const found = await findReport(editId);
+        if (cancelled) return;
+        setEditing(found);
+        setTitle(found.title || "");
+        setCategory(found.category || "Roads & Transportation");
+        setPriority(found.priority || "Medium");
+        setArea(found.area || "");
+        setDate(found.date || "");
+        setDescription(found.description || "");
+        setRoadNo(found.roadNo || "");
+        setBlock(found.block || "");
+        setAddrArea(found.address || "");
+        setThana(found.thana || "");
+        setCity(found.city || "");
+        const existingMedia = (found.media || [])
+          .filter((m) => m.url)
+          .map((m) => ({
+            id: `existing-${m.publicId || m.url}`,
+            kind: "existing",
+            url: m.url,
+            resourceType: m.resourceType || "image",
+            publicId: m.publicId || "",
+            name: m.publicId ? m.publicId.split("/").pop() : "Existing media",
+            size: m.bytes || 0,
+          }));
+        setMediaItems(existingMedia);
+        setCoordsText(found.coordsText || DEFAULT_COORDS);
+      } catch {
+        if (!cancelled) {
+          alert("Could not load the report for editing.");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editId]);
 
   // The only place currentStep is allowed to change — called from explicit
   // Next / Back / Preview button handlers, never from the stepper itself.
@@ -161,30 +209,60 @@ export default function ReportIssue() {
     goStep(currentStep + dir);
   };
 
-  const openPicker = (index) => {
-    if (slots[index]) return;
-    activeSlotRef.current = index;
-    photoInputRef.current.click();
+  const mediaId = () =>
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const openPicker = () => {
+    if (mediaItems.length >= MAX_ISSUE_MEDIA_COUNT) {
+      setMediaError(`You can add up to ${MAX_ISSUE_MEDIA_COUNT} files.`);
+      return;
+    }
+    photoInputRef.current?.click();
   };
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (!file || activeSlotRef.current === null) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const slotIndex = activeSlotRef.current;
-      setSlots((prev) =>
-        prev.map((s, i) => (i === slotIndex ? ev.target.result : s)),
-      );
-      activeSlotRef.current = null;
-    };
-    reader.readAsDataURL(file);
+  const handleMediaChange = (e) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = "";
+    if (!files.length) return;
+
+    const next = [...mediaItems];
+    let error = "";
+    for (const file of files) {
+      if (next.length >= MAX_ISSUE_MEDIA_COUNT) {
+        error = `You can add up to ${MAX_ISSUE_MEDIA_COUNT} files.`;
+        break;
+      }
+      const check = validateMediaFile(file);
+      if (check) {
+        error = check;
+        continue;
+      }
+      next.push({
+        id: mediaId(),
+        kind: "file",
+        file,
+        url: URL.createObjectURL(file),
+        resourceType: mediaResourceType(file),
+        name: file.name,
+        size: file.size,
+      });
+    }
+    setMediaItems(next);
+    setMediaError(error);
   };
 
-  const removePhoto = (e, index) => {
+  const removeMedia = (e, id) => {
     e.stopPropagation();
-    setSlots((prev) => prev.map((s, i) => (i === index ? null : s)));
+    setMediaError("");
+    setMediaItems((prev) => {
+      const target = prev.find((m) => m.id === id);
+      if (target?.kind === "file" && target.url?.startsWith("blob:")) {
+        URL.revokeObjectURL(target.url);
+      }
+      return prev.filter((m) => m.id !== id);
+    });
   };
 
   const detectLocation = () => {
@@ -217,9 +295,22 @@ export default function ReportIssue() {
     ["Full Address", fullAddress],
   ];
 
-  const filledPhotos = slots.filter(Boolean);
+  const submitMedia = mediaItems.map((item) =>
+    item.kind === "existing"
+      ? {
+          kind: "existing",
+          publicId: item.publicId,
+          resourceType: item.resourceType,
+        }
+      : {
+          kind: "file",
+          file: item.file,
+          resourceType: item.resourceType,
+        },
+  );
 
-  const handleFinalSubmit = () => {
+  const handleFinalSubmit = async () => {
+    if (submitting) return;
     const reportData = {
       title,
       category,
@@ -227,23 +318,35 @@ export default function ReportIssue() {
       area,
       date,
       description,
-      roadNo,
-      block,
-      addrArea,
-      thana,
-      city,
       fullAddress,
       coordsText,
-      photos: filledPhotos,
+      mediaItems: submitMedia,
     };
-    if (editing) {
-      updateReport(editing.id, reportData);
-      alert("Report updated!");
-      navigate("/user");
-    } else {
-      submitReport(reportData);
-      alert("Report submitted! Our team will review it soon.");
-      navigate("/browse_feed");
+
+    setSubmitting(true);
+    try {
+      if (editing) {
+        await updateReport(editing.id, reportData);
+        alert("Report updated!");
+      } else {
+        await submitReport(reportData);
+        alert("Report submitted! It will appear in the public feed once an admin approves it.");
+      }
+      mediaItems.forEach((m) => {
+        if (m.kind === "file" && m.url?.startsWith("blob:")) {
+          URL.revokeObjectURL(m.url);
+        }
+      });
+      navigate("/user"); // it isn't in the feed yet, so send them to their own reports
+    } catch (err) {
+      alert(
+        err.message ||
+          (editing
+            ? "Failed to update report."
+            : "Failed to submit report. Please try again."),
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -573,75 +676,83 @@ export default function ReportIssue() {
           {/* Upload Photos (moved right, compact height + inline Back/Next nav) */}
           <div className="flex min-w-0 flex-col rounded-[18px] border border-nagorik-border bg-nagorik-paper p-4">
             <h3 className="mb-0.5 text-[15px] font-extrabold text-nagorik-heading">
-              Upload Photos
+              Upload Photos &amp; Videos
             </h3>
             <p className="mb-3 text-[11.5px] text-nagorik-muted">
-              Add up to 3 photos — clear daylight photos help faster resolution.
+              Add up to {MAX_ISSUE_MEDIA_COUNT} photos or videos — clear media helps faster resolution.
             </p>
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-              {[0, 1].map((index) => (
-                <button
-                  type="button"
-                  key={index}
-                  className="relative flex min-h-[68px] min-w-0 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-[14px] border-2 border-dashed border-nagorik-light-red bg-nagorik-soft-red p-1.5 text-[9.5px] font-semibold text-nagorik-muted font-[inherit] transition-colors duration-150 hover:border-nagorik-red sm:text-[10px]"
-                  onClick={() => openPicker(index)}
+              {mediaItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="relative flex min-h-[68px] min-w-0 flex-col items-center justify-center overflow-hidden rounded-[14px] border-2 border-nagorik-light-red bg-nagorik-soft-red"
                 >
-                  {slots[index] ? (
-                    <>
-                      <img
-                        src={slots[index]}
-                        alt="preview"
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-1 top-1 z-[2] flex h-[20px] w-[20px] items-center justify-center rounded-full bg-nagorik-red/92 text-[11px] leading-none text-white cursor-pointer"
-                        onClick={(e) => removePhoto(e, index)}
-                      >
-                        ×
-                      </button>
-                    </>
+                  {item.resourceType === "video" ? (
+                    <video
+                      src={item.url}
+                      className="absolute inset-0 h-full w-full object-cover"
+                      muted
+                      playsInline
+                      preload="metadata"
+                    />
                   ) : (
-                    <>
-                      <UploadCameraIcon />
-                      <span>Add photo</span>
-                    </>
-                  )}
-                </button>
-              ))}
-              <button
-                type="button"
-                className="relative flex min-h-[68px] min-w-0 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-[14px] border-2 border-dashed border-nagorik-light-red bg-nagorik-soft-red p-1.5 text-[9.5px] font-semibold text-nagorik-muted font-[inherit] transition-colors duration-150 hover:border-nagorik-red sm:text-[10px]"
-                onClick={() => openPicker(2)}
-              >
-                {slots[2] ? (
-                  <>
                     <img
-                      src={slots[2]}
-                      alt="preview"
+                      src={item.url}
+                      alt={item.name}
                       className="absolute inset-0 h-full w-full object-cover"
                     />
-                    <button
-                      type="button"
-                      className="absolute right-1 top-1 z-[2] flex h-[20px] w-[20px] items-center justify-center rounded-full bg-nagorik-red/92 text-[11px] leading-none text-white cursor-pointer"
-                      onClick={(e) => removePhoto(e, 2)}
-                    >
-                      ×
-                    </button>
-                  </>
-                ) : (
-                  <span className="text-[24px] font-extralight leading-none text-nagorik-red">
-                    +
-                  </span>
-                )}
-              </button>
+                  )}
+                  <button
+                    type="button"
+                    className="absolute right-1 top-1 z-[2] flex h-[20px] w-[20px] items-center justify-center rounded-full bg-nagorik-red/92 text-[11px] leading-none text-white cursor-pointer"
+                    onClick={(e) => removeMedia(e, item.id)}
+                    aria-label={`Remove ${item.name}`}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              {mediaItems.length < MAX_ISSUE_MEDIA_COUNT && (
+                <button
+                  type="button"
+                  className="relative flex min-h-[68px] min-w-0 cursor-pointer flex-col items-center justify-center gap-1 overflow-hidden rounded-[14px] border-2 border-dashed border-nagorik-light-red bg-nagorik-soft-red p-1.5 text-[9.5px] font-semibold text-nagorik-muted font-[inherit] transition-colors duration-150 hover:border-nagorik-red sm:text-[10px]"
+                  onClick={openPicker}
+                >
+                  <UploadCameraIcon />
+                  <span>Add media</span>
+                </button>
+              )}
             </div>
+
+            {mediaItems.length > 0 && (
+              <ul className="mt-2.5 flex flex-col gap-1">
+                {mediaItems.map((item) => (
+                  <li
+                    key={`${item.id}-meta`}
+                    className="flex items-center justify-between gap-2 text-[10.5px] text-nagorik-muted"
+                  >
+                    <span className="min-w-0 truncate">{item.name}</span>
+                    <span className="shrink-0 font-semibold text-nagorik-secondary">
+                      {formatBytes(item.size)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {mediaError && (
+              <p className="mt-2 text-[11px] font-semibold text-nagorik-red">
+                {mediaError}
+              </p>
+            )}
+
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+              multiple
               hidden
               ref={photoInputRef}
-              onChange={handlePhotoChange}
+              onChange={handleMediaChange}
             />
 
             {/* Back / Next now live inside the photo card, freeing up the freed vertical space from the shorter tiles */}
@@ -711,21 +822,33 @@ export default function ReportIssue() {
           </div>
 
           <h4 className="mb-3 mt-5 text-[13px] font-extrabold text-nagorik-heading">
-            Attached Photos
+            Attached Photos &amp; Videos
           </h4>
           <div className="flex flex-wrap gap-3">
-            {filledPhotos.length ? (
-              filledPhotos.map((src, i) => (
-                <img
-                  key={`${src.slice(-12)}-${i}`}
-                  src={src}
-                  alt="attached photo"
-                  className="h-[90px] w-[110px] rounded-[10px] border border-nagorik-border object-cover sm:h-[100px] sm:w-[130px]"
-                />
-              ))
+            {mediaItems.length ? (
+              mediaItems.map((item) =>
+                item.resourceType === "video" ? (
+                  <video
+                    key={item.id}
+                    src={item.url}
+                    className="h-[90px] w-[110px] rounded-[10px] border border-nagorik-border object-cover sm:h-[100px] sm:w-[130px]"
+                    muted
+                    playsInline
+                    controls
+                    preload="metadata"
+                  />
+                ) : (
+                  <img
+                    key={item.id}
+                    src={item.url}
+                    alt={item.name}
+                    className="h-[90px] w-[110px] rounded-[10px] border border-nagorik-border object-cover sm:h-[100px] sm:w-[130px]"
+                  />
+                ),
+              )
             ) : (
               <span className="text-[12.5px] text-nagorik-muted">
-                No photos attached.
+                No media attached.
               </span>
             )}
           </div>
@@ -753,10 +876,11 @@ export default function ReportIssue() {
           </button>
           <button
             type="button"
-            className="w-full rounded-full bg-nagorik-red px-16 py-4 text-[15px] font-bold text-white transition-colors duration-150 hover:bg-nagorik-hover-red sm:w-auto"
+            className="w-full rounded-full bg-nagorik-red px-16 py-4 text-[15px] font-bold text-white transition-colors duration-150 hover:bg-nagorik-hover-red disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             onClick={handleFinalSubmit}
+            disabled={submitting}
           >
-            Submit
+            {submitting ? "Submitting..." : "Submit"}
           </button>
         </div>
       </section>

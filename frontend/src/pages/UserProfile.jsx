@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import { getMyReports, getUpvotedIssues, deleteReport } from "../services/issuesService";
+import { getMyProfile } from "../services/profileService";
 import { getUser } from "../services/authService";
 import profileBg from "../assets/images/grey-container.png";
 import { HomeGlyph, PinIcon, ClockIcon, VoteUpIcon, CommentIcon, EyeIcon, EditPenIcon, TrashIcon, ShieldIcon, UserGlyph } from "../components/icons";
 
 const STATUS_BG = { 'In progress': 'bg-[#B87613]', 'Resolved': 'bg-nagorik-green' };
+// Shown to the owner while their report isn't public (approved posts show nothing extra).
+const MODERATION_LABEL = { pending: 'Waiting for approval', spam: 'Flagged as spam', rejected: 'Rejected' };
 
 function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
   const badgeBg = STATUS_BG[issue.statusLabel] || 'bg-nagorik-red';
@@ -18,11 +21,22 @@ function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
   return (
     <article className="flex items-center gap-[18px] rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_62%)] p-3.5 max-[760px]:flex-col max-[760px]:items-stretch">
       <div className="h-[118px] w-[118px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2">
-        <img
-          src={issue.img}
-          alt={issue.title}
-          className="h-full w-full object-cover"
-        />
+        {issue.img ? (
+          <img
+            src={issue.img}
+            alt={issue.title}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1 text-nagorik-muted">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span className="text-[10px] font-semibold">No photo</span>
+          </div>
+        )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-[7px]">
         <div className="flex flex-wrap items-center gap-2.5">
@@ -33,6 +47,11 @@ function ReportRow({ issue, expanded, onView, onGoToPost, onEdit, onDelete }) {
           <span className={`inline-flex items-center gap-[5px] rounded-full px-[11px] py-1 text-[10.5px] font-bold text-white ${badgeBg}`}>
             <span className="h-[5px] w-[5px] rounded-full bg-white" />{issue.statusLabel || "Open"}
           </span>
+          {MODERATION_LABEL[issue.moderationStatus] && (
+            <span className="inline-flex items-center rounded-full border border-nagorik-gold/50 bg-nagorik-gold/10 px-[10px] py-[3px] text-[10.5px] font-bold text-nagorik-heading">
+              {MODERATION_LABEL[issue.moderationStatus]}
+            </span>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3.5 text-[12px] text-nagorik-secondary">
           <span className="flex items-center gap-[5px]"><PinIcon size={12} />{issue.area}</span>
@@ -83,23 +102,58 @@ export default function UserProfile() {
   const navigate = useNavigate();
   const [activeContribution, setActiveContribution] = useState("recent");
   const [activeStatus, setActiveStatus] = useState("All");
-  const [reports, setReports] = useState(() => getMyReports());
+  const [reports, setReports] = useState([]);
+  const [upvotedIssues, setUpvotedIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [profile, setProfile] = useState(null);
 
-  const upvotedIssues = getUpvotedIssues();
   const userData = getUser();
   const displayName = userData.name || "Nagorik User";
+  const avatarUrl =
+    profile?.profilePicture?.url ||
+    profile?.avatar ||
+    userData?.avatar ||
+    userData?.image ||
+    "";
 
   useEffect(() => {
     document.title = "Profile - Nagorik";
     document.documentElement.lang = "bn";
   }, []);
 
-  const confirmDelete = () => {
+  useEffect(() => {
+    (async () => {
+      try {
+        const [mine, upvoted] = await Promise.all([
+          getMyReports(),
+          getUpvotedIssues(),
+        ]);
+        setReports(mine);
+        setUpvotedIssues(upvoted);
+      } catch (err) {
+        setLoadError(err.message || "Failed to load reports");
+      } finally {
+        setLoading(false);
+      }
+    })();
+    // Profile picture lives in Cloudinary; fetch it for the header avatar.
+    getMyProfile()
+      .then(setProfile)
+      .catch(() => {});
+  }, []);
+
+  const confirmDelete = async () => {
     if (!deletingId) return;
-    setReports(deleteReport(deletingId));
-    if (expandedId === deletingId) setExpandedId(null);
+    try {
+      await deleteReport(deletingId);
+      setReports((prev) => prev.filter((r) => r.id !== deletingId));
+      if (expandedId === deletingId) setExpandedId(null);
+    } catch (err) {
+      alert(err.message || "Failed to delete report");
+    }
     setDeletingId(null);
   };
 
@@ -107,8 +161,12 @@ export default function UserProfile() {
     list.map((r) => ({ ...r, id: prefix ? `${prefix}-${r.id}` : r.id, activityBadge: badge, canEdit, statusLabel: r.statusLabel || "Open" }));
 
   const getDisplayedItems = () => {
+    // A report you also upvoted would otherwise show up twice (and share a
+    // React key), so list each issue once: reported wins over upvoted.
+    const reportedIds = new Set(reports.map((r) => String(r.id)));
+    const upvotedOnly = upvotedIssues.filter((r) => !reportedIds.has(String(r.id)));
     const categories = {
-      recent: [...format(reports, "Reported by you", true), ...format(upvotedIssues, "Upvoted by you"), ...format(reports.slice(0, 1), "Commented by you", false, "comment")],
+      recent: [...format(reports, "Reported by you", true), ...format(upvotedOnly, "Upvoted by you")],
       reported: format(reports, "Reported by you", true),
       upvoted: format(upvotedIssues, "Upvoted by you"),
       commented: format(reports.slice(0, 2), "Commented by you"),
@@ -145,8 +203,8 @@ export default function UserProfile() {
           <div className="flex items-start justify-between gap-4 max-[760px]:flex-col max-[760px]:items-stretch">
             <div className="flex items-center gap-4 max-[760px]:flex-col max-[760px]:items-start max-[760px]:gap-3">
               <div className="flex h-[88px] w-[88px] shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white text-nagorik-red shadow-[0_6px_16px_-8px_rgba(0,0,0,0.35)] dark:border-nagorik-border dark:bg-nagorik-surface-2">
-                {userData?.avatar || userData?.image ? (
-                  <img src={userData.avatar || userData.image} alt={displayName} className="h-full w-full object-cover" />
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt={displayName} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center bg-nagorik-soft-red/40 text-nagorik-red dark:bg-nagorik-red/20 dark:text-[#FF7080]">
                     <UserGlyph size={42} />
@@ -200,7 +258,15 @@ export default function UserProfile() {
           </div>
 
           <div className="flex flex-col gap-5">
-            {displayedItems.length ? (
+            {loading ? (
+              <p className="py-12 text-center text-[14px] text-nagorik-muted">
+                Loading your activity...
+              </p>
+            ) : loadError ? (
+              <p className="py-12 text-center text-[14px] text-nagorik-red">
+                {loadError}
+              </p>
+            ) : displayedItems.length ? (
               displayedItems.map((issue) => (
                 <ReportRow key={issue.id} issue={issue} expanded={expandedId === issue.id} onView={(id) => setExpandedId(prev => prev === id ? null : id)} onGoToPost={(id) => navigate(`/post/${String(id).replace('comment-', '')}`)} onEdit={(id) => navigate("/report", { state: { editId: id } })} onDelete={setDeletingId} />
               ))

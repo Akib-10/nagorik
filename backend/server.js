@@ -1,24 +1,33 @@
+import './config/env.js';
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-dotenv.config();
 
 import { connectDB } from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import issueRoutes from './routes/issueRoutes.js';
-// ==== PROFILE EDIT: START ====
+import uploadRoutes from './routes/uploadRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
-// ==== PROFILE EDIT: END ====
+import userRoutes from './routes/userRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import commentRoutes from './routes/commentRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+// Media now travels as multipart straight to Cloudinary; JSON bodies only
+// carry normal form fields and Cloudinary metadata references.
+app.use(express.json({ limit: '1mb' }));
 app.use('/api/issues', issueRoutes);
 app.use('/api/auth', authRoutes);
-// ==== PROFILE EDIT: START ====
+app.use('/api/upload', uploadRoutes);
 app.use('/api/profile', profileRoutes);
-// ==== PROFILE EDIT: END ====
+app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/admin', adminRoutes); 
+
 
 app.get('/', (req, res) => {
   res.send('Server is running');

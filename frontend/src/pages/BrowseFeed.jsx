@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
-import { getFeedIssues, getTrendingIssues } from "../services/issuesService";
+import { getFeedIssues, getTrendingIssues, toggleUpvote, hideReport } from "../services/issuesService";
+import { isAuthenticated } from "../services/authService";
+import { optimizedUrl } from "../services/mediaService";
 import heroImg from "../assets/images/artwork_red_container.png"
 import {
   HomeGlyph,
@@ -16,6 +18,7 @@ import {
   RepostIcon,
   ShareNodesIcon,
   PlusIcon,
+  DotsIcon,
 } from "../components/icons";
 
 const TABS = ["latest", "ongoing", "trending", "all"];
@@ -25,8 +28,28 @@ function formatDown(value) {
   return Number.isNaN(n) ? value : String(n).padStart(2, "0");
 }
 
-function IssueCard({ issue, myVote, onVote, onOpen }) {
-  const upCount = issue.up + (myVote === "up" ? 1 : 0);
+function IssueCard({ issue, myVote, onVote, onOpen, onHide }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close the 3-dot menu on outside click or Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuOpen]);
+
+  const upCount = issue.up;
   const downCount = formatDown(
     Number(issue.down) + (myVote === "down" ? 1 : 0),
   );
@@ -45,16 +68,78 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
 
   return (
     <article
-      className="flex gap-5 rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] p-3.5 transition-all duration-150 dark:bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] max-[760px]:flex-col"
+      className="relative flex gap-5 rounded-2xl border border-nagorik-light-red bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] p-3.5 transition-all duration-150 dark:bg-[linear-gradient(90deg,var(--color-nagorik-soft-red),var(--color-nagorik-paper)_55%)] max-[760px]:flex-col"
       onClick={() => onOpen(issue.id)}
       style={{ cursor: "pointer" }}
     >
       <div className="h-[158px] w-[210px] shrink-0 overflow-hidden rounded-xl bg-nagorik-surface-2 max-[760px]:h-[180px] max-[760px]:w-full">
-        <img
-          src={issue.img}
-          alt={issue.alt}
-          className="h-full w-full object-cover"
-        />
+        {issue.img ? (
+          <div className="relative h-full w-full">
+            <img
+              src={optimizedUrl(issue.img, { width: 500 })}
+              alt={issue.alt}
+              className="h-full w-full object-cover"
+            />
+            {issue.primaryIsVideo && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                </span>
+              </span>
+            )}
+            {issue.hasVideo && !issue.primaryIsVideo && (
+              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/60 px-2 py-[2px] text-[10px] font-bold text-white">
+                Video
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex h-full w-full flex-col items-center justify-center gap-1.5 text-nagorik-muted">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <path d="M21 15l-5-5L5 21" />
+            </svg>
+            <span className="text-[11px] font-semibold">No photo</span>
+          </div>
+        )}
+      </div>
+      {/* 3-dot menu (top right of the card) */}
+      <div
+        ref={menuRef}
+        className="absolute right-3 top-3 z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          type="button"
+          aria-label="More options"
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-nagorik-secondary transition-colors duration-150 hover:bg-nagorik-red hover:text-white"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <DotsIcon size={18} />
+        </button>
+        {menuOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 top-9 min-w-[140px] overflow-hidden rounded-xl border border-nagorik-border bg-nagorik-paper shadow-lg"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="block w-full cursor-pointer px-4 py-2.5 text-left text-[13px] font-bold text-nagorik-red transition-colors duration-150 hover:bg-nagorik-light-red dark:text-[#FF7080]"
+              onClick={() => {
+                setMenuOpen(false);
+                onHide(issue.id);
+              }}
+            >
+              Hide post
+            </button>
+          </div>
+        )}
       </div>
       <div className="flex flex-1 flex-col justify-center gap-2.5">
         <span
@@ -63,7 +148,7 @@ function IssueCard({ issue, myVote, onVote, onOpen }) {
           <span className="h-[6px] w-[6px] rounded-full bg-white"></span>
           {issue.statusLabel}
         </span>
-        <h3 className="m-0 text-[18px] font-extrabold text-nagorik-red dark:text-[#FF7080]">
+        <h3 className="m-0 pr-8 text-[18px] font-extrabold text-nagorik-red dark:text-[#FF7080]">
           {issue.title}
         </h3>
         <div className="flex flex-wrap items-center gap-[22px] text-[13px] text-nagorik-secondary">
@@ -134,6 +219,10 @@ export default function BrowseFeed() {
   const [searchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [votes, setVotes] = useState({});
+  const [feedIssues, setFeedIssues] = useState([]);
+  const [trendingIssues, setTrendingIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -141,13 +230,36 @@ export default function BrowseFeed() {
     document.documentElement.lang = "bn";
   }, []);
 
-  const feedIssues = useMemo(() => getFeedIssues(), []);
-  const trendingIssues = useMemo(() => getTrendingIssues(), []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [feed, trending] = await Promise.all([
+          getFeedIssues(),
+          getTrendingIssues(),
+        ]);
+        setFeedIssues(feed);
+        setTrendingIssues(trending);
+        setVotes(
+          Object.fromEntries(
+            feed.filter((i) => i.myUpvote).map((i) => [i.id, "up"]),
+          ),
+        );
+      } catch (err) {
+        setError(err.message || "Failed to load issues");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   const visibleIssues = useMemo(() => {
     let list = feedIssues;
     if (activeTab === "ongoing")
-      list = list.filter((i) => i.statusLabel === "Ongoing");
+      // Backend stores 'Open' | 'In progress' | 'Resolved' | 'Rejected'
+      // (adminServices.js STATUS_OPTIONS) — there is no "Ongoing" label.
+      list = list.filter(
+        (i) => i.statusLabel === "Open" || i.statusLabel === "In progress",
+      );
     if (activeTab === "trending") list = [...list].sort((a, b) => b.up - a.up);
     const q = query.trim().toLowerCase();
     if (q) {
@@ -160,12 +272,39 @@ export default function BrowseFeed() {
     return list;
   }, [feedIssues, activeTab, query]);
 
-  const handleVote = (id, dir) => {
-    setVotes((prev) => ({ ...prev, [id]: prev[id] === dir ? null : dir }));
+  const handleVote = async (id, dir) => {
+    if (dir !== "up") {
+      setVotes((prev) => ({ ...prev, [id]: prev[id] === "down" ? null : "down" }));
+      return;
+    }
+    try {
+      const updated = await toggleUpvote(id);
+      setFeedIssues((prev) =>
+        prev.map((i) => (i.id === id ? { ...i, up: updated.up, myUpvote: updated.myUpvote } : i)),
+      );
+      setVotes((prev) => ({ ...prev, [id]: updated.myUpvote ? "up" : null }));
+    } catch (err) {
+      alert(err.message || "Failed to update vote");
+    }
   };
 
   const openPost = (id) => {
     navigate(`/post/${id}`);
+  };
+
+  // "Hide post": removes the post from this user's feed (saved server-side).
+  const handleHide = async (id) => {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
+    try {
+      await hideReport(id);
+      setFeedIssues((prev) => prev.filter((i) => i.id !== id));
+      setTrendingIssues((prev) => prev.filter((i) => i.id !== id));
+    } catch (err) {
+      alert(err.message || "Failed to hide post");
+    }
   };
 
   return (
@@ -267,7 +406,15 @@ export default function BrowseFeed() {
       <div className="mx-auto grid max-w-[1160px] grid-cols-[1fr_320px] gap-5 items-start px-7 py-5 pb-[60px] max-[1100px]:grid-cols-1 max-[760px]:px-4">
         {/* Issues Feed */}
         <div className="flex flex-col gap-5" id="issuesList">
-          {visibleIssues.length ? (
+          {loading ? (
+            <p className="py-12 text-center text-[14px] text-nagorik-muted">
+              Loading issues...
+            </p>
+          ) : error ? (
+            <p className="py-12 text-center text-[14px] text-nagorik-red">
+              {error}
+            </p>
+          ) : visibleIssues.length ? (
             visibleIssues.map((issue) => (
               <IssueCard
                 key={issue.id}
@@ -275,6 +422,7 @@ export default function BrowseFeed() {
                 myVote={votes[issue.id] || null}
                 onVote={handleVote}
                 onOpen={openPost}
+                onHide={handleHide}
               />
             ))
           ) : (
@@ -300,11 +448,21 @@ export default function BrowseFeed() {
                 style={{ cursor: "pointer" }}
               >
                 <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-[10px] bg-white">
-                  <img
-                    src={item.img}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
+                  {item.img ? (
+                    <img
+                      src={optimizedUrl(item.img, { width: 120 })}
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[18px] text-nagorik-muted">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <path d="M21 15l-5-5L5 21" />
+                      </svg>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1">
                   <p className="mb-1.5 text-[13.5px] font-bold leading-[1.3]">
