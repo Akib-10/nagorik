@@ -182,17 +182,19 @@ export function SearchInput({
 
 export function PillButton({ children, onClick, variant = 'outline', type = 'button', className }) {
   const variants = {
-    solid: 'bg-nagorik-red text-white hover:bg-nagorik-hover-red',
-    outline: 'border-2 border-nagorik-red text-nagorik-red hover:bg-nagorik-red hover:!text-white',
-    ghost: 'bg-nagorik-surface-2 text-nagorik-secondary hover:bg-nagorik-line',
-    danger: 'bg-transparent text-nagorik-red hover:bg-nagorik-red/10',
+    // Every variant carries a 2px border (transparent when it has no outline)
+    // so buttons of different variants are always exactly the same height.
+    solid: 'border-transparent bg-nagorik-red text-white hover:bg-nagorik-hover-red',
+    outline: 'border-nagorik-red text-nagorik-red hover:bg-nagorik-red hover:!text-white',
+    ghost: 'border-transparent bg-nagorik-surface-2 text-nagorik-secondary hover:bg-nagorik-line',
+    danger: 'border-transparent bg-transparent text-nagorik-red hover:bg-nagorik-red/10',
   }
   return (
     <button
       type={type}
       onClick={onClick}
       className={clsx(
-        'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-[13px] font-bold transition-colors duration-150',
+        'inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full border-2 px-4 py-2 text-[13px] font-bold transition-colors duration-150',
         variants[variant],
         className,
       )}

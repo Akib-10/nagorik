@@ -6,6 +6,7 @@ import {
   CommentIcon,
   PinIcon,
   CheckIcon,
+  AlertIcon,
 } from "../components/icons";
 import { useNotifications } from "../hooks/useNotifications";
 import {
@@ -30,6 +31,7 @@ const ICONS = {
   upvote: <VoteUpIcon size={16} />,
   comment: <CommentIcon size={16} />,
   status: <PinIcon size={16} />,
+  moderation: <AlertIcon size={16} />,
   default: <CheckIcon size={16} />,
 };
 

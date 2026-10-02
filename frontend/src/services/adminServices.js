@@ -4,7 +4,8 @@ import { api } from './api'
 
 export const STATUS_OPTIONS = ['Open', 'In progress', 'Resolved', 'Rejected']
 
-// Moderation: a new report stays "Pending" until an admin approves it.
+// Moderation: a new report is "Pending" until an admin approves it (unless the
+// approval setting is "all"); an admin can also flag one as Spam or Reject it.
 export const MODERATION_TABS = ['Pending', 'Approved', 'Spam', 'Rejected']
 
 // The public feed styles issues by statusClass, so keep it in sync with the label.
@@ -32,8 +33,10 @@ export const getAdminUsers = ({ search, role, page, limit } = {}) =>
 export const suspendUser = (id) => api.patch(`/admin/users/${id}/suspend`)
 export const reactivateUser = (id) => api.patch(`/admin/users/${id}/reactivate`)
 
-export const getAdminIssues = ({ search, status, moderation, page, limit } = {}) =>
-  api.get(`/admin/issues${toQuery({ search, status, moderation, page, limit })}`)
+// `focus` pins one issue (by id) to the top of page 1 — used when the admin
+// arrives from a "new report awaiting review" notification.
+export const getAdminIssues = ({ search, status, moderation, page, limit, focus } = {}) =>
+  api.get(`/admin/issues${toQuery({ search, status, moderation, page, limit, focus })}`)
 
 // action: 'approve' | 'spam' | 'reject'
 export const moderateIssue = (id, action) => api.patch(`/admin/issues/${id}/moderate`, { action })
@@ -46,6 +49,13 @@ export const updateIssueStatus = (id, statusLabel) =>
   })
 
 export const deleteIssueAsAdmin = (id) => api.del(`/admin/issues/${id}`)
+
+// Platform settings. approvalMode: 'manual' (admin approves each new report,
+// the default) | 'all' (every new report is approved automatically).
+export const getAdminSettings = () => api.get('/admin/settings')
+export const updateAdminSettings = (patch) => api.patch('/admin/settings', patch)
+
+export const getAnalytics = () => api.get('/admin/analytics')
 
 // ---- display helpers ----
 
