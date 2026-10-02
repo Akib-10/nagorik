@@ -19,13 +19,28 @@ import AdminAnalytics from './pages/admin/AdminAnalytics.jsx'
 import AdminSettingsPage from './pages/admin/AdminSettingsPage.jsx'
 import { getTheme, setTheme, isAuthenticated, getUser } from './services/authService'
 
-// Admins land in the admin panel instead of the public homepage —
-// covers page refreshes / direct visits to "/", not just the login moment.
+// Where a signed-in user belongs: admins in the admin panel, everyone else in
+// the browse feed.
+function homeFor(user) {
+  return user.isAdmin ? '/admin' : '/browse_feed'
+}
+
+// The landing page is for signed-out visitors only. A signed-in user who hits
+// "/" (browser back button, typed URL, refresh) is redirected with `replace`,
+// so the landing page never stays in their history.
 function HomeRoute() {
-  if (isAuthenticated() && getUser().isAdmin) {
-    return <Navigate to="/admin" replace />
+  if (isAuthenticated()) {
+    return <Navigate to={homeFor(getUser())} replace />
   }
   return <Home />
+}
+
+// Same idea for the login page: no reason to show it to someone already in.
+function LoginRoute() {
+  if (isAuthenticated()) {
+    return <Navigate to={homeFor(getUser())} replace />
+  }
+  return <Login />
 }
 
 export default function App() {
@@ -38,7 +53,7 @@ export default function App() {
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<HomeRoute />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<LoginRoute />} />
         <Route path="/browse_feed" element={<BrowseFeed />} />
         <Route path="/post/:id" element={<PostDetails />} />
         <Route path="/user" element={<UserProfile />} />

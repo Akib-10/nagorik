@@ -10,6 +10,9 @@ import {
   deleteIssue,
   suspendUser,
   reactivateUser,
+  getSettings,
+  updateSettings,
+  getAnalytics,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -24,5 +27,8 @@ router.patch('/users/:id/reactivate', reactivateUser);
 router.get('/issues', listIssues);
 router.patch('/issues/:id/moderate', moderateIssue);
 router.delete('/issues/:id', deleteIssue);
+router.get('/settings', getSettings);
+router.patch('/settings', updateSettings);
+router.get('/analytics', getAnalytics);
 
 export default router;

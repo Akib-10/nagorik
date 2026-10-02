@@ -49,29 +49,31 @@ function SidebarContent({ userData, onNavigate, onLogout, collapsed = false, onT
         : 'text-nagorik-secondary hover:bg-nagorik-surface-2 hover:text-nagorik-heading',
     )
 
+  // The wordmark is branding only — it is not a link, so clicking it leaves the
+  // admin where it is instead of jumping to another section.
+  const brand = (
+    <div className="flex min-w-0 items-center gap-3">
+      <img src={logo} alt="নাগরিক" className="h-9 w-auto" />
+      <div className="leading-tight">
+        <p className="m-0 text-[13px] font-extrabold tracking-wide text-nagorik-heading">
+          NAGORIK
+        </p>
+        <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-nagorik-red">
+          Admin Panel
+        </p>
+      </div>
+    </div>
+  )
+
   return (
     <div className="flex h-full flex-col">
       <div
         className={clsx(
           'flex items-center border-b border-nagorik-line',
-          collapsed ? 'justify-center px-2 py-4' : 'gap-3 px-6 py-5',
+          collapsed ? 'justify-center px-2 py-4' : 'px-6 py-5',
         )}
       >
-        {collapsed ? (
-          <img src={logo} alt="NAGORIK" className="h-7 w-auto" />
-        ) : (
-          <>
-            <img src={logo} alt="নাগরিক" className="h-9 w-auto" />
-            <div className="leading-tight">
-              <p className="m-0 text-[13px] font-extrabold tracking-wide text-nagorik-heading">
-                NAGORIK
-              </p>
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-nagorik-red">
-                Admin Panel
-              </p>
-            </div>
-          </>
-        )}
+        {collapsed ? <img src={logo} alt="NAGORIK" className="h-7 w-auto" /> : brand}
       </div>
 
       <nav className={clsx('flex-1 overflow-y-auto', collapsed ? 'px-3 py-4' : 'px-3 py-4')}>
@@ -121,7 +123,7 @@ function SidebarContent({ userData, onNavigate, onLogout, collapsed = false, onT
         )}
 
         <Link
-          to="/"
+          to="/browse_feed"
           onClick={onNavigate}
           title={collapsed ? 'Back to site' : undefined}
           aria-label={collapsed ? 'Back to site' : undefined}
@@ -195,7 +197,7 @@ if (!userData.isAdmin) {
 }
   const handleLogout = () => {
     signOut()
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   const pageTitle = TITLES[location.pathname] || 'Admin Panel'

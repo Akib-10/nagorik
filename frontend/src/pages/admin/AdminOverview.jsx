@@ -65,7 +65,9 @@ export default function AdminOverview() {
 
         {/* Activity feed */}
         <div className="rounded-2xl border border-nagorik-line bg-nagorik-paper p-5">
-          <h2 className="m-0 mb-4 text-[15px] font-extrabold text-nagorik-heading">Recent Activity</h2>
+          <div className="mb-4">
+            <h2 className="m-0 text-[15px] font-extrabold text-nagorik-heading">Recent Activity</h2>
+          </div>
           {activity.length === 0 ? (
             <EmptyState text="No activity yet." />
           ) : (
@@ -86,19 +88,23 @@ export default function AdminOverview() {
 
       {/* Quick actions */}
       <div className="rounded-2xl border border-nagorik-line bg-nagorik-paper p-5">
-        <h2 className="m-0 mb-4 text-[15px] font-extrabold text-nagorik-heading">Quick Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          <Link to="/admin/issues">
-            <PillButton variant="solid">Review open issues</PillButton>
+        <div className="mb-4">
+          <h2 className="m-0 text-[15px] font-extrabold text-nagorik-heading">Quick Actions</h2>
+        </div>
+        {/* Equal-width cells: every button is the same size and lines up on
+            one row (4 across) or a tidy 2x2 / stacked grid on small screens. */}
+        <div className="grid grid-cols-1 gap-3 min-[520px]:grid-cols-2 min-[1100px]:grid-cols-4">
+          <Link to="/admin/issues" className="block">
+            <PillButton variant="solid" className="w-full">Review open issues</PillButton>
           </Link>
-          <Link to="/admin/users">
-            <PillButton variant="outline">Manage users</PillButton>
+          <Link to="/admin/users" className="block">
+            <PillButton variant="outline" className="w-full">Manage users</PillButton>
           </Link>
-          <Link to="/admin/categories">
-            <PillButton variant="outline">Edit categories</PillButton>
+          <Link to="/admin/categories" className="block">
+            <PillButton variant="outline" className="w-full">Edit categories</PillButton>
           </Link>
-          <Link to="/admin/analytics">
-            <PillButton variant="ghost">View analytics</PillButton>
+          <Link to="/admin/analytics" className="block">
+            <PillButton variant="ghost" className="w-full">View analytics</PillButton>
           </Link>
         </div>
       </div>
