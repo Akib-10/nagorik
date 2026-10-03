@@ -31,7 +31,7 @@ const STEP_TITLES = {
 };
 
 const STEP_LABELS = ["Details", "Media & Location", "Review"];
-const DEFAULT_COORDS = "Dhanmondi, Dhaka (23.81° N, 90.41° E)";
+  const DEFAULT_COORDS = "";
 const PRIORITY_OPTIONS = ["Low", "Medium", "High"];
 
 /* ---------- stepper / progress bar ----------
@@ -147,7 +147,7 @@ export default function ReportIssue() {
   const [mediaItems, setMediaItems] = useState([]);
   const [mediaError, setMediaError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [coordsText, setCoordsText] = useState(DEFAULT_COORDS);
+
   const photoInputRef = useRef(null);
 
   useEffect(() => {
@@ -207,7 +207,7 @@ export default function ReportIssue() {
             size: m.bytes || 0,
           }));
         setMediaItems(existingMedia);
-        setCoordsText(found.coordsText || DEFAULT_COORDS);
+
       } catch {
         if (!cancelled) {
           alert("Could not load the report for editing.");
@@ -294,13 +294,7 @@ export default function ReportIssue() {
   };
 
   const detectLocation = () => {
-    setCoordsText("Dhaka (23.81° N, 90.41° E)");
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        () => {},
-        () => {},
-      );
-    }
+    // Location detection functionality removed
   };
 
   const fullAddress = [
@@ -351,7 +345,6 @@ export default function ReportIssue() {
       thana,
       city,
       fullAddress,
-      coordsText,
       mediaItems: submitMedia,
     };
 
@@ -697,28 +690,8 @@ export default function ReportIssue() {
               </div>
             </div>
 
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-nagorik-red px-4 py-2 text-[11.5px] font-bold text-white font-[inherit] transition-colors duration-150 hover:bg-nagorik-hover-red sm:w-fit sm:justify-start"
-              onClick={detectLocation}
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              Use My Current Location
-            </button>
-            <p className="mt-auto flex flex-wrap items-center gap-1.5 pt-2.5 text-[11px] text-nagorik-muted">
-              <ClockIcon size={11} /> Pinned:{" "}
-              <b className="font-bold text-nagorik-secondary">{coordsText}</b>
-            </p>
+
+
           </div>
 
           {/* Upload Photos (moved right, compact height + inline Back/Next nav) */}
@@ -910,17 +883,7 @@ export default function ReportIssue() {
             )}
           </div>
 
-          <div className="mt-5 flex items-center gap-3 rounded-[16px] bg-nagorik-soft-red px-4 py-3.5 text-nagorik-red sm:px-[18px]">
-            <PinIcon size={20} />
-            <div className="min-w-0">
-              <b className="block text-[12px] text-nagorik-heading">
-                Pinned Location
-              </b>
-              <span className="break-words text-[12.5px] text-nagorik-secondary">
-                {coordsText}
-              </span>
-            </div>
-          </div>
+
         </div>
 
         <div className="flex flex-col-reverse gap-3 pb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
