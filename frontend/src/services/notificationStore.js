@@ -8,7 +8,7 @@ import {
 } from './notificationService'
 
 const LIST_POLL_INTERVAL = 45000
-const COUNT_POLL_INTERVAL = 60000
+const COUNT_POLL_INTERVAL = 15000
 
 const initialState = {
   items: [],
@@ -232,13 +232,32 @@ export function acquireListPolling() {
   }
 }
 
+// Refetch the moment the user comes back to the tab instead of waiting for the
+// next tick, and skip ticks while the tab is hidden.
+function refreshIfVisible() {
+  if (typeof document === 'undefined' || document.visibilityState === 'visible') {
+    refreshUnreadCount()
+  }
+}
+
+function bindVisibilityRefresh() {
+  document.addEventListener('visibilitychange', refreshIfVisible)
+  window.addEventListener('focus', refreshIfVisible)
+}
+
+function unbindVisibilityRefresh() {
+  document.removeEventListener('visibilitychange', refreshIfVisible)
+  window.removeEventListener('focus', refreshIfVisible)
+}
+
 // Drives the header badge on every other page.
 export function acquireUnreadCountPolling() {
   countConsumers += 1
 
   if (countPollTimer === null) {
     refreshUnreadCount()
-    countPollTimer = setInterval(refreshUnreadCount, COUNT_POLL_INTERVAL)
+    countPollTimer = setInterval(refreshIfVisible, COUNT_POLL_INTERVAL)
+    bindVisibilityRefresh()
   }
 
   let released = false
@@ -249,6 +268,7 @@ export function acquireUnreadCountPolling() {
     if (countConsumers <= 0 && countPollTimer !== null) {
       clearInterval(countPollTimer)
       countPollTimer = null
+      unbindVisibilityRefresh()
     }
   }
 }
@@ -263,6 +283,7 @@ export function resetNotificationState() {
   if (countPollTimer !== null) {
     clearInterval(countPollTimer)
     countPollTimer = null
+    unbindVisibilityRefresh()
   }
   listConsumers = 0
   countConsumers = 0
