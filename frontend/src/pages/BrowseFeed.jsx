@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
-import { getFeedIssues, getTrendingIssues, toggleUpvote, hideReport } from "../services/issuesService";
+import { getFeedIssues, getTrendingIssues, getIssueStats, toggleUpvote, hideReport } from "../services/issuesService";
+import useCountUp from "../hooks/useCountUp";
 import { isAuthenticated } from "../services/authService";
 import { optimizedUrl } from "../services/mediaService";
 import heroImg from "../assets/images/artwork_red_container.png"
@@ -205,6 +206,19 @@ function IssueCard({ issue, myVote, onVote, onOpen, onHide }) {
   );
 }
 
+// One number in the hero box; counts up from 0 to `value` when it arrives.
+function AnimatedStat({ value, label }) {
+  const shown = useCountUp(value);
+  return (
+    <div className="flex flex-col items-center">
+      <div className="text-[24px] font-extrabold leading-none text-white tabular-nums">
+        {shown}
+      </div>
+      <div className="mt-0.5 text-center text-[11px] text-white/85">{label}</div>
+    </div>
+  );
+}
+
 export default function BrowseFeed() {
   const [activeTab, setActiveTab] = useState("latest");
   const [searchParams] = useSearchParams();
@@ -212,6 +226,7 @@ export default function BrowseFeed() {
   const [votes, setVotes] = useState({});
   const [feedIssues, setFeedIssues] = useState([]);
   const [trendingIssues, setTrendingIssues] = useState([]);
+  const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -241,6 +256,17 @@ export default function BrowseFeed() {
         setLoading(false);
       }
     })();
+  }, []);
+
+  // Hero numbers. Separate from the feed load so a failure here never blocks the feed.
+  useEffect(() => {
+    let cancelled = false;
+    getIssueStats()
+      .then((s) => !cancelled && setStats(s))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const visibleIssues = useMemo(() => {
@@ -348,26 +374,9 @@ export default function BrowseFeed() {
             </div>
           </div>
           <div className="relative z-[1] ml-6 flex shrink-0 flex-col gap-[10px] text-right max-[1100px]:ml-0 max-[1100px]:flex-row max-[1100px]:text-left max-[1100px]:justify-between max-[1100px]:w-full max-[1100px]:gap-20">
-            <div className="flex flex-col items-center">
-              <div className="text-[24px] font-extrabold leading-none text-white">
-                45
-              </div>
-              <div className="mt-0.5 text-center text-[11px] text-white/85">Open</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-[24px] font-extrabold leading-none text-white">
-                31
-              </div>
-              <div className="mt-0.5 text-center text-[11px] text-white/85">
-                Progressing 
-              </div>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="text-[24px] font-extrabold leading-none text-white">
-                14
-              </div>
-              <div className="mt-0.5 text-center text-[11px] text-white/85">received</div>
-            </div>
+            <AnimatedStat value={stats.open} label="Open" />
+            <AnimatedStat value={stats.inProgress} label="Progressing" />
+            <AnimatedStat value={stats.resolved} label="Resolved" />
           </div>
         </section>
       </div>

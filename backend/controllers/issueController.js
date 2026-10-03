@@ -173,6 +173,26 @@ export async function getIssues(req, res) {
   }
 }
 
+// GET /api/issues/stats — public headline numbers for the feed hero box.
+// Counts APPROVED reports only, for everybody (it ignores per-user hidden posts).
+// A report with no statusLabel counts as "Open", matching the schema default.
+export async function getIssueStats(req, res) {
+  try {
+    const rows = await Issue.aggregate([
+      { $match: PUBLICLY_VISIBLE },
+      { $group: { _id: { $ifNull: ["$statusLabel", "Open"] }, count: { $sum: 1 } } },
+    ]);
+    const by = Object.fromEntries(rows.map((r) => [r._id, r.count]));
+    res.json({
+      open: by["Open"] || 0,
+      inProgress: by["In progress"] || 0,
+      resolved: by["Resolved"] || 0,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+}
+
 // GET /api/issues/:id — public single issue (for accessing any post)
 export async function getIssueById(req, res) {
   try {
