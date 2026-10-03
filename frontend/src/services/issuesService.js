@@ -175,6 +175,11 @@ export async function getFeedIssues() {
   return (await api.get('/issues')).map(mapIssue)
 }
 
+// { open, inProgress, resolved } across all approved reports.
+export async function getIssueStats() {
+  return api.get('/issues/stats')
+}
+
 export async function getIssueById(id) {
   return mapIssue(await api.get(`/issues/${id}`))
 }

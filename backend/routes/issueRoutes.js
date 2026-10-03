@@ -3,6 +3,7 @@ import { protect, optionalAuth } from '../middleware/authMiddleware.js';
 import { uploadIssueMedia } from '../middleware/upload.js';
 import {
   getIssues,
+  getIssueStats,
   getIssueById,
   getMyIssues,
   getUpvotedIssues,
@@ -19,6 +20,7 @@ import {
 const router = express.Router();
 
 router.get('/', optionalAuth, getIssues); // public — feed-er jonno (signed-in users don't see posts they hid)
+router.get('/stats', getIssueStats); // public — feed hero numbers (must stay above '/:id')
 router.get('/mine', protect, getMyIssues);
 router.get('/upvoted', protect, getUpvotedIssues);
 router.get('/:id', optionalAuth, getIssueById); // owner/admin can open their own non-public post
