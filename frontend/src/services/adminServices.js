@@ -4,8 +4,8 @@ import { api } from './api'
 
 export const STATUS_OPTIONS = ['Open', 'In progress', 'Resolved', 'Rejected']
 
-// Moderation: a new report is "Pending" until an admin approves it (unless the
-// approval setting is "all"); an admin can also flag one as Spam or Reject it.
+// Moderation: every new report is "Pending" until an admin approves it - nothing
+// is approved automatically. An admin can also flag one as Spam or Reject it.
 export const MODERATION_TABS = ['Pending', 'Approved', 'Spam', 'Rejected']
 
 // The public feed styles issues by statusClass, so keep it in sync with the label.
@@ -50,10 +50,12 @@ export const updateIssueStatus = (id, statusLabel) =>
 
 export const deleteIssueAsAdmin = (id) => api.del(`/admin/issues/${id}`)
 
-// Platform settings. approvalMode: 'manual' (admin approves each new report,
-// the default) | 'all' (every new report is approved automatically).
-export const getAdminSettings = () => api.get('/admin/settings')
-export const updateAdminSettings = (patch) => api.patch('/admin/settings', patch)
+// Categories (the report form's "Type" dropdown is filled from these).
+export const getAdminCategories = () => api.get('/admin/categories')
+export const createAdminCategory = ({ name, color }) => api.post('/admin/categories', { name, color })
+export const updateAdminCategory = (id, { name, color }) =>
+  api.patch(`/admin/categories/${id}`, { name, color })
+export const deleteAdminCategory = (id) => api.del(`/admin/categories/${id}`)
 
 export const getAnalytics = () => api.get('/admin/analytics')
 

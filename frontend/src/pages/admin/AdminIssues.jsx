@@ -13,6 +13,9 @@ import {
 } from '../../services/adminServices'
 
 const TABS = ['All', ...MODERATION_TABS]
+
+// Rows that still need a decision are tinted light red so they stand out.
+const needsReview = (issue) => issue.moderationStatus === 'pending'
 const PAGE_SIZE = 15
 
 // The three moderation decisions an admin can make on a post.
@@ -123,18 +126,38 @@ export default function AdminIssues() {
   const navigate = useNavigate()
   // ?focus=<issueId> comes from the "new report awaiting review" notification:
   // that post is pinned to the top and highlighted until the admin acts on it.
+  //
+  // The tab, page and search live in the URL (?tab=Pending&page=2&q=...) rather
+  // than in component state. That way, after opening a post and clicking the
+  // logo, the admin lands back on exactly the list they left (see
+  // adminSectionStore.js), and the Overview's "Show all" can deep-link to a tab.
   const [searchParams, setSearchParams] = useSearchParams()
   const focusId = searchParams.get('focus') || ''
+  const tabParam = searchParams.get('tab')
+  const tab = TABS.includes(tabParam) ? tabParam : 'All'
+  const page = Math.max(1, parseInt(searchParams.get('page'), 10) || 1)
+  const query = searchParams.get('q') || ''
+
+  // Merge `patch` into the URL; null / '' removes a key. `replace` keeps the
+  // browser history free of one entry per keystroke or page flip.
+  const updateParams = (patch) =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        Object.entries(patch).forEach(([k, v]) => {
+          if (v === null || v === undefined || v === '') next.delete(k)
+          else next.set(k, String(v))
+        })
+        return next
+      },
+      { replace: true },
+    )
+
   const clearFocus = () => {
-    if (!focusId) return
-    const next = new URLSearchParams(searchParams)
-    next.delete('focus')
-    setSearchParams(next, { replace: true })
+    if (focusId) updateParams({ focus: null })
   }
-  const [tab, setTab] = useState('All')
-  const [queryInput, setQueryInput] = useState('')
-  const [query, setQuery] = useState('') // debounced copy of queryInput
-  const [page, setPage] = useState(1)
+  const setPage = (p) => updateParams({ page: p <= 1 ? null : p })
+  const [queryInput, setQueryInput] = useState(query) // typed text; `q` in the URL is its debounced copy
   const [tick, setTick] = useState(0) // bump to force a refetch after a mutation
   const [result, setResult] = useState(null) // { key, data } | { key, error }
   const [deleting, setDeleting] = useState(null)
@@ -148,12 +171,21 @@ export default function AdminIssues() {
   }
 
   useEffect(() => {
+    if (queryInput.trim() === query.trim()) return
     const t = setTimeout(() => {
-      setQuery(queryInput)
-      setPage(1)
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          if (queryInput.trim()) next.set('q', queryInput.trim())
+          else next.delete('q')
+          next.delete('page')
+          return next
+        },
+        { replace: true },
+      )
     }, 350)
     return () => clearTimeout(t)
-  }, [queryInput])
+  }, [queryInput, query, setSearchParams])
 
   // Dropdown candidates: fetch every issue matching what is typed (across all tabs),
   // then rank them client-side so "a" and "ae" narrow instantly between requests.
@@ -202,8 +234,7 @@ export default function AdminIssues() {
   }, [focusId, focusedIssue])
 
   const changePage = (p) => {
-    clearFocus()
-    setPage(p)
+    updateParams({ page: p <= 1 ? null : p, focus: null })
   }
 
   const decide = async (issue, decision) => {
@@ -314,9 +345,8 @@ export default function AdminIssues() {
               key={t}
               type="button"
               onClick={() => {
-                clearFocus()
-                setTab(t)
-                setPage(1)
+                // One URL update: new tab, back to page 1, highlight dropped.
+                updateParams({ tab: t === 'All' ? null : t, page: null, focus: null })
               }}
               className={`cursor-pointer rounded-full px-4 py-2 text-[12.5px] font-bold transition-colors duration-150 ${
                 tab === t
@@ -390,10 +420,12 @@ export default function AdminIssues() {
                           navigate(`/post/${issue.id}`)
                         }}
                         className={`cursor-pointer border-b border-nagorik-line last:border-0 ${
-                          focused ? 'bg-nagorik-red/10' : 'hover:bg-nagorik-surface-2/60'
+                          focused || needsReview(issue)
+                            ? 'bg-nagorik-red/10 hover:bg-nagorik-red/15'
+                            : 'hover:bg-nagorik-surface-2/60'
                         }`}
                       >
-                        <td className={`px-4 py-3.5 ${focused ? 'shadow-[inset_4px_0_0_0_var(--color-nagorik-red)]' : ''}`}>
+                        <td className={`px-4 py-3.5 ${focused || needsReview(issue) ? 'shadow-[inset_4px_0_0_0_var(--color-nagorik-red)]' : ''}`}>
                           <div className="min-w-0 max-w-[320px]">
                             <p className="m-0 truncate text-[13.5px] font-semibold text-nagorik-heading">{issue.title}</p>
                             <p className="m-0 mt-0.5 truncate text-[11.5px] text-nagorik-muted">
@@ -454,10 +486,12 @@ export default function AdminIssues() {
                   <article
                     key={issue.id}
                     data-issue-id={issue.id}
-                    className={`rounded-2xl border bg-nagorik-paper p-4 ${
+                    className={`rounded-2xl border p-4 ${
                       focused
                         ? 'border-nagorik-red bg-nagorik-red/10 shadow-[inset_4px_0_0_0_var(--color-nagorik-red)]'
-                        : 'border-nagorik-line'
+                        : needsReview(issue)
+                          ? 'border-nagorik-red/30 bg-nagorik-red/10 shadow-[inset_4px_0_0_0_var(--color-nagorik-red)]'
+                          : 'border-nagorik-line bg-nagorik-paper'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">

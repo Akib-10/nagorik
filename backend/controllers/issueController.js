@@ -4,8 +4,8 @@ import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 // ==== NOTIFICATION EDIT: START ====
 import { notify, notifyAdmins } from '../services/notificationService.js';
-import { getApprovalMode } from '../services/settingsService.js';
 // ==== NOTIFICATION EDIT: END ====
+import { isSelectableCategory, canonicalCategoryName } from './categoryController.js';
 import {
   CLOUDINARY_FOLDERS,
   uploadBuffer,
@@ -129,15 +129,27 @@ function buildLegacyFields(media = []) {
   return { photos, img: photos[0] || "" };
 }
 
-// Only approved reports are public. What happens to a NEW report depends on
-// the admin setting `approvalMode` (see settingsService.js): in "manual" mode
-// (the default) it waits as "pending" until an admin approves it; in "all" mode
-// it is approved immediately. Admins can also take a post down later by
-// flagging it as spam or rejecting it. While a post is not approved, its owner
-// (on their profile) and admins are the only ones who can see it. Documents
-// written before the moderationStatus field existed have no value and count as
-// approved, hence the `null` in $in (it matches missing fields too).
+// Only approved reports are public. EVERY new report waits as "pending" until
+// an admin approves it - there is no auto-approval, not even for admins' own
+// posts. Admins can also take a post down later by flagging it as spam or
+// rejecting it. While a post is not approved, its owner (on their profile) and
+// admins are the only ones who can see it. Documents written before the
+// moderationStatus field existed have no value and count as approved, hence
+// the `null` in $in (it matches missing fields too).
 const PUBLICLY_VISIBLE = { moderationStatus: { $in: ['approved', null] } };
+
+// Thana is the report's main location. Trim what was typed; if the form sent no
+// thana, recover it from the "Thana: X" part of the composed address so the
+// analytics "Top reporting areas" chart never loses a report.
+function normalizeLocation(data) {
+  if (data.thana !== undefined) data.thana = String(data.thana).trim();
+  if (data.city !== undefined) data.city = String(data.city).trim();
+  if (!data.thana && data.address) {
+    const m = String(data.address).match(/Thana:\s*([^,]+)/i);
+    if (m) data.thana = m[1].trim();
+  }
+  return data;
+}
 
 function isPublic(issue) {
   return !issue.moderationStatus || issue.moderationStatus === 'approved';
@@ -237,36 +249,40 @@ export async function createIssue(req, res) {
     delete data.down;
     delete data.upvotedBy;
 
-    // Admins' own reports skip the queue (nobody else could approve them
-    // anyway); everyone else follows the approvalMode setting.
-    const approvalMode = await getApprovalMode();
-    const autoApprove = req.user.isAdmin || approvalMode === 'all';
+    normalizeLocation(data);
 
+    // The category must be one the admin currently offers (the report form's
+    // dropdown is filled from the same list).
+    if (!(await isSelectableCategory(data.category))) {
+      throw badRequest('Please choose a valid category.');
+    }
+    data.category = await canonicalCategoryName(data.category);
+
+    // Nothing is auto-approved: every report is "pending" until an admin
+    // approves it from the admin panel.
     const issue = await Issue.create({
       ...data,
       ...buildLegacyFields(media),
       media,
-      moderationStatus: autoApprove ? 'approved' : 'pending',
-      moderatedAt: autoApprove ? new Date() : null,
-      moderatedBy: autoApprove && req.user.isAdmin ? req.user._id : null,
+      moderationStatus: 'pending',
+      moderatedAt: null,
+      moderatedBy: null,
       user: req.user._id,
     });
 
-    // Waiting for review: tell the admins. The notification opens Manage
-    // Issues with this post highlighted (see notificationStore.js).
-    if (!autoApprove) {
-      notifyAdmins({
-        exceptUserId: req.user._id,
-        type: 'moderation',
-        actorId: req.user._id,
-        actorName: req.user.name,
-        targetType: 'Issue',
-        targetId: issue._id,
-        issueId: issue._id,
-        title: 'New report awaiting review',
-        message: `${req.user.name} submitted "${issue.title}". Approve, flag or reject it.`,
-      });
-    }
+    // Tell the admins it is waiting. The notification opens Manage Issues with
+    // this post highlighted (see notificationStore.js).
+    notifyAdmins({
+      exceptUserId: req.user._id,
+      type: 'moderation',
+      actorId: req.user._id,
+      actorName: req.user.name,
+      targetType: 'Issue',
+      targetId: issue._id,
+      issueId: issue._id,
+      title: 'New report awaiting review',
+      message: `${req.user.name} submitted "${issue.title}". Approve, flag or reject it.`,
+    });
 
     // Match the read endpoints, which populate the reporter; otherwise every
     // consumer sees a bare ObjectId for `user`.
@@ -309,6 +325,16 @@ export async function updateIssue(req, res) {
     delete data.up;
     delete data.down;
     delete data.upvotedBy;
+
+    normalizeLocation(data);
+    // Only re-check the category when the owner actually changed it, so editing
+    // an old report whose category was later deleted still works.
+    if (data.category !== undefined && data.category !== issue.category) {
+      if (!(await isSelectableCategory(data.category))) {
+        throw badRequest('Please choose a valid category.');
+      }
+      data.category = await canonicalCategoryName(data.category);
+    }
 
     if (!structured) {
       // Legacy JSON update: keep existing media fields untouched.

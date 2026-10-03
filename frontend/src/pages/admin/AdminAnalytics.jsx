@@ -56,6 +56,9 @@ const longDate = (iso) =>
     timeZone: 'UTC',
   })
 
+const monthName = (iso) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString('en-GB', { month: 'short', timeZone: 'UTC' })
+
 const trim = (s, n = 16) => (s && s.length > n ? `${s.slice(0, n - 1)}…` : s)
 
 // ---- Layout bits ------------------------------------------------------------
@@ -248,16 +251,47 @@ function Hotspot({ heatmap }) {
   const busiest = heatmap.reduce((a, b) => (b.count > a.count ? b : a), heatmap[0])
   const total = heatmap.reduce((sum, d) => sum + d.count, 0)
 
+  // Month / year labels above the grid: one label on the first column of each
+  // new month. The year is added on the very first label and on every January,
+  // so the date range is never ambiguous.
+  const monthLabels = []
+  let prevMonth = ''
+  for (let c = 0; c < cols; c++) {
+    const first = cells.slice(c * 7, c * 7 + 7).find(Boolean)
+    if (!first) continue
+    const month = first.date.slice(0, 7)
+    if (month !== prevMonth) {
+      monthLabels.push({ col: c, date: first.date, withYear: prevMonth === '' || first.date.slice(5, 7) === '01' })
+      prevMonth = month
+    }
+  }
+  // A month that only just started at the left edge would collide with the
+  // next label, so drop it when the next label is less than 3 columns away.
+  if (monthLabels.length > 1 && monthLabels[1].col - monthLabels[0].col < 3) monthLabels.shift()
+  const rangeText = `${longDate(heatmap[0].date)} – ${longDate(heatmap[heatmap.length - 1].date)}`
+
   return (
     <Card
       title="Date-wise hotspot"
-      sub={`Reports per day · last ${Math.round(heatmap.length / 7)} weeks`}
+      sub={`Reports per day · ${rangeText}`}
       right={
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-nagorik-soft-red text-nagorik-red">
           <PinIcon size={14} />
         </span>
       }
     >
+      <div
+        className="mb-1 grid h-3.5 gap-[3px] text-[10px] font-semibold leading-none text-nagorik-muted"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+        aria-hidden="true"
+      >
+        {monthLabels.map((m) => (
+          <span key={m.date} className="whitespace-nowrap" style={{ gridColumn: m.col + 1, gridRow: 1 }}>
+            {monthName(m.date)}
+            {m.withYear ? ` ${m.date.slice(0, 4)}` : ''}
+          </span>
+        ))}
+      </div>
       <div
         className="grid gap-[3px]"
         style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: 'repeat(7, auto)', gridAutoFlow: 'column' }}
@@ -394,8 +428,8 @@ export default function AdminAnalytics() {
         <Card title="Issues by category">
           {byCategory.length === 0 ? <EmptyState text="No issues yet." /> : <HBarChart data={byCategory} colors={CATEGORY_COLORS} valueName="Issues" />}
         </Card>
-        <Card title="Top reporting areas" sub="Where most issues are reported">
-          {areaData.length === 0 ? <EmptyState text="No areas yet." /> : <HBarChart data={areaData} colors={['#C8102E']} valueName="Issues" />}
+        <Card title="Top reporting areas" sub="By thana · where most issues are reported">
+          {areaData.length === 0 ? <EmptyState text="No reported locations yet." /> : <HBarChart data={areaData} colors={['#C8102E']} valueName="Issues" />}
         </Card>
         <div className="min-[700px]:col-span-2 min-[1200px]:col-span-1">
           <Hotspot heatmap={heatmap} />
