@@ -3,6 +3,10 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import logo from "../assets/images/logo_for_dark_mode.png";
 import { isAuthenticated, getUser, signOut } from "../services/authService";
+import {
+  getAdminSection,
+  subscribeAdminSection,
+} from "../services/adminSectionStore";
 import { SearchIcon, BellIconApp } from "./icons";
 import { useUnreadCount } from "../hooks/useUnreadCount";
 
@@ -12,12 +16,16 @@ export default function AppHeader({ logoHref = "/" }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const unreadCount = useUnreadCount(isAuth);
+  const [adminSection, setAdminSection] = useState(getAdminSection);
 
-  // The logo is "home": admins land in the admin panel (Manage Issues),
-  // everyone else in the browse feed, signed-out visitors on logoHref.
+  useEffect(() => subscribeAdminSection(setAdminSection), []);
+
+  // The logo is "home": admins land back on the admin page they came from
+  // (same tab / page / search), everyone else in the browse feed, signed-out
+  // visitors on logoHref.
   const logoTarget = isAuth
     ? userData.isAdmin
-      ? "/admin/issues"
+      ? adminSection
       : "/browse_feed"
     : logoHref;
 

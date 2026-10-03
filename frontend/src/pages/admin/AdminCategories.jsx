@@ -1,11 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { EditPenIcon, TrashIcon, PlusIcon } from '../../components/icons'
 import { PillButton, Modal, EmptyState } from './AdminUI'
-import { initialCategories } from '../../services/adminMockData'
+import {
+  getAdminCategories,
+  createAdminCategory,
+  updateAdminCategory,
+  deleteAdminCategory,
+} from '../../services/adminServices'
 
 const SWATCHES = ['#C8102E', '#E8A33D', '#2E8B57', '#8C0B22', '#6B5D5A', '#9C8D8A', '#3A7CA5']
 
-function CategoryForm({ initial, onCancel, onSave }) {
+function CategoryForm({ initial, onCancel, onSave, error, saving }) {
   const [name, setName] = useState(initial?.name || '')
   const [color, setColor] = useState(initial?.color || SWATCHES[0])
 
@@ -18,6 +23,7 @@ function CategoryForm({ initial, onCancel, onSave }) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Noise Complaints"
+          maxLength={40}
           className="w-full rounded-xl border border-nagorik-border bg-nagorik-surface-2 px-3.5 py-2.5 text-[13.5px] text-nagorik-body-text outline-none focus:border-nagorik-red"
         />
       </div>
@@ -40,15 +46,16 @@ function CategoryForm({ initial, onCancel, onSave }) {
           ))}
         </div>
       </div>
+      {error && <p className="m-0 text-[12.5px] font-semibold text-nagorik-red">{error}</p>}
       <div className="flex justify-end gap-2.5 pt-2">
         <PillButton variant="ghost" onClick={onCancel}>
           Cancel
         </PillButton>
         <PillButton
           variant="solid"
-          onClick={() => name.trim() && onSave({ name: name.trim(), color })}
+          onClick={() => !saving && name.trim() && onSave({ name: name.trim(), color })}
         >
-          {initial ? 'Save changes' : 'Add category'}
+          {saving ? 'Saving…' : initial ? 'Save changes' : 'Add category'}
         </PillButton>
       </div>
     </div>
@@ -56,39 +63,83 @@ function CategoryForm({ initial, onCancel, onSave }) {
 }
 
 export default function AdminCategories() {
-  const [categories, setCategories] = useState(initialCategories)
+  const [categories, setCategories] = useState(null) // null = loading
+  const [loadError, setLoadError] = useState('')
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(null)
   const [deleting, setDeleting] = useState(null)
+  const [formError, setFormError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
+  const toastTimer = useRef(null)
 
   const flash = (msg) => {
     setToast(msg)
-    setTimeout(() => setToast(''), 2200)
+    clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(''), 2200)
   }
 
-  const addCategory = ({ name, color }) => {
-    setCategories((prev) => [
-      ...prev,
-      { id: `cat-${Date.now()}`, name, color, issueCount: 0 },
-    ])
-    flash('Category added')
+  useEffect(() => {
+    let cancelled = false
+    getAdminCategories()
+      .then((list) => !cancelled && setCategories(list))
+      .catch((e) => !cancelled && setLoadError(e.message || 'Request failed'))
+    return () => {
+      cancelled = true
+      clearTimeout(toastTimer.current)
+    }
+  }, [])
+
+  const closeForm = () => {
     setAdding(false)
-  }
-
-  const saveEdit = ({ name, color }) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === editing.id ? { ...c, name, color } : c)),
-    )
-    flash('Category updated')
     setEditing(null)
+    setFormError('')
   }
 
-  const confirmDelete = () => {
-    setCategories((prev) => prev.filter((c) => c.id !== deleting.id))
-    flash('Category deleted')
-    setDeleting(null)
+  const addCategory = async ({ name, color }) => {
+    setSaving(true)
+    setFormError('')
+    try {
+      const created = await createAdminCategory({ name, color })
+      setCategories((prev) => [...(prev || []), created])
+      flash('Category added — it now appears in the report form')
+      closeForm()
+    } catch (e) {
+      setFormError(e.message || 'Could not add the category')
+    } finally {
+      setSaving(false)
+    }
   }
+
+  const saveEdit = async ({ name, color }) => {
+    setSaving(true)
+    setFormError('')
+    try {
+      const updated = await updateAdminCategory(editing.id, { name, color })
+      setCategories((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+      flash('Category updated')
+      closeForm()
+    } catch (e) {
+      setFormError(e.message || 'Could not update the category')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const confirmDelete = async () => {
+    const target = deleting
+    setDeleting(null)
+    try {
+      await deleteAdminCategory(target.id)
+      setCategories((prev) => prev.filter((c) => c.id !== target.id))
+      flash('Category deleted')
+    } catch (e) {
+      flash(e.message || 'Could not delete the category')
+    }
+  }
+
+  if (loadError) return <EmptyState text={`Couldn't load categories: ${loadError}`} />
+  if (!categories) return <EmptyState text="Loading categories…" />
 
   return (
     <div className="flex flex-col gap-5">
@@ -100,9 +151,15 @@ export default function AdminCategories() {
 
       <div className="flex items-center justify-between">
         <p className="m-0 text-[13px] text-nagorik-muted">
-          Categories help citizens tag and filter civic issues on the feed.
+          These are the options citizens see in the “Category” dropdown when reporting an issue.
         </p>
-        <PillButton variant="solid" onClick={() => setAdding(true)}>
+        <PillButton
+          variant="solid"
+          onClick={() => {
+            setFormError('')
+            setAdding(true)
+          }}
+        >
           <PlusIcon />
           New category
         </PillButton>
@@ -130,7 +187,10 @@ export default function AdminCategories() {
               <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setEditing(cat)}
+                  onClick={() => {
+                    setFormError('')
+                    setEditing(cat)
+                  }}
                   title="Edit category"
                   className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-nagorik-secondary hover:bg-nagorik-surface-2"
                 >
@@ -151,14 +211,20 @@ export default function AdminCategories() {
       )}
 
       {adding && (
-        <Modal title="New category" onClose={() => setAdding(false)}>
-          <CategoryForm onCancel={() => setAdding(false)} onSave={addCategory} />
+        <Modal title="New category" onClose={closeForm}>
+          <CategoryForm onCancel={closeForm} onSave={addCategory} error={formError} saving={saving} />
         </Modal>
       )}
 
       {editing && (
-        <Modal title="Edit category" onClose={() => setEditing(null)}>
-          <CategoryForm initial={editing} onCancel={() => setEditing(null)} onSave={saveEdit} />
+        <Modal title="Edit category" onClose={closeForm}>
+          <CategoryForm
+            initial={editing}
+            onCancel={closeForm}
+            onSave={saveEdit}
+            error={formError}
+            saving={saving}
+          />
         </Modal>
       )}
 

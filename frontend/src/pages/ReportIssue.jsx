@@ -6,6 +6,7 @@ import {
   submitReport,
   updateReport,
 } from "../services/issuesService";
+import { getCategories } from "../services/categoryService";
 import {
   MAX_ISSUE_MEDIA_COUNT,
   validateMediaFile,
@@ -124,7 +125,10 @@ export default function ReportIssue() {
   const [currentStep, setCurrentStep] = useState(1);
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Roads & Transportation");
+  // Category options come from the admin-managed list (Admin Panel -> Categories).
+  const [category, setCategory] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [categoriesState, setCategoriesState] = useState("loading"); // loading | ready | error
   const [priority, setPriority] = useState("Medium");
   const [area, setArea] = useState("");
   const [date, setDate] = useState("");
@@ -151,6 +155,23 @@ export default function ReportIssue() {
     document.documentElement.lang = "en";
   }, []);
 
+  // Fill the Category dropdown from the admin-managed list.
+  useEffect(() => {
+    let cancelled = false;
+    getCategories()
+      .then((list) => {
+        if (cancelled) return;
+        setCategoryOptions(Array.isArray(list) ? list : []);
+        setCategoriesState("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setCategoriesState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Load a report from the backend when editing via ?editId from the profile,
   // and seed the form from it in the same async flow. Doing this in a separate
   // effect that reacts to `editing` would setState synchronously in the effect
@@ -164,7 +185,7 @@ export default function ReportIssue() {
         if (cancelled) return;
         setEditing(found);
         setTitle(found.title || "");
-        setCategory(found.category || "Roads & Transportation");
+        setCategory(found.category || "");
         setPriority(found.priority || "Medium");
         setArea(found.area || "");
         setDate(found.date || "");
@@ -204,6 +225,13 @@ export default function ReportIssue() {
     setCurrentStep(n);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // What the dropdown offers. When editing a report whose category an admin has
+  // since removed, keep that one option so the report doesn't silently change.
+  const categoryNames = categoryOptions.map((c) => c.name);
+  if (category && !categoryNames.includes(category)) categoryNames.unshift(category);
+  // Until the person picks one, the first available category is selected.
+  const selectedCategory = category || categoryNames[0] || "";
 
   const handleDirClick = (dir) => {
     goStep(currentStep + dir);
@@ -287,9 +315,11 @@ export default function ReportIssue() {
 
   const reviewRows = [
     ["Issue Title", title],
-    ["Category", category],
+    ["Category", selectedCategory],
     ["Priority", priority],
     ["Area / Landmark", area],
+    ["Thana", thana],
+    ["City", city],
     ["Date Noticed", date],
     ["Description", description],
     ["Full Address", fullAddress],
@@ -313,11 +343,13 @@ export default function ReportIssue() {
     if (submitting) return;
     const reportData = {
       title,
-      category,
+      category: selectedCategory,
       priority,
       area,
       date,
       description,
+      thana,
+      city,
       fullAddress,
       coordsText,
       mediaItems: submitMedia,
@@ -356,6 +388,10 @@ export default function ReportIssue() {
 
   const handleStep1Submit = (e) => {
     e.preventDefault();
+    if (!selectedCategory) {
+      alert("Categories could not be loaded yet. Please wait a moment and try again.");
+      return;
+    }
     goStep(2);
   };
 
@@ -434,16 +470,24 @@ export default function ReportIssue() {
               <div className="relative min-w-0">
                 <select
                   id="issueCategory"
-                  value={category}
+                  value={selectedCategory}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full min-w-0 appearance-none rounded-full border border-nagorik-border bg-nagorik-cream py-4 pl-5 pr-14 text-[14px] text-nagorik-heading font-[inherit] outline-none transition-colors duration-150 focus:border-nagorik-red focus:bg-white cursor-pointer"
+                  required
+                  disabled={categoryNames.length === 0}
+                  className="w-full min-w-0 appearance-none rounded-full border border-nagorik-border bg-nagorik-cream py-4 pl-5 pr-14 text-[14px] text-nagorik-heading font-[inherit] outline-none transition-colors duration-150 focus:border-nagorik-red focus:bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <option>Roads & Transportation</option>
-                  <option>Water Logging</option>
-                  <option>Waste Management</option>
-                  <option>Street Lights</option>
-                  <option>Public Safety</option>
-                  <option>Other</option>
+                  {categoryNames.length === 0 && (
+                    <option value="">
+                      {categoriesState === "loading"
+                        ? "Loading categories…"
+                        : "Categories unavailable"}
+                    </option>
+                  )}
+                  {categoryNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
                 </select>
                 <span className="pointer-events-none absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-nagorik-red text-white">
                   <ChevronDownIcon />

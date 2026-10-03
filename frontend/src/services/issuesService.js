@@ -71,6 +71,9 @@ function mapIssue(i) {
     id: i._id,
     title: i.title,
     area: i.area,
+    // Thana is the main location; `area` is only a free-text landmark.
+    thana: i.thana || '',
+    city: i.city || '',
     reporter: i.user?.name || i.reporter || 'Anonymous',
     reporterAvatar: i.user?.avatar || i.user?.profilePicture?.url || '',
     time: formatTime(i.createdAt),
@@ -130,7 +133,7 @@ function buildCommentTree(list) {
 async function buildIssueFormData(data) {
   const form = new FormData()
 
-  const textFields = ['title', 'area', 'category', 'priority', 'date', 'description', 'coordsText']
+  const textFields = ['title', 'area', 'thana', 'city', 'category', 'priority', 'date', 'description', 'coordsText']
   textFields.forEach((key) => {
     if (data[key] !== undefined && data[key] !== null) form.append(key, data[key])
   })

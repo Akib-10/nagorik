@@ -12,11 +12,6 @@ import Notification from '../models/Notification.js';
 import { deleteAssets } from '../services/cloudinaryService.js';
 import { isCloudinaryConfigured } from '../config/cloudinary.js';
 import { notify } from '../services/notificationService.js';
-import {
-  APPROVAL_MODES,
-  getApprovalMode,
-  setApprovalMode,
-} from '../services/settingsService.js';
 
 const STATUSES = ['Open', 'In progress', 'Resolved', 'Rejected'];
 
@@ -110,16 +105,20 @@ export async function getOverview(req, res) {
       recentIssues,
       recentComments,
       recentUsers,
+      pendingCount,
+      pendingIssues,
     ] = await Promise.all([
       statusCounts(),
       Issue.aggregate([{ $group: { _id: null, up: { $sum: '$up' } } }]),
       User.countDocuments(),
       User.countDocuments({ createdAt: { $gte: weekAgo } }),
       Comment.countDocuments(),
-      Issue.find()
+      // Recent Issues lists published reports only; anything still waiting for
+      // a decision is shown in the "Awaiting review" queue above it instead.
+      Issue.find({ moderationStatus: { $in: ['approved', null] } })
         .sort({ createdAt: -1 })
         .limit(5)
-        .select('title area statusLabel priority createdAt user')
+        .select('title area thana statusLabel priority createdAt user')
         .populate('user', 'name')
         .lean(),
       Comment.find()
@@ -130,6 +129,13 @@ export async function getOverview(req, res) {
         .populate('issue', 'title')
         .lean(),
       User.find().sort({ createdAt: -1 }).limit(5).select('name createdAt').lean(),
+      Issue.countDocuments({ moderationStatus: 'pending' }),
+      Issue.find({ moderationStatus: 'pending' })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('title area thana category priority createdAt user')
+        .populate('user', 'name')
+        .lean(),
     ]);
 
     // "Recent activity" is built from real records — no separate log collection needed.
@@ -166,11 +172,21 @@ export async function getOverview(req, res) {
         newUsersThisWeek,
         totalComments,
         totalUpvotes: voteRows[0]?.up || 0,
+        pending: pendingCount,
       },
+      pendingIssues: pendingIssues.map((i) => ({
+        id: i._id,
+        title: i.title,
+        area: i.thana || i.area || '',
+        category: i.category || 'Uncategorized',
+        priority: i.priority || 'Medium',
+        reporter: i.user?.name || 'Removed user',
+        createdAt: i.createdAt,
+      })),
       recentIssues: recentIssues.map((i) => ({
         id: i._id,
         title: i.title,
-        area: i.area || '',
+        area: i.thana || i.area || '',
         reporter: i.user?.name || 'Removed user',
         statusLabel: i.statusLabel || 'Open',
         priority: i.priority,
@@ -270,7 +286,9 @@ export async function listIssues(req, res) {
       const matchedUsers = await User.find({ name: rx }).select('_id').lean();
       filter.$or = [
         { title: rx },
+        { thana: rx },
         { area: rx },
+        { address: rx },
         { user: { $in: matchedUsers.map((u) => u._id) } },
       ];
     }
@@ -307,7 +325,10 @@ export async function listIssues(req, res) {
         id: i._id,
         title: i.title,
         description: i.description || '',
-        area: i.area || '',
+        // Thana is the main location, so it is what the list shows as the area.
+        area: i.thana || i.area || '',
+        thana: i.thana || '',
+        city: i.city || '',
         address: i.address || '',
         category: i.category || 'Uncategorized',
         priority: i.priority || 'Medium',
@@ -460,29 +481,6 @@ export async function deleteIssue(req, res) {
   }
 }
 
-// GET /api/admin/settings
-export async function getSettings(req, res) {
-  try {
-    res.json({ approvalMode: await getApprovalMode() });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-}
-
-// PATCH /api/admin/settings  body: { approvalMode: 'all' | 'manual' }
-export async function updateSettings(req, res) {
-  try {
-    const { approvalMode } = req.body || {};
-    if (!APPROVAL_MODES.includes(approvalMode)) {
-      return res.status(400).json({ message: "approvalMode must be 'all' or 'manual'." });
-    }
-    await setApprovalMode(approvalMode);
-    res.json({ approvalMode });
-  } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err.message });
-  }
-}
-
 // ---- analytics ----------------------------------------------------------
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -535,15 +533,76 @@ export async function getAnalytics(req, res) {
         { $sort: { count: -1 } },
       ]),
       Issue.aggregate([
-        { $match: { ...approved, area: { $nin: [null, ''] } } },
-        { $group: { _id: '$area', count: { $sum: 1 }, upvotes: { $sum: '$up' } } },
+        { $match: approved },
+        {
+          $project: {
+            up: 1,
+            // Thana is the report's main location. Older reports may only carry
+            // it inside the composed address ("... Thana: Mirpur, City: Dhaka"),
+            // and the oldest only have the free-text area, so fall back in that
+            // order rather than dropping them from the chart.
+            location: {
+              $let: {
+                vars: {
+                  thana: { $trim: { input: { $ifNull: ['$thana', ''] } } },
+                  fromAddress: {
+                    $trim: {
+                      input: {
+                        $ifNull: [
+                          {
+                            // $regexFind needs MongoDB 4.2+; reading .captures off the
+                            // match through $let avoids needing $getField (5.0+).
+                            $let: {
+                              vars: {
+                                m: {
+                                  $regexFind: {
+                                    input: { $ifNull: ['$address', ''] },
+                                    regex: 'Thana:\\s*([^,]+)',
+                                    options: 'i',
+                                  },
+                                },
+                              },
+                              in: { $arrayElemAt: ['$$m.captures', 0] },
+                            },
+                          },
+                          '',
+                        ],
+                      },
+                    },
+                  },
+                  area: { $trim: { input: { $ifNull: ['$area', ''] } } },
+                },
+                in: {
+                  $switch: {
+                    branches: [
+                      { case: { $ne: ['$$thana', ''] }, then: '$$thana' },
+                      { case: { $ne: ['$$fromAddress', ''] }, then: '$$fromAddress' },
+                    ],
+                    default: '$$area',
+                  },
+                },
+              },
+            },
+          },
+        },
+        { $match: { location: { $nin: [null, ''] } } },
+        {
+          $group: {
+            // Thana is typed free text, so bucket case-insensitively and keep
+            // the first spelling seen as the chart's label.
+            _id: { $toLower: '$location' },
+            name: { $first: '$location' },
+            count: { $sum: 1 },
+            upvotes: { $sum: '$up' },
+          },
+        },
         { $sort: { count: -1, upvotes: -1 } },
         { $limit: 6 },
       ]),
       Issue.find(approved)
         .sort({ up: -1, createdAt: -1 })
         .limit(5)
-        .select('title area category up down statusLabel createdAt user')
+        .select('title area thana category up down statusLabel createdAt user')
         .populate('user', 'name')
         .lean(),
       Comment.countDocuments({ issue: { $in: issueIds } }),
@@ -610,14 +669,14 @@ export async function getAnalytics(req, res) {
       topPosts: topIssues.map((i) => ({
         id: i._id,
         title: i.title,
-        area: i.area || '',
+        area: i.thana || i.area || '',
         category: i.category || 'Uncategorized',
         reporter: i.user?.name || 'Removed user',
         statusLabel: i.statusLabel || 'Open',
         up: i.up || 0,
         comments: cMap[String(i._id)] || 0,
       })),
-      topAreas: areaRows.map((r) => ({ name: r._id, count: r.count, upvotes: r.upvotes })),
+      topAreas: areaRows.map((r) => ({ name: r.name, count: r.count, upvotes: r.upvotes })),
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });

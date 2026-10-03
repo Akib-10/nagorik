@@ -26,7 +26,7 @@ export default function BrowseFeed() {
     setMode(next);
     setError("");
   };
-//handle signin, admin sign in, and register functions
+//handle signin and register functions
 
   const handleSignIn = async (e) => {
   e.preventDefault();
@@ -41,23 +41,6 @@ export default function BrowseFeed() {
     } else {
       navigate(redirectTo, { replace: true });
     }
-  } catch (err) {
-    setError(err.message);
-  }
-};
-//admin sign in function
-const handleAdminSignIn = async () => {
-  if (!email || !password) {
-    setError("Enter your email and password, then use Sign in as Admin.");
-    return;
-  }
-  try {
-    const user = await signIn({ email, password });
-    if (!user.isAdmin) {
-      setError("This account doesn't have admin access.");
-      return;
-    }
-    navigate("/admin", { replace: true });
   } catch (err) {
     setError(err.message);
   }
@@ -463,31 +446,6 @@ const handleRegister = async (e) => {
                   )}
                 >
                   Sign in
-                </button>
-
-                <button
-                  type="button"
-                  className={clsx(
-                    //admin button
-                    "signin-btn-outline",
-                    "mt-[17px]",
-                    "h-[52px]",
-                    "w-full",
-                    "rounded-[9px]",
-                    "border-2",
-                    "border-nagorik-red",
-                    "bg-white",
-                    "font-['Arial',sans-serif]",
-                    "text-[16px]",
-                    "font-semibold",
-                    "text-nagorik-red",
-                    "transition-[background_0.15s_ease,color_0.15s_ease]",
-                    "hover:bg-nagorik-red",
-                    "hover:text-white"
-                  )}
-                  onClick={handleAdminSignIn}
-                >
-                  Sign in as Admin
                 </button>
               </form>
 
