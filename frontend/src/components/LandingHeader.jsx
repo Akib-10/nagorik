@@ -15,7 +15,7 @@ export default function LandingHeader() {
   const handleSearchKey = (e) => {
     if (e.key === "Enter" && e.currentTarget.value.trim()) {
       navigate(
-        `/browse_feed?q=${encodeURIComponent(e.currentTarget.value.trim())}`
+        `/browse-feed?q=${encodeURIComponent(e.currentTarget.value.trim())}`
       );
     }
   };

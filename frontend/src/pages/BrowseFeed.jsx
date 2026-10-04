@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppHeader from "../components/AppHeader";
 import Footer from "../components/Footer";
+import IssueSearchBox from "../components/IssueSearchBox";
 import { getFeedIssues, getTrendingIssues, getIssueStats, toggleUpvote, hideReport } from "../services/issuesService";
 import useCountUp from "../hooks/useCountUp";
 import { isAuthenticated } from "../services/authService";
@@ -9,7 +10,6 @@ import { optimizedUrl } from "../services/mediaService";
 import heroImg from "../assets/images/artwork_red_container.png"
 import {
   HomeGlyph,
-  SearchIcon,
   PinIcon,
   UserGlyph,
   ClockIcon,
@@ -220,8 +220,18 @@ function AnimatedStat({ value, label }) {
 }
 
 export default function BrowseFeed() {
-  const [activeTab, setActiveTab] = useState("latest");
   const [searchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState(
+    TABS.includes(tabParam) ? tabParam : "latest",
+  );
+  // Already on the feed and a link changes ?tab= (e.g. the footer's "Trending
+  // issues"): follow it. Comparing during render avoids an effect that sets state.
+  const [prevTabParam, setPrevTabParam] = useState(tabParam);
+  if (tabParam !== prevTabParam) {
+    setPrevTabParam(tabParam);
+    if (TABS.includes(tabParam)) setActiveTab(tabParam);
+  }
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [votes, setVotes] = useState({});
   const [feedIssues, setFeedIssues] = useState([]);
@@ -235,6 +245,14 @@ export default function BrowseFeed() {
     document.title = "নাগরিক | Civic Issues";
     document.documentElement.lang = "bn";
   }, []);
+
+  // Arrived through a ?tab= link: bring the tab bar into view.
+  useEffect(() => {
+    if (!tabParam) return;
+    document
+      .getElementById("tabs")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [tabParam]);
 
   useEffect(() => {
     (async () => {
@@ -331,7 +349,7 @@ export default function BrowseFeed() {
         navItems={[
           {
             label: "HOME",
-            to: "/browse_feed",
+            to: "/browse-feed",
             variant: "active",
             icon: <HomeGlyph />,
           },
@@ -341,16 +359,21 @@ export default function BrowseFeed() {
 
       {/* ================= HERO ================= */}
       <div className="mx-auto max-w-[1160px] px-7 pt-7 max-[760px]:px-4">
-        <section
-          className="relative isolate z-0 flex items-start justify-between overflow-hidden rounded-[18px] px-[34px] py-6 shadow-[0_12px_30px_-14px_rgba(140,11,34,0.55)] max-[1100px]:flex-col max-[1100px]:gap-5"
-          style={{
-            backgroundImage: `url(${heroImg}), linear-gradient(135deg, #C8102E, #8C0B22)`,
-            backgroundSize: "cover, cover",
-            backgroundPosition: "center, center",
-            backgroundRepeat: "no-repeat, no-repeat",
-          }}
-        >
-          <div className="relative z-[1] max-w-[560px] flex-1">
+        {/* No overflow-hidden on the section itself: the search dropdown has to
+            be able to hang below the banner. The rounded clipping for the
+            background image lives on its own layer instead. */}
+        <section className="relative isolate z-20 flex items-start justify-between rounded-[18px] px-[34px] py-6 shadow-[0_12px_30px_-14px_rgba(140,11,34,0.55)] max-[1100px]:flex-col max-[1100px]:gap-5">
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 -z-10 overflow-hidden rounded-[18px]"
+            style={{
+              backgroundImage: `url(${heroImg}), linear-gradient(135deg, #C8102E, #8C0B22)`,
+              backgroundSize: "cover, cover",
+              backgroundPosition: "center, center",
+              backgroundRepeat: "no-repeat, no-repeat",
+            }}
+          />
+          <div className="relative z-[2] max-w-[560px] flex-1">
             <h1 className="mb-7.5 text-[28px] font-extrabold tracking-[0.2px] text-white">
               Dhaka Civic Issues
             </h1>
@@ -361,17 +384,13 @@ export default function BrowseFeed() {
             <p className="mb-8 hidden text-[14px] text-white/90 leading-relaxed max-[760px]:block">
               Report problem and track resolution progress.
             </p>
-            <div className="mt-4 flex max-w-[380px] items-center gap-3 rounded-full bg-white px-4 py-[9px] w-full">
-              <SearchIcon size={18} />
-              <div className="h-[18px] w-px bg-nagorik-border"></div>
-              <input
-                type="text"
-                placeholder="Search issues by title, area, category"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="w-full border-0 bg-transparent text-[14px] text-nagorik-body-text font-[inherit] outline-none placeholder:text-nagorik-muted"
-              />
-            </div>
+            <IssueSearchBox
+              variant="hero"
+              value={query}
+              onChange={setQuery}
+              placeholder="Search issues by title, area, category"
+              className="mt-4 w-full max-w-[380px]"
+            />
           </div>
           <div className="relative z-[1] ml-6 flex shrink-0 flex-col gap-[10px] text-right max-[1100px]:ml-0 max-[1100px]:flex-row max-[1100px]:text-left max-[1100px]:justify-between max-[1100px]:w-full max-[1100px]:gap-20">
             <AnimatedStat value={stats.open} label="Open" />
@@ -383,7 +402,7 @@ export default function BrowseFeed() {
 
       {/* ================= TABS ================= */}
       <div
-        className="mx-auto flex max-w-[1160px] gap-2.5 px-7 pt-6 max-[760px]:px-4"
+        className="mx-auto flex max-w-[1160px] scroll-mt-24 gap-2.5 px-7 pt-6 max-[760px]:px-4"
         id="tabs"
       >
         {TABS.map((tabKey) => (

@@ -401,7 +401,7 @@ export default function ReportIssue() {
       <div className="mb-6 grid grid-cols-[26px_1fr_26px] items-center gap-3 sm:mb-9 sm:gap-4">
         <button
           type="button"
-          onClick={() => navigate("/browse_feed")}
+          onClick={() => navigate("/browse-feed")}
           aria-label="Back to feed"
           className="inline-flex items-center justify-center bg-transparent p-0 text-nagorik-red"
         >

@@ -1,9 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
 import LandingHeader from "../components/LandingHeader";
 import LandingFooter from "../components/LandingFooter";
 import AuthLink from "../components/AuthLink";
+import useCountUp from "../hooks/useCountUp";
+import { getIssueStats, getTrendingPreview } from "../services/issuesService";
+import { optimizedUrl } from "../services/mediaService";
 import heroBg from "../assets/images/landing-page-background2.png";
 import {
   ShieldIcon,
@@ -64,52 +67,72 @@ const features = [
   },
 ];
 
-const issues = [
-  {
-    thumb:
-      "https://images.unsplash.com/photo-1541888946425-d81bb19240f5?w=600&q=60",
-    cat: "🛣️ Road",
-    statusClass: "text-[#B87613]",
-    dotClass: "bg-[#B87613]",
-    statusLabel: "In progress",
-    title: "Large pothole on Mirpur Road causing accidents",
-    loc: "📍 Mirpur 10, Dhaka · 2 days ago",
-    up: 342,
-    comments: 47,
-    meToo: 89,
-  },
-  {
-    thumb:
-      "https://images.unsplash.com/photo-1518481852452-9415b262eba4?w=600&q=60",
-    cat: "⚡ Electricity",
-    statusClass: "text-nagorik-red",
-    dotClass: "bg-nagorik-red",
-    statusLabel: "Open",
-    title: "Street lights out on entire Green Road stretch",
-    loc: "📍 Dhanmondi, Dhaka · 3 days ago",
-    up: 215,
-    comments: 31,
-    meToo: 67,
-  },
-  {
-    thumb:
-      "https://images.unsplash.com/photo-1523867574650-fd3ee4b32e8f?w=600&q=60",
-    cat: "💧 Water",
-    statusClass: "text-nagorik-red",
-    dotClass: "bg-nagorik-red",
-    statusLabel: "Open",
-    title: "Sewage overflow near Hatirjheel lake inlet",
-    loc: "📍 Hatirjheel, Dhaka · 5 days ago",
-    up: 489,
-    comments: 62,
-    meToo: 143,
-  },
+// Each authority opens its official site in a new tab.
+const TRUST_LINKS = [
+  { label: "🏛️ DNCC", name: "Dhaka North City Corporation", href: "https://dncc.gov.bd" },
+  { label: "🏛️ DSCC", name: "Dhaka South City Corporation", href: "https://dscc.gov.bd" },
+  { label: "⚡ DESCO", name: "Dhaka Electric Supply Company", href: "https://desco.gov.bd" },
+  { label: "💧 WASA", name: "Dhaka WASA", href: "https://dwasa.org.bd" },
+  { label: "🚌 BRTA", name: "Bangladesh Road Transport Authority", href: "https://brta.gov.bd" },
+  { label: "🏗️ RAJUK", name: "RAJUK", href: "https://rajukdhaka.gov.bd" },
 ];
 
+function statusStyle(label) {
+  if (label === "In progress")
+    return { text: "text-[#B87613]", dot: "bg-[#B87613]" };
+  if (label === "Resolved")
+    return { text: "text-nagorik-green", dot: "bg-nagorik-green" };
+  return { text: "text-nagorik-red", dot: "bg-nagorik-red" };
+}
+
+// A number that counts up from 0 once the real value has arrived.
+// Shows "—" while loading (or if the request failed) instead of a made-up figure.
+function StatNumber({ value, suffix = "", ready }) {
+  const shown = useCountUp(value);
+  return <>{ready ? `${shown.toLocaleString("en-US")}${suffix}` : "—"}</>;
+}
+
+function IssueCardSkeleton() {
+  return (
+    <div className="animate-pulse overflow-hidden rounded-2xl border border-nagorik-line bg-nagorik-paper">
+      <div className="h-[150px] bg-nagorik-surface-2" />
+      <div className="space-y-3 p-[18px_18px_20px]">
+        <div className="h-3 w-20 rounded bg-nagorik-surface-2" />
+        <div className="h-4 w-4/5 rounded bg-nagorik-surface-2" />
+        <div className="h-3 w-3/5 rounded bg-nagorik-surface-2" />
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
+  // null = still loading (or the request failed)
+  const [stats, setStats] = useState(null);
+  const [trending, setTrending] = useState(null);
+
   useEffect(() => {
     document.title = "নাগরিক — Nagorik | Report civic issues, get them fixed";
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getIssueStats()
+      .then((s) => !cancelled && setStats(s))
+      .catch(() => {});
+    getTrendingPreview(3)
+      .then((list) => !cancelled && setTrending(list))
+      .catch(() => !cancelled && setTrending([]));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const statItems = [
+    { value: stats?.total ?? 0, label: "Issues reported", color: "text-nagorik-gold" },
+    { value: stats?.resolved ?? 0, label: "Issues resolved", color: "text-[#7BC996]" },
+    { value: stats?.cities ?? 0, label: "Cities active", color: "text-nagorik-gold" },
+    { value: stats?.resolutionRate ?? 0, suffix: "%", label: "Resolution rate", color: "text-nagorik-gold" },
+  ];
 
   return (
     <>
@@ -277,7 +300,7 @@ export default function Home() {
               </AuthLink>
 
               <Link
-                to="/browse_feed"
+                to="/browse-feed"
                 className={clsx(
                   "inline-flex",
                   "items-center",
@@ -330,28 +353,7 @@ export default function Home() {
               "max-[480px]:px-4",
             )}
           >
-            {[
-              {
-                value: "14,820+",
-                label: "Issues reported",
-                color: "text-nagorik-gold",
-              },
-              {
-                value: "3,241+",
-                label: "Issues resolved",
-                color: "text-[#7BC996]",
-              },
-              {
-                value: "6",
-                label: "Cities active",
-                color: "text-nagorik-gold",
-              },
-              {
-                value: "89%",
-                label: "Resolution rate",
-                color: "text-nagorik-gold",
-              },
-            ].map((stat) => (
+            {statItems.map((stat) => (
               <div
                 key={stat.label}
                 className={clsx(
@@ -372,7 +374,11 @@ export default function Home() {
                     stat.color,
                   )}
                 >
-                  {stat.value}
+                  <StatNumber
+                    value={stat.value}
+                    suffix={stat.suffix}
+                    ready={stats !== null}
+                  />
                 </div>
                 <div
                   className={clsx("mt-1.5", "text-[12.5px]", "text-white/60")}
@@ -611,7 +617,7 @@ export default function Home() {
                 </p>
               </div>
               <Link
-                to="/browse_feed"
+                to="/browse-feed"
                 className={clsx(
                   "inline-flex",
                   "items-center",
@@ -648,119 +654,168 @@ export default function Home() {
                 "max-[640px]:grid-cols-1",
               )}
             >
-              {issues.map((issue) => (
-                <article
+              {trending === null ? (
+                [0, 1, 2].map((n) => <IssueCardSkeleton key={n} />)
+              ) : trending.length === 0 ? (
+                <p
                   className={clsx(
-                    "overflow-hidden",
+                    "col-span-full",
                     "rounded-2xl",
                     "border",
                     "border-nagorik-line",
                     "bg-nagorik-paper",
-                    "transition-all",
-                    "duration-150",
-                    "hover:-translate-y-1",
-                    "hover:shadow-[0_20px_50px_-20px_rgba(23,15,17,0.25)]",
-                    "dark:hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.7)]",
+                    "px-6",
+                    "py-12",
+                    "text-center",
+                    "text-[15px]",
+                    "text-nagorik-muted",
                   )}
-                  key={issue.title}
                 >
-                  <div
-                    className={clsx(
-                      "relative",
-                      "h-[150px]",
-                      "bg-cover",
-                      "bg-center",
-                    )}
-                    style={{ backgroundImage: `url('${issue.thumb}')` }}
+                  No reports are trending yet. Be the first to{" "}
+                  <AuthLink
+                    to="/report"
+                    className="font-bold text-nagorik-red hover:underline"
                   >
-                    <span
-                      className={clsx(
-                        "absolute",
-                        "left-2.5",
-                        "top-2.5",
-                        "flex",
-                        "items-center",
-                        "gap-[5px]",
-                        "rounded-full",
-                        "bg-[rgba(23,15,17,0.72)]",
-                        "px-2.5",
-                        "py-[5px]",
-                        "text-[11px]",
-                        "font-bold",
-                        "text-white",
-                      )}
+                    report an issue
+                  </AuthLink>
+                  .
+                </p>
+              ) : (
+                trending.map((issue) => {
+                  const status = statusStyle(issue.statusLabel);
+                  const place =
+                    [issue.thana || issue.area, issue.city]
+                      .filter(Boolean)
+                      .join(", ") || "Location not set";
+                  return (
+                    <Link
+                      to={`/post/${issue.id}`}
+                      key={issue.id}
+                      className="block"
                     >
-                      {issue.cat}
-                    </span>
-                  </div>
-                  <div className={clsx("p-[18px_18px_20px]")}>
-                    <span
-                      className={clsx(
-                        "mb-2.5",
-                        "inline-flex",
-                        "items-center",
-                        "gap-1.5",
-                        "font-mono",
-                        "text-[11px]",
-                        "font-bold",
-                        "uppercase",
-                        "tracking-[0.04em]",
-                        issue.statusClass,
-                      )}
-                    >
-                      <i
+                      <article
                         className={clsx(
-                          "inline-block",
-                          "h-[7px]",
-                          "w-[7px]",
-                          "rounded-full",
-                          issue.dotClass,
+                          "h-full",
+                          "overflow-hidden",
+                          "rounded-2xl",
+                          "border",
+                          "border-nagorik-line",
+                          "bg-nagorik-paper",
+                          "transition-all",
+                          "duration-150",
+                          "hover:-translate-y-1",
+                          "hover:shadow-[0_20px_50px_-20px_rgba(23,15,17,0.25)]",
+                          "dark:hover:shadow-[0_20px_50px_-20px_rgba(0,0,0,0.7)]",
                         )}
-                      ></i>
-                      {issue.statusLabel}
-                    </span>
-                    <h4
-                      className={clsx("mb-1.5", "text-[16px]", "leading-[1.3]")}
-                    >
-                      {issue.title}
-                    </h4>
-                    <div
-                      className={clsx(
-                        "mb-3.5",
-                        "text-[12.5px]",
-                        "text-nagorik-muted",
-                      )}
-                    >
-                      {issue.loc}
-                    </div>
-                    <div
-                      className={clsx(
-                        "flex",
-                        "gap-3.5",
-                        "font-mono",
-                        "text-[12px]",
-                        "text-nagorik-muted",
-                      )}
-                    >
-                      <span
-                        className={clsx("flex", "items-center", "gap-[5px]")}
                       >
-                        ▲ {issue.up}
-                      </span>
-                      <span
-                        className={clsx("flex", "items-center", "gap-[5px]")}
-                      >
-                        💬 {issue.comments}
-                      </span>
-                      <span
-                        className={clsx("flex", "items-center", "gap-[5px]")}
-                      >
-                        🟢 Me too {issue.meToo}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                        <div
+                          className={clsx(
+                            "relative",
+                            "h-[150px]",
+                            "bg-cover",
+                            "bg-center",
+                            !issue.img && "bg-nagorik-surface-2",
+                          )}
+                          style={
+                            issue.img
+                              ? {
+                                  backgroundImage: `url('${optimizedUrl(issue.img, { width: 600 })}')`,
+                                }
+                              : undefined
+                          }
+                        >
+                          {issue.category && (
+                            <span
+                              className={clsx(
+                                "absolute",
+                                "left-2.5",
+                                "top-2.5",
+                                "flex",
+                                "items-center",
+                                "gap-[5px]",
+                                "rounded-full",
+                                "bg-[rgba(23,15,17,0.72)]",
+                                "px-2.5",
+                                "py-[5px]",
+                                "text-[11px]",
+                                "font-bold",
+                                "text-white",
+                              )}
+                            >
+                              {issue.category}
+                            </span>
+                          )}
+                        </div>
+                        <div className={clsx("p-[18px_18px_20px]")}>
+                          <span
+                            className={clsx(
+                              "mb-2.5",
+                              "inline-flex",
+                              "items-center",
+                              "gap-1.5",
+                              "font-mono",
+                              "text-[11px]",
+                              "font-bold",
+                              "uppercase",
+                              "tracking-[0.04em]",
+                              status.text,
+                            )}
+                          >
+                            <i
+                              className={clsx(
+                                "inline-block",
+                                "h-[7px]",
+                                "w-[7px]",
+                                "rounded-full",
+                                status.dot,
+                              )}
+                            ></i>
+                            {issue.statusLabel}
+                          </span>
+                          <h4
+                            className={clsx(
+                              "mb-1.5",
+                              "text-[16px]",
+                              "leading-[1.3]",
+                            )}
+                          >
+                            {issue.title}
+                          </h4>
+                          <div
+                            className={clsx(
+                              "mb-3.5",
+                              "text-[12.5px]",
+                              "text-nagorik-muted",
+                            )}
+                          >
+                            📍 {place} · {issue.time}
+                          </div>
+                          <div
+                            className={clsx(
+                              "flex",
+                              "gap-3.5",
+                              "font-mono",
+                              "text-[12px]",
+                              "text-nagorik-muted",
+                            )}
+                          >
+                            <span
+                              className={clsx("flex", "items-center", "gap-[5px]")}
+                            >
+                              ▲ {issue.up}
+                            </span>
+                            <span
+                              className={clsx("flex", "items-center", "gap-[5px]")}
+                            >
+                              💬 {issue.comments}
+                            </span>
+                          </div>
+                        </div>
+                      </article>
+                    </Link>
+                  );
+                })
+              )}
             </div>
           </div>
         </section>
@@ -802,39 +857,39 @@ export default function Home() {
                 "text-nagorik-muted",
               )}
             >
-              {[
-                "🏛️ DNCC",
-                "🏛️ DSCC",
-                "⚡ DESCO",
-                "💧 WASA",
-                "🚌 BRTA",
-                "🏗️ RAJUK",
-              ].map((label) => (
-                <span
+              {TRUST_LINKS.map(({ label, name, href }) => (
+                <a
                   key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={`${name} — official website`}
                   className={clsx(
                     "flex",
                     "items-center",
                     "gap-2",
                     "opacity-75",
+                    "transition-opacity",
+                    "duration-150",
+                    "hover:opacity-100",
+                    "hover:text-nagorik-red",
                   )}
                 >
                   {label}
-                </span>
+                </a>
               ))}
             </div>
           </div>
         </section>
 
         {/* ============ CTA ============ */}
-        <section className={clsx("py-24")}>
+        <section className={clsx("py-12")}>
           <div
             className={clsx(
               "mx-auto",
               "max-w-[1160px]",
               "px-7",
               "max-[480px]:px-4",
-              "text-center",
             )}
           >
             <div
@@ -844,7 +899,12 @@ export default function Home() {
                 "rounded-[28px]",
                 "bg-[radial-gradient(120%_160%_at_50%_0%,var(--color-nagorik-red-dark),var(--color-nagorik-red-deep)_70%)]",
                 "px-8",
-                "py-[72px]",
+                "pt-6",  // <--- Changed from py-12 to pt-6 to reduce top padding
+                "pb-12", // <--- Added pb-12 to maintain the bottom padding
+                "flex",
+                "flex-col",
+                "items-center",
+                "justify-center",
                 "text-center",
                 "text-white",
               )}
@@ -854,30 +914,34 @@ export default function Home() {
                   "mb-3.5",
                   "text-white",
                   "text-[clamp(26px,3.1vw,38px)]",
+                  "font-bold",
                 )}
               >
                 Your city needs you
               </h2>
               <p
                 className={clsx(
-                  "mx-auto",
-                  "mb-[30px]",
+                  "mb-10", // Increased from mb-[30px] to mb-10 (40px)
                   "w-full",
                   "max-w-[520px]",
-                  "text-center",
                   "text-[clamp(15px,1.3vw,17px)]",
                   "leading-relaxed",
                   "text-white/80",
                 )}
               >
                 Every report you submit makes your neighbourhood a little
-                better. Join 12,000+ citizens already making a difference.
-
+                better.
+                {stats?.citizens > 0 &&
+                  ` Join ${stats.citizens.toLocaleString("en-US")} ${
+                    stats.citizens === 1 ? "citizen" : "citizens"
+                  } already making a difference.`}
               </p>
               <div
                 className={clsx(
+                  "mt-4", // Added margin-top to clearly separate the buttons from the text
                   "flex",
                   "flex-wrap",
+                  "items-center",
                   "justify-center",
                   "gap-3.5",
                 )}
@@ -934,7 +998,7 @@ export default function Home() {
         </section>
       </main>
 
-      <LandingFooter />
+      <LandingFooter flush />
     </>
   );
 }

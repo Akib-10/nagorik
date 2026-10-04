@@ -76,7 +76,7 @@ export default function Settings() {
       <AppHeader
         logoHref="/"
         navItems={[
-          { label: 'HOME', variant: 'inactive', to: '/browse_feed', icon: <HomeGlyph /> },
+          { label: 'HOME', variant: 'inactive', to: '/browse-feed', icon: <HomeGlyph /> },
         ]}
       />
 

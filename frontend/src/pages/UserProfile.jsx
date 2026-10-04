@@ -196,7 +196,7 @@ export default function UserProfile() {
 
   return (
     <>
-      <AppHeader logoHref="/" navItems={[{ label: "HOME", variant: "inactive", to: "/browse_feed", icon: <HomeGlyph /> }]} />
+      <AppHeader logoHref="/" navItems={[{ label: "HOME", variant: "inactive", to: "/browse-feed", icon: <HomeGlyph /> }]} />
 
       <div className="mx-auto max-w-[1160px] px-7 pt-7 pb-[60px] max-[760px]:px-4">
         <section className="relative isolate z-0 flex flex-col overflow-hidden rounded-[18px] p-[30px_32px_26px]" style={{ backgroundImage: `url(${profileBg}), linear-gradient(135deg, #d5d5d3, #c4c4c2)`, backgroundSize: 'cover, cover', backgroundPosition: 'center, center' }}>
@@ -220,7 +220,7 @@ export default function UserProfile() {
                 </span>
               </div>
             </div>
-            <button type="button" className="flex items-center gap-[7px] self-start rounded-full bg-nagorik-red px-5 py-[11px] text-[12.5px] font-bold tracking-[0.5px] text-white transition-all duration-150 hover:-translate-y-px hover:shadow-[0_8px_20px_-8px_rgba(0,0,0,0.4)] cursor-pointer max-[760px]:justify-center" onClick={() => navigate("/edit_profile")}>
+            <button type="button" className="flex items-center gap-[7px] self-start rounded-full bg-nagorik-red px-5 py-[11px] text-[12.5px] font-bold tracking-[0.5px] text-white transition-all duration-150 hover:-translate-y-px hover:shadow-[0_8px_20px_-8px_rgba(0,0,0,0.4)] cursor-pointer max-[760px]:justify-center" onClick={() => navigate("/edit-profile")}>
               <EditPenIcon size={13} /> EDIT PROFILE
             </button>
           </div>

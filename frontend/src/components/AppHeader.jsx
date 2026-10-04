@@ -7,7 +7,8 @@ import {
   getAdminSection,
   subscribeAdminSection,
 } from "../services/adminSectionStore";
-import { SearchIcon, BellIconApp } from "./icons";
+import { BellIconApp } from "./icons";
+import IssueSearchBox from "./IssueSearchBox";
 import { useUnreadCount } from "../hooks/useUnreadCount";
 
 export default function AppHeader({ logoHref = "/" }) {
@@ -39,7 +40,7 @@ useEffect(() => subscribeAdminSection(setAdminSection), []);
   const logoTarget = isAuth
     ? userData.isAdmin
       ? adminSection
-      : "/browse_feed"
+      : "/browse-feed"
     : logoHref;
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -62,12 +63,9 @@ useEffect(() => subscribeAdminSection(setAdminSection), []);
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  const handleSearchKey = (e) => {
-    if (e.key === "Enter" && e.currentTarget.value.trim()) {
-      navigate(
-        `/browse_feed?q=${encodeURIComponent(e.currentTarget.value.trim())}`,
-      );
-    }
+  // Enter, or picking a suggestion, opens the feed filtered by that text.
+  const handleSearchSubmit = (text) => {
+    navigate(`/browse-feed?q=${encodeURIComponent(text)}`);
   };
 
   const handleBellClick = () => {
@@ -86,7 +84,7 @@ useEffect(() => subscribeAdminSection(setAdminSection), []);
 
   // The feed carries its own search field, so the header's search bar is
   // dropped there rather than duplicated; every other page keeps it.
-  const hideSearchBar = pathname === "/browse_feed";
+  const hideSearchBar = pathname === "/browse-feed";
 
   const bellBtnClass = clsx(
     "relative",
@@ -158,23 +156,16 @@ useEffect(() => subscribeAdminSection(setAdminSection), []);
           </Link>
         </div>
 
-        {/* Center search bar properties */}
+        {/* Center search bar: same suggestion dropdown as the admin panel's
+            Manage Issues search. */}
         {!hideSearchBar && (
-          <div
+          <IssueSearchBox
+            variant="header"
+            placeholder="SEARCH CIVIC ISSUES"
+            onSubmit={handleSearchSubmit}
             className={clsx(
               "order-3",
-              "flex",
               "flex-1",
-              "items-center",
-              "gap-2.5",
-              "rounded-full",
-              "border",
-              "border-nagorik-border",
-              "bg-nagorik-surface-2",
-              "px-4",
-              "py-[9px]",
-              "text-[13px]",
-              "text-nagorik-muted",
               "max-w-[400px]",
               "min-[761px]:order-none",
               "min-[761px]:w-full",
@@ -183,24 +174,7 @@ useEffect(() => subscribeAdminSection(setAdminSection), []);
               "max-[760px]:max-w-full",
               "max-[760px]:basis-full",
             )}
-          >
-            <SearchIcon size={16} />
-            <div className={clsx("h-4", "w-px", "bg-nagorik-border")}></div>
-            <input
-              type="text"
-              placeholder="SEARCH CIVIC ISSUES"
-              onKeyDown={handleSearchKey}
-              className={clsx(
-                "w-full",
-                "border-0",
-                "bg-transparent",
-                "text-[14px]",
-                "text-nagorik-body-text",
-                "font-[inherit]",
-                "outline-none",
-              )}
-            />
-          </div>
+          />
         )}
 
         {/* Right side: Report/Sign up + Notification + Profile */}
