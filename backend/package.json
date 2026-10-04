@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "make-admin": "node scripts/makeAdmin.js",
+    "backfill-thana": "node scripts/backfillThana.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

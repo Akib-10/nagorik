@@ -6,6 +6,7 @@ import {
   submitReport,
   updateReport,
 } from "../services/issuesService";
+import { getCategories } from "../services/categoryService";
 import {
   MAX_ISSUE_MEDIA_COUNT,
   validateMediaFile,
@@ -30,7 +31,7 @@ const STEP_TITLES = {
 };
 
 const STEP_LABELS = ["Details", "Media & Location", "Review"];
-const DEFAULT_COORDS = "Dhanmondi, Dhaka (23.81° N, 90.41° E)";
+  const DEFAULT_COORDS = "";
 const PRIORITY_OPTIONS = ["Low", "Medium", "High"];
 
 /* ---------- stepper / progress bar ----------
@@ -124,7 +125,10 @@ export default function ReportIssue() {
   const [currentStep, setCurrentStep] = useState(1);
 
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Roads & Transportation");
+  // Category options come from the admin-managed list (Admin Panel -> Categories).
+  const [category, setCategory] = useState("");
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [categoriesState, setCategoriesState] = useState("loading"); // loading | ready | error
   const [priority, setPriority] = useState("Medium");
   const [area, setArea] = useState("");
   const [date, setDate] = useState("");
@@ -143,12 +147,29 @@ export default function ReportIssue() {
   const [mediaItems, setMediaItems] = useState([]);
   const [mediaError, setMediaError] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [coordsText, setCoordsText] = useState(DEFAULT_COORDS);
+
   const photoInputRef = useRef(null);
 
   useEffect(() => {
     document.title = "Report an Issue — নাগরিক";
     document.documentElement.lang = "en";
+  }, []);
+
+  // Fill the Category dropdown from the admin-managed list.
+  useEffect(() => {
+    let cancelled = false;
+    getCategories()
+      .then((list) => {
+        if (cancelled) return;
+        setCategoryOptions(Array.isArray(list) ? list : []);
+        setCategoriesState("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setCategoriesState("error");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Load a report from the backend when editing via ?editId from the profile,
@@ -164,7 +185,7 @@ export default function ReportIssue() {
         if (cancelled) return;
         setEditing(found);
         setTitle(found.title || "");
-        setCategory(found.category || "Roads & Transportation");
+        setCategory(found.category || "");
         setPriority(found.priority || "Medium");
         setArea(found.area || "");
         setDate(found.date || "");
@@ -186,7 +207,7 @@ export default function ReportIssue() {
             size: m.bytes || 0,
           }));
         setMediaItems(existingMedia);
-        setCoordsText(found.coordsText || DEFAULT_COORDS);
+
       } catch {
         if (!cancelled) {
           alert("Could not load the report for editing.");
@@ -204,6 +225,13 @@ export default function ReportIssue() {
     setCurrentStep(n);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // What the dropdown offers. When editing a report whose category an admin has
+  // since removed, keep that one option so the report doesn't silently change.
+  const categoryNames = categoryOptions.map((c) => c.name);
+  if (category && !categoryNames.includes(category)) categoryNames.unshift(category);
+  // Until the person picks one, the first available category is selected.
+  const selectedCategory = category || categoryNames[0] || "";
 
   const handleDirClick = (dir) => {
     goStep(currentStep + dir);
@@ -266,13 +294,7 @@ export default function ReportIssue() {
   };
 
   const detectLocation = () => {
-    setCoordsText("Dhaka (23.81° N, 90.41° E)");
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        () => {},
-        () => {},
-      );
-    }
+    // Location detection functionality removed
   };
 
   const fullAddress = [
@@ -287,9 +309,11 @@ export default function ReportIssue() {
 
   const reviewRows = [
     ["Issue Title", title],
-    ["Category", category],
+    ["Category", selectedCategory],
     ["Priority", priority],
     ["Area / Landmark", area],
+    ["Thana", thana],
+    ["City", city],
     ["Date Noticed", date],
     ["Description", description],
     ["Full Address", fullAddress],
@@ -313,13 +337,14 @@ export default function ReportIssue() {
     if (submitting) return;
     const reportData = {
       title,
-      category,
+      category: selectedCategory,
       priority,
       area,
       date,
       description,
+      thana,
+      city,
       fullAddress,
-      coordsText,
       mediaItems: submitMedia,
     };
 
@@ -329,8 +354,12 @@ export default function ReportIssue() {
         await updateReport(editing.id, reportData);
         alert("Report updated!");
       } else {
-        await submitReport(reportData);
-        alert("Report submitted! It will appear in the public feed once an admin approves it.");
+        const created = await submitReport(reportData);
+        alert(
+          created?.moderationStatus === "pending"
+            ? "Report submitted! It will appear in the public feed once an admin approves it."
+            : "Report submitted! It is now live in the public feed.",
+        );
       }
       mediaItems.forEach((m) => {
         if (m.kind === "file" && m.url?.startsWith("blob:")) {
@@ -352,6 +381,10 @@ export default function ReportIssue() {
 
   const handleStep1Submit = (e) => {
     e.preventDefault();
+    if (!selectedCategory) {
+      alert("Categories could not be loaded yet. Please wait a moment and try again.");
+      return;
+    }
     goStep(2);
   };
 
@@ -368,7 +401,7 @@ export default function ReportIssue() {
       <div className="mb-6 grid grid-cols-[26px_1fr_26px] items-center gap-3 sm:mb-9 sm:gap-4">
         <button
           type="button"
-          onClick={() => navigate("/browse_feed")}
+          onClick={() => navigate("/browse-feed")}
           aria-label="Back to feed"
           className="inline-flex items-center justify-center bg-transparent p-0 text-nagorik-red"
         >
@@ -430,16 +463,24 @@ export default function ReportIssue() {
               <div className="relative min-w-0">
                 <select
                   id="issueCategory"
-                  value={category}
+                  value={selectedCategory}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full min-w-0 appearance-none rounded-full border border-nagorik-border bg-nagorik-cream py-4 pl-5 pr-14 text-[14px] text-nagorik-heading font-[inherit] outline-none transition-colors duration-150 focus:border-nagorik-red focus:bg-white cursor-pointer"
+                  required
+                  disabled={categoryNames.length === 0}
+                  className="w-full min-w-0 appearance-none rounded-full border border-nagorik-border bg-nagorik-cream py-4 pl-5 pr-14 text-[14px] text-nagorik-heading font-[inherit] outline-none transition-colors duration-150 focus:border-nagorik-red focus:bg-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <option>Roads & Transportation</option>
-                  <option>Water Logging</option>
-                  <option>Waste Management</option>
-                  <option>Street Lights</option>
-                  <option>Public Safety</option>
-                  <option>Other</option>
+                  {categoryNames.length === 0 && (
+                    <option value="">
+                      {categoriesState === "loading"
+                        ? "Loading categories…"
+                        : "Categories unavailable"}
+                    </option>
+                  )}
+                  {categoryNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
                 </select>
                 <span className="pointer-events-none absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-nagorik-red text-white">
                   <ChevronDownIcon />
@@ -649,28 +690,8 @@ export default function ReportIssue() {
               </div>
             </div>
 
-            <button
-              type="button"
-              className="flex w-full items-center justify-center gap-2 rounded-full bg-nagorik-red px-4 py-2 text-[11.5px] font-bold text-white font-[inherit] transition-colors duration-150 hover:bg-nagorik-hover-red sm:w-fit sm:justify-start"
-              onClick={detectLocation}
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                <circle cx="12" cy="10" r="3" />
-              </svg>
-              Use My Current Location
-            </button>
-            <p className="mt-auto flex flex-wrap items-center gap-1.5 pt-2.5 text-[11px] text-nagorik-muted">
-              <ClockIcon size={11} /> Pinned:{" "}
-              <b className="font-bold text-nagorik-secondary">{coordsText}</b>
-            </p>
+
+
           </div>
 
           {/* Upload Photos (moved right, compact height + inline Back/Next nav) */}
@@ -814,7 +835,16 @@ export default function ReportIssue() {
                 <span className="shrink-0 font-semibold text-nagorik-muted sm:w-[190px]">
                   {k}
                 </span>
-                <span className="break-words font-bold text-nagorik-heading sm:text-right">
+                {/* min-w-0 + flex-1 makes the value fill the row. The description
+                    is justified with its last line pushed to the right edge. */}
+                <span
+                  className={clsx(
+                    "min-w-0 flex-1 break-words font-bold text-nagorik-heading",
+                    k === "Description"
+                      ? "whitespace-pre-line text-justify [text-align-last:right] [hyphens:auto]"
+                      : "sm:text-right",
+                  )}
+                >
                   {v || "—"}
                 </span>
               </div>
@@ -853,17 +883,7 @@ export default function ReportIssue() {
             )}
           </div>
 
-          <div className="mt-5 flex items-center gap-3 rounded-[16px] bg-nagorik-soft-red px-4 py-3.5 text-nagorik-red sm:px-[18px]">
-            <PinIcon size={20} />
-            <div className="min-w-0">
-              <b className="block text-[12px] text-nagorik-heading">
-                Pinned Location
-              </b>
-              <span className="break-words text-[12.5px] text-nagorik-secondary">
-                {coordsText}
-              </span>
-            </div>
-          </div>
+
         </div>
 
         <div className="flex flex-col-reverse gap-3 pb-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">

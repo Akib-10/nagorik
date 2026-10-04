@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react'
-import { ShieldIcon, BellIconApp, AlertIcon } from '../../components/icons'
+import { ShieldIcon, AlertIcon } from '../../components/icons'
 
+// Local-only switch (not stored on the server yet).
 const DEFAULTS = {
-  autoModeration: true,
-  requireApproval: false,
-  emailDigest: true,
   maintenanceMode: false,
 }
 
@@ -41,51 +39,33 @@ function Row({ label, sub, active, onToggle }) {
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState(DEFAULTS)
-  const [savedFlash, setSavedFlash] = useState(false)
+  const [toast, setToast] = useState('')
 
   useEffect(() => {
-    if (!savedFlash) return
-    const t = setTimeout(() => setSavedFlash(false), 1600)
+    if (!toast) return
+    const t = setTimeout(() => setToast(''), 1600)
     return () => clearTimeout(t)
-  }, [savedFlash])
+  }, [toast])
 
   const toggle = (key) => {
     setSettings((prev) => ({ ...prev, [key]: !prev[key] }))
-    setSavedFlash(true)
+    setToast('Settings saved')
   }
 
   return (
     <div className="flex max-w-[640px] flex-col gap-5">
-      {savedFlash && (
+      {toast && (
         <div className="fixed right-6 top-20 z-50 rounded-xl bg-nagorik-heading px-4 py-2.5 text-[13px] font-semibold text-white shadow-lg">
-          Settings saved
+          {toast}
         </div>
       )}
 
       <div className="rounded-2xl border border-nagorik-line bg-nagorik-paper p-5">
-        <CardHead icon={<ShieldIcon />} title="Moderation" sub="Control how new reports enter the platform" />
-        <Row
-          label="Auto-moderation"
-          sub="Automatically hide reports flagged by 3+ users pending review"
-          active={settings.autoModeration}
-          onToggle={() => toggle('autoModeration')}
-        />
-        <Row
-          label="Require approval before publishing"
-          sub="New issues stay hidden from the feed until an admin approves them"
-          active={settings.requireApproval}
-          onToggle={() => toggle('requireApproval')}
-        />
-      </div>
-
-      <div className="rounded-2xl border border-nagorik-line bg-nagorik-paper p-5">
-        <CardHead icon={<BellIconApp />} title="Notifications" sub="Choose what the admin team gets notified about" />
-        <Row
-          label="Weekly email digest"
-          sub="Summary of new reports, flags and resolved issues"
-          active={settings.emailDigest}
-          onToggle={() => toggle('emailDigest')}
-        />
+        <CardHead icon={<ShieldIcon />} title="Moderation" sub="How new reports enter the platform" />
+        <p className="m-0 text-[13px] text-nagorik-secondary">
+          Every new report waits as <strong>Pending</strong> until an admin approves it. Nothing is
+          published automatically — review reports from the Overview page or Manage Issues.
+        </p>
       </div>
 
       <div className="rounded-2xl border border-nagorik-line bg-nagorik-paper p-5">

@@ -3,6 +3,7 @@ import { NavLink, Navigate, Outlet, Link, useNavigate, useLocation } from 'react
 import clsx from 'clsx'
 import logo from '../../assets/images/logo_for_dark_mode.png'
 import { isAuthenticated, getUser, signOut } from '../../services/authService'
+import { rememberAdminSection } from '../../services/adminSectionStore'
 import {
   GridIcon,
   ClipboardIcon,
@@ -10,7 +11,6 @@ import {
   TagIcon,
   BarChartIcon,
   GearIcon,
-  HomeGlyph,
   LogOutIcon,
   MenuIcon,
   XIcon,
@@ -39,6 +39,14 @@ const TITLES = {
 const COLLAPSE_KEY = 'nagorik_admin_sidebar_collapsed'
 
 function SidebarContent({ userData, onNavigate, onLogout, collapsed = false, onToggleCollapse }) {
+  const { pathname } = useLocation()
+
+  // The wordmark returns the admin to the section they are currently in, so a
+  // click from a nested view (a filtered list, a single record) lands back on
+  // that section's root instead of jumping somewhere else in the panel.
+  const currentSection =
+    NAV_ITEMS.find(({ to }) => pathname === to || pathname.startsWith(`${to}/`))?.to ?? '/admin'
+
   // While collapsed the label is removed from the flow, so the icon must centre itself.
   const navItem = ({ isActive }) =>
     clsx(
@@ -49,28 +57,45 @@ function SidebarContent({ userData, onNavigate, onLogout, collapsed = false, onT
         : 'text-nagorik-secondary hover:bg-nagorik-surface-2 hover:text-nagorik-heading',
     )
 
+  const brand = (
+    <Link
+      to={currentSection}
+      onClick={onNavigate}
+      title="Back to this section"
+      className="flex min-w-0 items-center gap-3 transition-opacity duration-150 hover:opacity-80"
+    >
+      <img src={logo} alt="নাগরিক" className="h-9 w-auto" />
+      <div className="leading-tight">
+        <p className="m-0 text-[13px] font-extrabold tracking-wide text-nagorik-heading">
+          NAGORIK
+        </p>
+        <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-nagorik-red">
+          Admin Panel
+        </p>
+      </div>
+    </Link>
+  )
+
   return (
     <div className="flex h-full flex-col">
       <div
         className={clsx(
           'flex items-center border-b border-nagorik-line',
-          collapsed ? 'justify-center px-2 py-4' : 'gap-3 px-6 py-5',
+          collapsed ? 'justify-center px-2 py-4' : 'px-6 py-5',
         )}
       >
         {collapsed ? (
-          <img src={logo} alt="NAGORIK" className="h-7 w-auto" />
+          <Link
+            to={currentSection}
+            onClick={onNavigate}
+            title="Back to this section"
+            aria-label="Back to this section"
+            className="transition-opacity duration-150 hover:opacity-80"
+          >
+            <img src={logo} alt="NAGORIK" className="h-7 w-auto" />
+          </Link>
         ) : (
-          <>
-            <img src={logo} alt="নাগরিক" className="h-9 w-auto" />
-            <div className="leading-tight">
-              <p className="m-0 text-[13px] font-extrabold tracking-wide text-nagorik-heading">
-                NAGORIK
-              </p>
-              <p className="m-0 text-[11px] font-semibold uppercase tracking-wider text-nagorik-red">
-                Admin Panel
-              </p>
-            </div>
-          </>
+          brand
         )}
       </div>
 
@@ -120,20 +145,6 @@ function SidebarContent({ userData, onNavigate, onLogout, collapsed = false, onT
           </div>
         )}
 
-        <Link
-          to="/"
-          onClick={onNavigate}
-          title={collapsed ? 'Back to site' : undefined}
-          aria-label={collapsed ? 'Back to site' : undefined}
-          className={clsx(
-            'flex w-full items-center rounded-xl text-[13px] font-semibold text-nagorik-secondary transition-colors duration-150 hover:bg-nagorik-surface-2 hover:text-nagorik-heading',
-            collapsed ? 'h-10 w-10 shrink-0 justify-center' : 'gap-3 px-3.5 py-2.5',
-          )}
-        >
-          <HomeGlyph />
-          {!collapsed && <span>Back to site</span>}
-        </Link>
-
         <button
           type="button"
           onClick={onLogout}
@@ -177,6 +188,12 @@ export default function AdminLayout() {
     document.title = 'Admin Panel — নাগরিক'
   }, [])
 
+  // Keeps the header logo pointing back at the exact admin page in view
+  // (section + tab/page/search), so it works from a post opened out of the panel.
+  useEffect(() => {
+    rememberAdminSection(location.pathname, location.search)
+  }, [location.pathname, location.search])
+
   const toggleCollapse = () => {
     setCollapsed((wasCollapsed) => {
       localStorage.setItem(COLLAPSE_KEY, String(!wasCollapsed))
@@ -191,11 +208,11 @@ export default function AdminLayout() {
 const userData = getUser()
 
 if (!userData.isAdmin) {
-  return <Navigate to="/browse_feed" replace />
+  return <Navigate to="/browse-feed" replace />
 }
   const handleLogout = () => {
     signOut()
-    navigate('/')
+    navigate('/', { replace: true })
   }
 
   const pageTitle = TITLES[location.pathname] || 'Admin Panel'

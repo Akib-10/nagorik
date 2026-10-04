@@ -3,7 +3,12 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import clsx from "clsx";
 import logo from "../assets/images/logo_for_dark_mode.png";
 import { isAuthenticated, getUser, signOut } from "../services/authService";
-import { SearchIcon, BellIconApp } from "./icons";
+import {
+  getAdminSection,
+  subscribeAdminSection,
+} from "../services/adminSectionStore";
+import { BellIconApp } from "./icons";
+import IssueSearchBox from "./IssueSearchBox";
 import { useUnreadCount } from "../hooks/useUnreadCount";
 
 export default function AppHeader({ logoHref = "/" }) {
@@ -12,6 +17,31 @@ export default function AppHeader({ logoHref = "/" }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const unreadCount = useUnreadCount(isAuth);
+  const [adminSection, setAdminSection] = useState(getAdminSection);
+
+useEffect(() => subscribeAdminSection(setAdminSection), []);
+
+  // Badge text: the exact number for 1-5, just "+" for anything above that.
+  const badgeText = unreadCount > 5 ? "5+" : String(unreadCount);
+
+  // Ring the bell whenever the count goes UP (a new comment/upvote arrived).
+  // Comparing during render is React's recommended alternative to an effect
+  // that sets state from a previous value.
+  const [prevUnread, setPrevUnread] = useState(unreadCount);
+  const [ringKey, setRingKey] = useState(0);
+  if (unreadCount !== prevUnread) {
+    setPrevUnread(unreadCount);
+    if (unreadCount > prevUnread) setRingKey((k) => k + 1);
+  }
+
+  // The logo is "home": admins land back in the admin page they came from
+  // (same tab / page / search), everyone else in the browse feed, signed-out
+  // visitors on logoHref.
+  const logoTarget = isAuth
+    ? userData.isAdmin
+      ? adminSection
+      : "/browse-feed"
+    : logoHref;
 
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -33,12 +63,9 @@ export default function AppHeader({ logoHref = "/" }) {
     return () => document.removeEventListener("click", onDocClick);
   }, []);
 
-  const handleSearchKey = (e) => {
-    if (e.key === "Enter" && e.currentTarget.value.trim()) {
-      navigate(
-        `/browse_feed?q=${encodeURIComponent(e.currentTarget.value.trim())}`,
-      );
-    }
+  // Enter, or picking a suggestion, opens the feed filtered by that text.
+  const handleSearchSubmit = (text) => {
+    navigate(`/browse-feed?q=${encodeURIComponent(text)}`);
   };
 
   const handleBellClick = () => {
@@ -52,8 +79,12 @@ export default function AppHeader({ logoHref = "/" }) {
   const handleLogout = () => {
     setMenuOpen(false);
     signOut();
-    navigate("/");
+    navigate("/", { replace: true });
   };
+
+  // The feed carries its own search field, so the header's search bar is
+  // dropped there rather than duplicated; every other page keeps it.
+  const hideSearchBar = pathname === "/browse-feed";
 
   const bellBtnClass = clsx(
     "relative",
@@ -71,7 +102,9 @@ export default function AppHeader({ logoHref = "/" }) {
     "max-[420px]:w-[34px]",
     pathname === "/notifications"
       ? ["bg-nagorik-red", "text-white"]
-      : ["bg-transparent", "text-nagorik-red", "hover:bg-nagorik-red", "hover:text-white"],
+      : unreadCount > 0
+        ? ["bg-nagorik-light-red", "text-nagorik-red", "hover:bg-nagorik-red", "hover:text-white"]
+        : ["bg-transparent", "text-nagorik-red", "hover:bg-nagorik-red", "hover:text-white"],
   );
 
   return (
@@ -115,7 +148,7 @@ export default function AppHeader({ logoHref = "/" }) {
           )}
         >
           <Link
-            to={isAuth ? "/browse_feed" : logoHref}
+            to={logoTarget}
             className={clsx("flex", "shrink-0", "items-center")}
             aria-label="নাগরিক home"
           >
@@ -123,48 +156,26 @@ export default function AppHeader({ logoHref = "/" }) {
           </Link>
         </div>
 
-        {/* Center search bar properties */}
-        <div
-          className={clsx(
-            "order-3",
-            "flex",
-            "flex-1",
-            "items-center",
-            "gap-2.5",
-            "rounded-full",
-            "border",
-            "border-nagorik-border",
-            "bg-nagorik-surface-2",
-            "px-4",
-            "py-[9px]",
-            "text-[13px]",
-            "text-nagorik-muted",
-            "max-w-[400px]",
-            "min-[761px]:order-none",
-            "min-[761px]:w-full",
-            "min-[761px]:justify-self-center",
-            "max-[760px]:order-3",
-            "max-[760px]:max-w-full",
-            "max-[760px]:basis-full",
-          )}
-        >
-          <SearchIcon size={16} />
-          <div className={clsx("h-4", "w-px", "bg-nagorik-border")}></div>
-          <input
-            type="text"
+        {/* Center search bar: same suggestion dropdown as the admin panel's
+            Manage Issues search. */}
+        {!hideSearchBar && (
+          <IssueSearchBox
+            variant="header"
             placeholder="SEARCH CIVIC ISSUES"
-            onKeyDown={handleSearchKey}
+            onSubmit={handleSearchSubmit}
             className={clsx(
-              "w-full",
-              "border-0",
-              "bg-transparent",
-              "text-[14px]",
-              "text-nagorik-body-text",
-              "font-[inherit]",
-              "outline-none",
+              "order-3",
+              "flex-1",
+              "max-w-[400px]",
+              "min-[761px]:order-none",
+              "min-[761px]:w-full",
+              "min-[761px]:justify-self-center",
+              "max-[760px]:order-3",
+              "max-[760px]:max-w-full",
+              "max-[760px]:basis-full",
             )}
           />
-        </div>
+        )}
 
         {/* Right side: Report/Sign up + Notification + Profile */}
         <div
@@ -175,6 +186,9 @@ export default function AppHeader({ logoHref = "/" }) {
             "gap-4",
             "min-[761px]:ml-0",
             "min-[761px]:justify-self-end",
+            // Pinned to the last column so hiding the search bar on the feed
+            // cannot pull this group into the middle column and shift it left.
+            "min-[761px]:col-start-3",
             "max-[760px]:gap-2.5",
             "max-[420px]:gap-2",
           )}
@@ -246,15 +260,18 @@ export default function AppHeader({ logoHref = "/" }) {
                   : "Notifications"
               }
             >
-              <BellIconApp />
+              <span
+                key={ringKey}
+                className={clsx("flex", ringKey > 0 && "bell-ring")}
+              >
+                <BellIconApp />
+              </span>
               {unreadCount > 0 && (
                 <span
-                  className={clsx(
-                    "absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-nagorik-red px-1 text-[10px] font-bold leading-none text-white",
-                    unreadCount > 9 && "min-w-5",
-                  )}
+                  key={badgeText}
+                  className="badge-pop absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-nagorik-cream bg-nagorik-red px-1 text-[10px] font-bold leading-none text-white"
                 >
-                  {unreadCount > 99 ? "99+" : unreadCount}
+                  {badgeText}
                 </span>
               )}
             </button>

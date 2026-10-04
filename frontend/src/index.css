@@ -244,3 +244,35 @@ a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visib
 :root[data-theme="dark"] .signin-browse-link:hover {
   color: #C8102E;
 }
+
+/* ---- Notification bell: ring on new notification, pop on badge change ---- */
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  15% { transform: rotate(16deg); }
+  30% { transform: rotate(-14deg); }
+  45% { transform: rotate(10deg); }
+  60% { transform: rotate(-8deg); }
+  75% { transform: rotate(4deg); }
+}
+
+@keyframes badgePop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.bell-ring {
+  transform-origin: 50% 10%;
+  animation: bellRing 0.9s ease-in-out;
+}
+
+.badge-pop {
+  animation: badgePop 0.35s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bell-ring,
+  .badge-pop {
+    animation: none;
+  }
+}

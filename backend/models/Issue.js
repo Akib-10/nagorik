@@ -37,6 +37,11 @@ const issueSchema = new mongoose.Schema(
     },
 
     area: String,
+    // Thana is the main location of a report — what analytics groups by and
+    // what the admin panel shows as the reporting area. City is kept alongside
+    // it so a report can be traced back to its full address.
+    thana: String,
+    city: String,
     description: String,
     address: String,
     // Free-text location shown on the report card (e.g. "Dhanmondi, Dhaka
@@ -55,11 +60,11 @@ const issueSchema = new mongoose.Schema(
     statusLabel: { type: String, default: 'Open' },
     statusClass: { type: String, default: '' },
 
-    // Admin moderation. New reports start as "pending" and only appear in the
-    // public feed once an admin approves them (see issueController.js). The
-    // reporter can still see their own pending report on their profile.
-    // Documents created before this field existed have no value and are
-    // treated as "approved".
+    // Admin moderation. EVERY new report starts as "pending" and only reaches
+    // the public feed once an admin approves it; an admin can also flag it as
+    // spam or reject it (see issueController.js). Its reporter can still see it
+    // on their profile. Documents created before this field existed have no
+    // value and are treated as "approved" so old reports stay visible.
     moderationStatus: {
       type: String,
       enum: ['pending', 'approved', 'spam', 'rejected'],

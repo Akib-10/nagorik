@@ -11,6 +11,7 @@ import Comment from '../models/Comment.js';
 import Notification from '../models/Notification.js';
 import { deleteAssets } from '../services/cloudinaryService.js';
 import { isCloudinaryConfigured } from '../config/cloudinary.js';
+import { notify } from '../services/notificationService.js';
 
 const STATUSES = ['Open', 'In progress', 'Resolved', 'Rejected'];
 
@@ -104,16 +105,20 @@ export async function getOverview(req, res) {
       recentIssues,
       recentComments,
       recentUsers,
+      pendingCount,
+      pendingIssues,
     ] = await Promise.all([
       statusCounts(),
       Issue.aggregate([{ $group: { _id: null, up: { $sum: '$up' } } }]),
       User.countDocuments(),
       User.countDocuments({ createdAt: { $gte: weekAgo } }),
       Comment.countDocuments(),
-      Issue.find()
+      // Recent Issues lists published reports only; anything still waiting for
+      // a decision is shown in the "Awaiting review" queue above it instead.
+      Issue.find({ moderationStatus: { $in: ['approved', null] } })
         .sort({ createdAt: -1 })
-        .limit(5)
-        .select('title area statusLabel priority createdAt user')
+        .limit(10)
+        .select('title area thana statusLabel priority createdAt user')
         .populate('user', 'name')
         .lean(),
       Comment.find()
@@ -124,6 +129,13 @@ export async function getOverview(req, res) {
         .populate('issue', 'title')
         .lean(),
       User.find().sort({ createdAt: -1 }).limit(5).select('name createdAt').lean(),
+      Issue.countDocuments({ moderationStatus: 'pending' }),
+      Issue.find({ moderationStatus: 'pending' })
+        .sort({ createdAt: -1 })
+        .limit(15)
+        .select('title area thana category priority createdAt user')
+        .populate('user', 'name')
+        .lean(),
     ]);
 
     // "Recent activity" is built from real records — no separate log collection needed.
@@ -147,7 +159,7 @@ export async function getOverview(req, res) {
       })),
     ]
       .sort((a, b) => new Date(b.at) - new Date(a.at))
-      .slice(0, 8);
+      .slice(0, 10);
 
     res.json({
       stats: {
@@ -160,11 +172,21 @@ export async function getOverview(req, res) {
         newUsersThisWeek,
         totalComments,
         totalUpvotes: voteRows[0]?.up || 0,
+        pending: pendingCount,
       },
+      pendingIssues: pendingIssues.map((i) => ({
+        id: i._id,
+        title: i.title,
+        area: i.thana || i.area || '',
+        category: i.category || 'Uncategorized',
+        priority: i.priority || 'Medium',
+        reporter: i.user?.name || 'Removed user',
+        createdAt: i.createdAt,
+      })),
       recentIssues: recentIssues.map((i) => ({
         id: i._id,
         title: i.title,
-        area: i.area || '',
+        area: i.thana || i.area || '',
         reporter: i.user?.name || 'Removed user',
         statusLabel: i.statusLabel || 'Open',
         priority: i.priority,
@@ -236,6 +258,9 @@ export async function listUsers(req, res) {
 
 // GET /api/admin/issues?status=All|Open|In progress|Resolved|Rejected
 //                  &moderation=All|Pending|Approved|Spam|Rejected&search=&page=1&limit=20
+//                  &focus=<issueId>
+// `focus` (used by the "new report awaiting review" notification) pins that
+// issue to the top of page 1, whatever the filters, so it can be highlighted.
 export async function listIssues(req, res) {
   try {
     const { search = '', status = 'All', moderation = 'All' } = req.query;
@@ -261,7 +286,9 @@ export async function listIssues(req, res) {
       const matchedUsers = await User.find({ name: rx }).select('_id').lean();
       filter.$or = [
         { title: rx },
+        { thana: rx },
         { area: rx },
+        { address: rx },
         { user: { $in: matchedUsers.map((u) => u._id) } },
       ];
     }
@@ -279,14 +306,29 @@ export async function listIssues(req, res) {
       moderationCounts(),
     ]);
 
-    const cMap = await commentCounts(issues.map((i) => i._id));
+    let rows = issues;
+    const focusId = String(req.query.focus || '');
+    if (page === 1 && mongoose.isValidObjectId(focusId)) {
+      const focused = await Issue.findById(focusId)
+        .select('-photos -img -upvotedBy')
+        .populate('user', 'name')
+        .lean();
+      if (focused) {
+        rows = [focused, ...issues.filter((i) => String(i._id) !== focusId)].slice(0, limit);
+      }
+    }
+
+    const cMap = await commentCounts(rows.map((i) => i._id));
 
     res.json({
-      items: issues.map((i) => ({
+      items: rows.map((i) => ({
         id: i._id,
         title: i.title,
         description: i.description || '',
-        area: i.area || '',
+        // Thana is the main location, so it is what the list shows as the area.
+        area: i.thana || i.area || '',
+        thana: i.thana || '',
+        city: i.city || '',
         address: i.address || '',
         category: i.category || 'Uncategorized',
         priority: i.priority || 'Medium',
@@ -324,13 +366,33 @@ export async function moderateIssue(req, res) {
       return res.status(400).json({ message: 'Unknown moderation action.' });
     }
 
-    const issue = await Issue.findById(id).select('_id moderationStatus');
+    const issue = await Issue.findById(id).select('_id title user moderationStatus');
     if (!issue) return res.status(404).json({ message: 'Not found' });
 
+    const previous = issue.moderationStatus || 'approved';
     issue.moderationStatus = moderationStatus;
     issue.moderatedAt = new Date();
     issue.moderatedBy = req.user._id;
     await issue.save();
+
+    // Let the reporter know the outcome (not for no-op or self-moderation).
+    if (previous !== moderationStatus && String(issue.user) !== String(req.user._id)) {
+      const text = {
+        approved: `Your report "${issue.title}" was approved and is now visible in the public feed.`,
+        rejected: `Your report "${issue.title}" was not approved and stays hidden from the public feed.`,
+        spam: `Your report "${issue.title}" was flagged by an admin and is hidden from the public feed.`,
+      }[moderationStatus];
+      if (text) {
+        notify({
+          recipientId: issue.user,
+          type: 'status',
+          targetType: 'Issue',
+          targetId: issue._id,
+          title: moderationStatus === 'approved' ? 'Report approved' : 'Report not approved',
+          message: text,
+        });
+      }
+    }
 
     return res.json({
       id: issue._id,
@@ -414,6 +476,208 @@ export async function deleteIssue(req, res) {
       issue.deleteOne(),
     ]);
     res.json({ message: 'Deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+}
+
+// ---- analytics ----------------------------------------------------------
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const HEATMAP_WEEKS = 18;
+const TREND_WEEKS = 12;
+const DHAKA_TZ = 'Asia/Dhaka';
+
+// 'YYYY-MM-DD' for a Date, as seen in Dhaka (the platform's home timezone).
+const dhakaDay = (d) => new Date(d).toLocaleDateString('en-CA', { timeZone: DHAKA_TZ });
+
+// GET /api/admin/analytics
+// Everything is computed over APPROVED reports only: pending, spam and
+// rejected posts are not part of the public platform.
+export async function getAnalytics(req, res) {
+  try {
+    const approved = { moderationStatus: { $in: ['approved', null] } };
+    const now = Date.now();
+    const heatStart = new Date(now - (HEATMAP_WEEKS * 7 - 1) * DAY_MS);
+    const trendStart = new Date(now - TREND_WEEKS * 7 * DAY_MS);
+    const since = heatStart < trendStart ? heatStart : trendStart;
+
+    const issueIds = await Issue.distinct('_id', approved);
+
+    const [
+      totals,
+      statusRows,
+      categoryRows,
+      areaRows,
+      topIssues,
+      commentTotal,
+      recentIssues,
+      recentComments,
+    ] = await Promise.all([
+      Issue.aggregate([
+        { $match: approved },
+        { $group: { _id: null, issues: { $sum: 1 }, upvotes: { $sum: '$up' } } },
+      ]),
+      Issue.aggregate([
+        { $match: approved },
+        { $group: { _id: { $ifNull: ['$statusLabel', 'Open'] }, count: { $sum: 1 } } },
+      ]),
+      Issue.aggregate([
+        { $match: approved },
+        {
+          $group: {
+            _id: { $ifNull: ['$category', 'Uncategorized'] },
+            count: { $sum: 1 },
+          },
+        },
+        { $sort: { count: -1 } },
+      ]),
+      Issue.aggregate([
+        { $match: approved },
+        {
+          $project: {
+            up: 1,
+            // Thana is the report's main location. Older reports may only carry
+            // it inside the composed address ("... Thana: Mirpur, City: Dhaka"),
+            // and the oldest only have the free-text area, so fall back in that
+            // order rather than dropping them from the chart.
+            location: {
+              $let: {
+                vars: {
+                  thana: { $trim: { input: { $ifNull: ['$thana', ''] } } },
+                  fromAddress: {
+                    $trim: {
+                      input: {
+                        $ifNull: [
+                          {
+                            // $regexFind needs MongoDB 4.2+; reading .captures off the
+                            // match through $let avoids needing $getField (5.0+).
+                            $let: {
+                              vars: {
+                                m: {
+                                  $regexFind: {
+                                    input: { $ifNull: ['$address', ''] },
+                                    regex: 'Thana:\\s*([^,]+)',
+                                    options: 'i',
+                                  },
+                                },
+                              },
+                              in: { $arrayElemAt: ['$$m.captures', 0] },
+                            },
+                          },
+                          '',
+                        ],
+                      },
+                    },
+                  },
+                  area: { $trim: { input: { $ifNull: ['$area', ''] } } },
+                },
+                in: {
+                  $switch: {
+                    branches: [
+                      { case: { $ne: ['$$thana', ''] }, then: '$$thana' },
+                      { case: { $ne: ['$$fromAddress', ''] }, then: '$$fromAddress' },
+                    ],
+                    default: '$$area',
+                  },
+                },
+              },
+            },
+          },
+        },
+        { $match: { location: { $nin: [null, ''] } } },
+        {
+          $group: {
+            // Thana is typed free text, so bucket case-insensitively and keep
+            // the first spelling seen as the chart's label.
+            _id: { $toLower: '$location' },
+            name: { $first: '$location' },
+            count: { $sum: 1 },
+            upvotes: { $sum: '$up' },
+          },
+        },
+        { $sort: { count: -1, upvotes: -1 } },
+        { $limit: 6 },
+      ]),
+      Issue.find(approved)
+        .sort({ up: -1, createdAt: -1 })
+        .limit(5)
+        .select('title area thana category up down statusLabel createdAt user')
+        .populate('user', 'name')
+        .lean(),
+      Comment.countDocuments({ issue: { $in: issueIds } }),
+      Issue.find({ ...approved, createdAt: { $gte: since } }).select('createdAt').lean(),
+      Comment.find({ issue: { $in: issueIds }, createdAt: { $gte: since } })
+        .select('createdAt')
+        .lean(),
+    ]);
+
+    const totalIssues = totals[0]?.issues || 0;
+    const totalUpvotes = totals[0]?.upvotes || 0;
+
+    const byStatus = Object.fromEntries(STATUSES.map((s) => [s, 0]));
+    statusRows.forEach((r) => {
+      byStatus[r._id] = (byStatus[r._id] || 0) + r.count;
+    });
+
+    // Date-wise hotspot: one cell per day, oldest first, zero-filled.
+    const perDay = {};
+    recentIssues.forEach((i) => {
+      const k = dhakaDay(i.createdAt);
+      perDay[k] = (perDay[k] || 0) + 1;
+    });
+    const heatmap = [];
+    for (let n = HEATMAP_WEEKS * 7 - 1; n >= 0; n--) {
+      const date = dhakaDay(now - n * DAY_MS);
+      heatmap.push({ date, count: perDay[date] || 0 });
+    }
+
+    // Weekly trend: reports vs comments, oldest week first.
+    const weekly = Array.from({ length: TREND_WEEKS }, (_, i) => ({
+      weekStart: dhakaDay(now - (TREND_WEEKS - i) * 7 * DAY_MS),
+      reports: 0,
+      comments: 0,
+    }));
+    const bucket = (ts) => {
+      const idx = TREND_WEEKS - 1 - Math.floor((now - new Date(ts).getTime()) / (7 * DAY_MS));
+      return idx >= 0 && idx < TREND_WEEKS ? idx : -1;
+    };
+    recentIssues.forEach((i) => {
+      const b = bucket(i.createdAt);
+      if (b >= 0) weekly[b].reports += 1;
+    });
+    recentComments.forEach((c) => {
+      const b = bucket(c.createdAt);
+      if (b >= 0) weekly[b].comments += 1;
+    });
+
+    const cMap = await commentCounts(topIssues.map((i) => i._id));
+
+    res.json({
+      totals: {
+        issues: totalIssues,
+        upvotes: totalUpvotes,
+        comments: commentTotal,
+        avgCommentsPerIssue: totalIssues ? commentTotal / totalIssues : 0,
+        resolutionRate: totalIssues ? (byStatus.Resolved / totalIssues) * 100 : 0,
+        resolved: byStatus.Resolved,
+      },
+      byStatus: STATUSES.map((name) => ({ name, count: byStatus[name] || 0 })),
+      byCategory: categoryRows.map((r) => ({ name: r._id, count: r.count })),
+      heatmap,
+      weekly,
+      topPosts: topIssues.map((i) => ({
+        id: i._id,
+        title: i.title,
+        area: i.thana || i.area || '',
+        category: i.category || 'Uncategorized',
+        reporter: i.user?.name || 'Removed user',
+        statusLabel: i.statusLabel || 'Open',
+        up: i.up || 0,
+        comments: cMap[String(i._id)] || 0,
+      })),
+      topAreas: areaRows.map((r) => ({ name: r.name, count: r.count, upvotes: r.upvotes })),
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

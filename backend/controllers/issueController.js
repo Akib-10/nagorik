@@ -3,8 +3,9 @@ import Issue from "../models/Issue.js";
 import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 // ==== NOTIFICATION EDIT: START ====
-import { notify } from '../services/notificationService.js';
+import { notify, notifyAdmins } from '../services/notificationService.js';
 // ==== NOTIFICATION EDIT: END ====
+import { isSelectableCategory, canonicalCategoryName } from './categoryController.js';
 import {
   CLOUDINARY_FOLDERS,
   uploadBuffer,
@@ -128,12 +129,27 @@ function buildLegacyFields(media = []) {
   return { photos, img: photos[0] || "" };
 }
 
-// Only approved reports are public. A new report starts as "pending" and shows
-// up in the feed after an admin approves it; until then only its owner (on their
-// profile) and admins can see it. Documents written before the moderationStatus
-// field existed have no value and count as approved, hence the `null` in $in
-// (it matches missing fields too).
+// Only approved reports are public. EVERY new report waits as "pending" until
+// an admin approves it - there is no auto-approval, not even for admins' own
+// posts. Admins can also take a post down later by flagging it as spam or
+// rejecting it. While a post is not approved, its owner (on their profile) and
+// admins are the only ones who can see it. Documents written before the
+// moderationStatus field existed have no value and count as approved, hence
+// the `null` in $in (it matches missing fields too).
 const PUBLICLY_VISIBLE = { moderationStatus: { $in: ['approved', null] } };
+
+// Thana is the report's main location. Trim what was typed; if the form sent no
+// thana, recover it from the "Thana: X" part of the composed address so the
+// analytics "Top reporting areas" chart never loses a report.
+function normalizeLocation(data) {
+  if (data.thana !== undefined) data.thana = String(data.thana).trim();
+  if (data.city !== undefined) data.city = String(data.city).trim();
+  if (!data.thana && data.address) {
+    const m = String(data.address).match(/Thana:\s*([^,]+)/i);
+    if (m) data.thana = m[1].trim();
+  }
+  return data;
+}
 
 function isPublic(issue) {
   return !issue.moderationStatus || issue.moderationStatus === 'approved';
@@ -149,6 +165,64 @@ export async function getIssues(req, res) {
     }
     const issues = await Issue.find(filter)
       .sort({ createdAt: -1 })
+      .populate("user", "name avatar profilePicture")
+      .select("-photos");
+    res.json(await withMeta(issues));
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+}
+
+// GET /api/issues/stats — public headline numbers (feed hero box + landing page).
+// Counts APPROVED reports only, for everybody (it ignores per-user hidden posts).
+// A report with no statusLabel counts as "Open", matching the schema default.
+//   open / inProgress / resolved : approved reports by status
+//   total                        : every approved report
+//   resolutionRate               : resolved / total, whole percent
+//   cities                       : distinct cities that have an approved report
+//   citizens                     : registered users
+export async function getIssueStats(req, res) {
+  try {
+    const [rows, cityList, citizens] = await Promise.all([
+      Issue.aggregate([
+        { $match: PUBLICLY_VISIBLE },
+        { $group: { _id: { $ifNull: ["$statusLabel", "Open"] }, count: { $sum: 1 } } },
+      ]),
+      Issue.distinct("city", PUBLICLY_VISIBLE),
+      User.countDocuments(),
+    ]);
+    const by = Object.fromEntries(rows.map((r) => [r._id, r.count]));
+    const total = rows.reduce((sum, r) => sum + r.count, 0);
+    const resolved = by["Resolved"] || 0;
+    const cities = new Set(
+      cityList.map((c) => String(c || "").trim().toLowerCase()).filter(Boolean),
+    ).size;
+    res.json({
+      open: by["Open"] || 0,
+      inProgress: by["In progress"] || 0,
+      resolved,
+      total,
+      resolutionRate: total ? Math.round((resolved / total) * 100) : 0,
+      cities,
+      citizens,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+}
+
+// GET /api/issues/trending?limit=3 — the most-upvoted approved reports that
+// are still being worked on (Resolved / Rejected ones are left out). Public:
+// used by the landing page's "Real issues. Right now." section.
+export async function getTrendingIssues(req, res) {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 3, 1), 10);
+    const issues = await Issue.find({
+      ...PUBLICLY_VISIBLE,
+      statusLabel: { $nin: ["Resolved", "Rejected"] },
+    })
+      .sort({ up: -1, createdAt: -1 })
+      .limit(limit)
       .populate("user", "name avatar profilePicture")
       .select("-photos");
     res.json(await withMeta(issues));
@@ -233,12 +307,41 @@ export async function createIssue(req, res) {
     delete data.down;
     delete data.upvotedBy;
 
+    normalizeLocation(data);
+
+    // The category must be one the admin currently offers (the report form's
+    // dropdown is filled from the same list).
+    if (!(await isSelectableCategory(data.category))) {
+      throw badRequest('Please choose a valid category.');
+    }
+    data.category = await canonicalCategoryName(data.category);
+
+    // Nothing is auto-approved: every report is "pending" until an admin
+    // approves it from the admin panel.
     const issue = await Issue.create({
       ...data,
       ...buildLegacyFields(media),
       media,
+      moderationStatus: 'pending',
+      moderatedAt: null,
+      moderatedBy: null,
       user: req.user._id,
     });
+
+    // Tell the admins it is waiting. The notification opens Manage Issues with
+    // this post highlighted (see notificationStore.js).
+    notifyAdmins({
+      exceptUserId: req.user._id,
+      type: 'moderation',
+      actorId: req.user._id,
+      actorName: req.user.name,
+      targetType: 'Issue',
+      targetId: issue._id,
+      issueId: issue._id,
+      title: 'New report awaiting review',
+      message: `${req.user.name} submitted "${issue.title}". Approve, flag or reject it.`,
+    });
+
     // Match the read endpoints, which populate the reporter; otherwise every
     // consumer sees a bare ObjectId for `user`.
     await issue.populate("user", "name avatar profilePicture");
@@ -280,6 +383,16 @@ export async function updateIssue(req, res) {
     delete data.up;
     delete data.down;
     delete data.upvotedBy;
+
+    normalizeLocation(data);
+    // Only re-check the category when the owner actually changed it, so editing
+    // an old report whose category was later deleted still works.
+    if (data.category !== undefined && data.category !== issue.category) {
+      if (!(await isSelectableCategory(data.category))) {
+        throw badRequest('Please choose a valid category.');
+      }
+      data.category = await canonicalCategoryName(data.category);
+    }
 
     if (!structured) {
       // Legacy JSON update: keep existing media fields untouched.

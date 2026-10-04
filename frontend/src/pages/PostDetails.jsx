@@ -4,18 +4,12 @@ import AppHeader from '../components/AppHeader'
 import { getIssueById, getCommentsForIssue, addComment, toggleUpvote } from '../services/issuesService'
 import { optimizedUrl } from '../services/mediaService'
 import { getUser } from '../services/authService'
-import { HomeGlyph, SearchIcon, PinIcon, UserGlyph, ClockIcon, VoteUpIcon, VoteDownIcon, CommentIcon, RepostIcon } from '../components/icons'
+import { HomeGlyph, PinIcon, UserGlyph, ClockIcon, VoteUpIcon, VoteDownIcon, CommentIcon, RepostIcon } from '../components/icons'
 
 const ChevronLeftIcon = ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
 const ChevronRightIcon = ({ size = 16 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
 const ChevronDownIcon = ({ size = 14 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
 const formatDown = (v) => (isNaN(Number(v)) ? v : String(Number(v)).padStart(2, '0'))
-
-const filterComment = (c, q) => {
-  const selfMatch = `${c.author} ${c.text}`.toLowerCase().includes(q)
-  const replies = (c.replies || []).map((r) => filterComment(r, q)).filter(Boolean)
-  return selfMatch || replies.length ? { ...c, replies } : null
-}
 
 function VoteOutline({ myVote, comment, onVote }) {
   const up = Number(comment.up) + (myVote === 'up' ? 1 : 0)
@@ -111,8 +105,7 @@ export default function PostDetails() {
   const [isDescExpanded, setIsDescExpanded] = useState(false)
   const [isReposted, setIsReposted] = useState(false)
   const [commentVotes, setCommentVotes] = useState({})
-  const [sortBy, setSortBy] = useState('best')
-  const [commentQuery, setCommentQuery] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
   const [newComment, setNewComment] = useState('')
 
   const handleScroll = (dir) => scrollRef.current?.scrollBy({ left: dir === 'left' ? -scrollRef.current.clientWidth : scrollRef.current.clientWidth, behavior: 'smooth' })
@@ -156,19 +149,18 @@ export default function PostDetails() {
   }
 
   const visibleComments = useMemo(() => {
-    let list = commentQuery.trim() ? comments.map((c) => filterComment(c, commentQuery.trim().toLowerCase())).filter(Boolean) : [...comments]
-    if (sortBy === 'best') list.sort((a, b) => Number(b.up) - Number(a.up))
-    if (sortBy === 'newest') list.sort((a, b) => b.timestamp - a.timestamp)
+    const list = [...comments]
     if (sortBy === 'oldest') list.sort((a, b) => a.timestamp - b.timestamp)
+    else list.sort((a, b) => b.timestamp - a.timestamp)
     return list
-  }, [comments, commentQuery, sortBy])
+  }, [comments, sortBy])
 
   if (!issue) {
     return (
       <>
-        <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]} showIconButtons />
+        <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse-feed', icon: <HomeGlyph /> }]} showIconButtons />
         <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px]">
-          <Link to="/browse_feed" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline"><ChevronLeftIcon />Feed</Link>
+          <Link to="/browse-feed" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline"><ChevronLeftIcon />Feed</Link>
           <p className="mt-8 text-nagorik-muted">{issueError || "Loading post..."}</p>
         </div>
       </>
@@ -176,7 +168,7 @@ export default function PostDetails() {
   }
 
   const isAdminViewer = !!getUser()?.isAdmin
-  const backTo = isAdminViewer ? '/admin/issues' : '/browse_feed'
+  const backTo = isAdminViewer ? '/admin/issues' : '/browse-feed'
   const MODERATION_NOTE = {
     pending: 'This post is waiting for admin approval. Only you and admins can see it right now.',
     spam: 'This post was flagged as spam and is hidden from the public feed.',
@@ -189,7 +181,7 @@ export default function PostDetails() {
 
   return (
     <>
-      <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]} showIconButtons />
+      <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse-feed', icon: <HomeGlyph /> }]} showIconButtons />
       <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px] max-[760px]:px-4">
         <button type="button" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline cursor-pointer" onClick={() => navigate(backTo)}>
           <ChevronLeftIcon />{isAdminViewer ? 'Manage posts' : 'Feed'}
@@ -256,26 +248,22 @@ export default function PostDetails() {
 
         <input type="text" className="mb-[18px] w-full rounded-full border-[1.5px] border-nagorik-border bg-nagorik-surface-2 px-5 py-3.5 text-[14px] outline-none focus:border-nagorik-red focus:bg-white" placeholder="Join the conversation..." value={newComment} onChange={(e) => setNewComment(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddComment()} />
 
-        <div className="mb-[18px] flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-[18px] flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 text-[13px] font-bold text-nagorik-secondary">
             <span>Sort by:</span>
             <div className="relative inline-flex items-center">
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="appearance-none cursor-pointer rounded-full border border-nagorik-border bg-nagorik-surface-2 py-1.5 pl-3 pr-8 text-[13px] font-extrabold text-nagorik-heading outline-none focus:border-nagorik-red">
-                <option value="best">Best</option><option value="newest">Newest</option><option value="oldest">Oldest</option>
+                <option value="newest">Newest</option><option value="oldest">Oldest</option>
               </select>
               <div className="pointer-events-none absolute right-2.5 text-nagorik-heading"><ChevronDownIcon /></div>
             </div>
-          </div>
-          <div className="flex max-w-[280px] flex-1 items-center gap-2 rounded-full border border-nagorik-border bg-nagorik-surface-2 px-4 py-[9px] text-[13px] max-[760px]:max-w-full">
-            <SearchIcon size={14} />
-            <input type="text" placeholder="Search Comments" value={commentQuery} onChange={(e) => setCommentQuery(e.target.value)} className="w-full border-0 bg-transparent outline-none" />
           </div>
         </div>
 
         <div className="flex flex-col gap-[22px]">
           {visibleComments.length ? visibleComments.map((comment) => (
             <CommentItem key={comment.id} comment={comment} votes={commentVotes} onVote={handleCommentVote} onAddReply={handleAddReply} />
-          )) : <p className="py-8 text-center text-[14px] text-nagorik-muted">No comments match your search.</p>}
+          )) : <p className="py-8 text-center text-[14px] text-nagorik-muted">No comments yet.</p>}
         </div>
       </div>
     </>

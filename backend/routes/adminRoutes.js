@@ -10,7 +10,14 @@ import {
   deleteIssue,
   suspendUser,
   reactivateUser,
+  getAnalytics,
 } from '../controllers/adminController.js';
+import {
+  listCategoriesAdmin,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+} from '../controllers/categoryController.js';
 
 const router = express.Router();
 
@@ -24,5 +31,10 @@ router.patch('/users/:id/reactivate', reactivateUser);
 router.get('/issues', listIssues);
 router.patch('/issues/:id/moderate', moderateIssue);
 router.delete('/issues/:id', deleteIssue);
+router.get('/analytics', getAnalytics);
+router.get('/categories', listCategoriesAdmin);
+router.post('/categories', createCategory);
+router.patch('/categories/:id', updateCategory);
+router.delete('/categories/:id', deleteCategory);
 
 export default router;
