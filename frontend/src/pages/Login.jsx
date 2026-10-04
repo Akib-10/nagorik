@@ -4,6 +4,40 @@ import clsx from "clsx";
 import logo from "../assets/images/logo_for_dark_mode.png";
 import signInBg from "../assets/images/sign-in-background.png";
 import { signIn, register } from "../services/authService";
+import { getIssueStats } from "../services/issuesService";
+import useCountUp from "../hooks/useCountUp";
+
+// One number in the left panel; counts up from 0 to `value` when it arrives.
+function LoginStat({ value, label }) {
+  const shown = useCountUp(value);
+  return (
+    <div className={clsx("flex", "flex-col", "items-center", "justify-end")}>
+      <div
+        className={clsx(
+          "font-['Arial',sans-serif]",
+          "text-[31px]",
+          "font-bold",
+          "leading-none",
+          "text-[#CF2633]"
+        )}
+      >
+        {shown}
+      </div>
+      <div
+        className={clsx(
+          "mt-[3px]",
+          "font-['Arial',sans-serif]",
+          "text-[9px]",
+          "leading-[1.1]",
+          "text-[#111]",
+          "dark:text-[#B5A59F]"
+        )}
+      >
+        {label}
+      </div>
+    </div>
+  );
+}
 
 export default function BrowseFeed() {
   const navigate = useNavigate();
@@ -16,11 +50,23 @@ export default function BrowseFeed() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0 });
 
   useEffect(() => {
     document.title =
       mode === "signin" ? "Sign in — নাগরিক" : "Register — নাগরিক";
   }, [mode]);
+
+  // Live numbers for the left panel (same endpoint the landing page and feed use).
+  useEffect(() => {
+    let cancelled = false;
+    getIssueStats()
+      .then((s) => !cancelled && setStats(s))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const switchMode = (next) => {
     setMode(next);
@@ -177,81 +223,9 @@ const handleRegister = async (e) => {
             "max-[900px]:mt-[45px]"
           )}
         >
-          <div className={clsx("flex", "flex-col", "items-center", "justify-end")}>
-            <div
-              className={clsx(
-                "font-['Arial',sans-serif]",
-                "text-[31px]",
-                "font-bold",
-                "leading-none",
-                "text-[#CF2633]"
-              )}
-            >
-              45
-            </div>
-            <div
-              className={clsx(
-                "mt-[3px]",
-                "font-['Arial',sans-serif]",
-                "text-[9px]",
-                "leading-[1.1]",
-                "text-[#111]",
-                "dark:text-[#B5A59F]"
-              )}
-            >
-              Open
-            </div>
-          </div>
-          <div className={clsx("flex", "flex-col", "items-center", "justify-end")}>
-            <div
-              className={clsx(
-                "font-['Arial',sans-serif]",
-                "text-[31px]",
-                "font-bold",
-                "leading-none",
-                "text-[#CF2633]"
-              )}
-            >
-              31
-            </div>
-            <div
-              className={clsx(
-                "mt-[3px]",
-                "font-['Arial',sans-serif]",
-                "text-[9px]",
-                "leading-[1.1]",
-                "text-[#111]",
-                "dark:text-[#B5A59F]"
-              )}
-            >
-              in progress
-            </div>
-          </div>
-          <div className={clsx("flex", "flex-col", "items-center", "justify-end")}>
-            <div
-              className={clsx(
-                "font-['Arial',sans-serif]",
-                "text-[31px]",
-                "font-bold",
-                "leading-none",
-                "text-[#CF2633]"
-              )}
-            >
-              14
-            </div>
-            <div
-              className={clsx(
-                "mt-[3px]",
-                "font-['Arial',sans-serif]",
-                "text-[9px]",
-                "leading-[1.1]",
-                "text-[#111]",
-                "dark:text-[#B5A59F]"
-              )}
-            >
-              received
-            </div>
-          </div>
+          <LoginStat value={stats.open} label="Open" />
+          <LoginStat value={stats.inProgress} label="in progress" />
+          <LoginStat value={stats.resolved} label="resolved" />
         </div>
       </aside>
 
