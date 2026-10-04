@@ -208,7 +208,7 @@ export default function AdminLayout() {
 const userData = getUser()
 
 if (!userData.isAdmin) {
-  return <Navigate to="/browse_feed" replace />
+  return <Navigate to="/browse-feed" replace />
 }
   const handleLogout = () => {
     signOut()

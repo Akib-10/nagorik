@@ -8,7 +8,7 @@ import { signIn, register } from "../services/authService";
 export default function BrowseFeed() {
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectTo = location.state?.from || "/browse_feed";
+  const redirectTo = location.state?.from || "/browse-feed";
   const [mode, setMode] = useState(location.state?.mode || "signin");
 
   const [name, setName] = useState("");
@@ -58,7 +58,7 @@ const handleRegister = async (e) => {
   }
   try {
     await register({ name, email, password });
-    navigate("/browse_feed", { replace: true });
+    navigate("/browse-feed", { replace: true });
   } catch (err) {
     setError(err.message);
   }
@@ -97,7 +97,7 @@ const handleRegister = async (e) => {
         )}
       >
         <Link
-          to="/browse_feed"
+          to="/browse-feed"
           className={clsx(
             "signin-browse-link",
             "mt-[90px]",

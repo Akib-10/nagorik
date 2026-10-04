@@ -117,7 +117,7 @@ export async function getOverview(req, res) {
       // a decision is shown in the "Awaiting review" queue above it instead.
       Issue.find({ moderationStatus: { $in: ['approved', null] } })
         .sort({ createdAt: -1 })
-        .limit(5)
+        .limit(10)
         .select('title area thana statusLabel priority createdAt user')
         .populate('user', 'name')
         .lean(),
@@ -132,7 +132,7 @@ export async function getOverview(req, res) {
       Issue.countDocuments({ moderationStatus: 'pending' }),
       Issue.find({ moderationStatus: 'pending' })
         .sort({ createdAt: -1 })
-        .limit(5)
+        .limit(15)
         .select('title area thana category priority createdAt user')
         .populate('user', 'name')
         .lean(),
@@ -159,7 +159,7 @@ export async function getOverview(req, res) {
       })),
     ]
       .sort((a, b) => new Date(b.at) - new Date(a.at))
-      .slice(0, 8);
+      .slice(0, 10);
 
     res.json({
       stats: {

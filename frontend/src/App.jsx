@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import Home from './pages/Home.jsx'
 import Login from './pages/Login.jsx'
 import BrowseFeed from './pages/BrowseFeed.jsx'
@@ -9,6 +9,7 @@ import ProfileEdit from './pages/ProfileEdit.jsx'
 import ReportIssue from './pages/ReportIssue.jsx'
 import Settings from './pages/Settings.jsx'
 import Notification from './pages/Notification.jsx'
+import About from './pages/About.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
 import AdminLayout from './pages/admin/AdminLayout.jsx'
 import AdminOverview from './pages/admin/AdminOverview.jsx'
@@ -22,7 +23,7 @@ import { getTheme, setTheme, isAuthenticated, getUser } from './services/authSer
 // Where a signed-in user belongs: admins in the admin panel, everyone else in
 // the browse feed.
 function homeFor(user) {
-  return user.isAdmin ? '/admin' : '/browse_feed'
+  return user.isAdmin ? '/admin' : '/browse-feed'
 }
 
 // The landing page is for signed-out visitors only. A signed-in user who hits
@@ -43,6 +44,13 @@ function LoginRoute() {
   return <Login />
 }
 
+// Old underscore URLs (bookmarks, shared links) keep working: they redirect to
+// the hyphen version and carry the query string along.
+function LegacyRedirect({ to }) {
+  const { search } = useLocation()
+  return <Navigate to={`${to}${search}`} replace />
+}
+
 export default function App() {
   useEffect(() => {
     setTheme(getTheme())
@@ -54,13 +62,16 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomeRoute />} />
         <Route path="/login" element={<LoginRoute />} />
-        <Route path="/browse_feed" element={<BrowseFeed />} />
+        <Route path="/browse-feed" element={<BrowseFeed />} />
+        <Route path="/browse_feed" element={<LegacyRedirect to="/browse-feed" />} />
         <Route path="/post/:id" element={<PostDetails />} />
         <Route path="/user" element={<UserProfile />} />
-        <Route path="/edit_profile" element={<ProfileEdit />} />
+        <Route path="/edit-profile" element={<ProfileEdit />} />
+        <Route path="/edit_profile" element={<LegacyRedirect to="/edit-profile" />} />
         <Route path="/report" element={<ReportIssue />} />
         <Route path="/settings" element={<Settings />} />
         <Route path="/notifications" element={<Notification />} />
+        <Route path="/about" element={<About />} />
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminOverview />} />
           <Route path="issues" element={<AdminIssues />} />

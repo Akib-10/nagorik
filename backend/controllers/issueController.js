@@ -173,21 +173,59 @@ export async function getIssues(req, res) {
   }
 }
 
-// GET /api/issues/stats — public headline numbers for the feed hero box.
+// GET /api/issues/stats — public headline numbers (feed hero box + landing page).
 // Counts APPROVED reports only, for everybody (it ignores per-user hidden posts).
 // A report with no statusLabel counts as "Open", matching the schema default.
+//   open / inProgress / resolved : approved reports by status
+//   total                        : every approved report
+//   resolutionRate               : resolved / total, whole percent
+//   cities                       : distinct cities that have an approved report
+//   citizens                     : registered users
 export async function getIssueStats(req, res) {
   try {
-    const rows = await Issue.aggregate([
-      { $match: PUBLICLY_VISIBLE },
-      { $group: { _id: { $ifNull: ["$statusLabel", "Open"] }, count: { $sum: 1 } } },
+    const [rows, cityList, citizens] = await Promise.all([
+      Issue.aggregate([
+        { $match: PUBLICLY_VISIBLE },
+        { $group: { _id: { $ifNull: ["$statusLabel", "Open"] }, count: { $sum: 1 } } },
+      ]),
+      Issue.distinct("city", PUBLICLY_VISIBLE),
+      User.countDocuments(),
     ]);
     const by = Object.fromEntries(rows.map((r) => [r._id, r.count]));
+    const total = rows.reduce((sum, r) => sum + r.count, 0);
+    const resolved = by["Resolved"] || 0;
+    const cities = new Set(
+      cityList.map((c) => String(c || "").trim().toLowerCase()).filter(Boolean),
+    ).size;
     res.json({
       open: by["Open"] || 0,
       inProgress: by["In progress"] || 0,
-      resolved: by["Resolved"] || 0,
+      resolved,
+      total,
+      resolutionRate: total ? Math.round((resolved / total) * 100) : 0,
+      cities,
+      citizens,
     });
+  } catch (err) {
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+}
+
+// GET /api/issues/trending?limit=3 — the most-upvoted approved reports that
+// are still being worked on (Resolved / Rejected ones are left out). Public:
+// used by the landing page's "Real issues. Right now." section.
+export async function getTrendingIssues(req, res) {
+  try {
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 3, 1), 10);
+    const issues = await Issue.find({
+      ...PUBLICLY_VISIBLE,
+      statusLabel: { $nin: ["Resolved", "Rejected"] },
+    })
+      .sort({ up: -1, createdAt: -1 })
+      .limit(limit)
+      .populate("user", "name avatar profilePicture")
+      .select("-photos");
+    res.json(await withMeta(issues));
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }

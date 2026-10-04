@@ -175,9 +175,16 @@ export async function getFeedIssues() {
   return (await api.get('/issues')).map(mapIssue)
 }
 
-// { open, inProgress, resolved } across all approved reports.
+// { open, inProgress, resolved, total, resolutionRate, cities, citizens }
+// across all approved reports (and registered users).
 export async function getIssueStats() {
   return api.get('/issues/stats')
+}
+
+// The most-upvoted reports still being worked on, straight from the backend.
+// Used by the landing page's "Real issues. Right now." section.
+export async function getTrendingPreview(limit = 3) {
+  return (await api.get(`/issues/trending?limit=${limit}`)).map(mapIssue)
 }
 
 export async function getIssueById(id) {

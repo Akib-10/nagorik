@@ -158,9 +158,9 @@ export default function PostDetails() {
   if (!issue) {
     return (
       <>
-        <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]} showIconButtons />
+        <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse-feed', icon: <HomeGlyph /> }]} showIconButtons />
         <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px]">
-          <Link to="/browse_feed" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline"><ChevronLeftIcon />Feed</Link>
+          <Link to="/browse-feed" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline"><ChevronLeftIcon />Feed</Link>
           <p className="mt-8 text-nagorik-muted">{issueError || "Loading post..."}</p>
         </div>
       </>
@@ -168,7 +168,7 @@ export default function PostDetails() {
   }
 
   const isAdminViewer = !!getUser()?.isAdmin
-  const backTo = isAdminViewer ? '/admin/issues' : '/browse_feed'
+  const backTo = isAdminViewer ? '/admin/issues' : '/browse-feed'
   const MODERATION_NOTE = {
     pending: 'This post is waiting for admin approval. Only you and admins can see it right now.',
     spam: 'This post was flagged as spam and is hidden from the public feed.',
@@ -181,7 +181,7 @@ export default function PostDetails() {
 
   return (
     <>
-      <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse_feed', icon: <HomeGlyph /> }]} showIconButtons />
+      <AppHeader logoHref="/" navItems={[{ label: 'BROWSE FEED', href: '/browse-feed', icon: <HomeGlyph /> }]} showIconButtons />
       <div className="mx-auto max-w-[860px] px-7 pt-7 pb-[60px] max-[760px]:px-4">
         <button type="button" className="mb-4 inline-flex items-center gap-1.5 text-[14px] font-bold text-nagorik-red hover:underline cursor-pointer" onClick={() => navigate(backTo)}>
           <ChevronLeftIcon />{isAdminViewer ? 'Manage posts' : 'Feed'}
