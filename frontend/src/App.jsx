@@ -11,6 +11,7 @@ import Settings from './pages/Settings.jsx'
 import Notification from './pages/Notification.jsx'
 import About from './pages/About.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
+import CarbonFootprintDisplay from './components/CarbonFootprintDisplay'
 import AdminLayout from './pages/admin/AdminLayout.jsx'
 import AdminOverview from './pages/admin/AdminOverview.jsx'
 import AdminIssues from './pages/admin/AdminIssues.jsx'
@@ -82,6 +83,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <CarbonFootprintDisplay />
     </>
   )
 }
