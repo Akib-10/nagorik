@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import clsx from "clsx";
 import logo from "../assets/images/logo_for_dark_mode.png";
-import { MenuIcon, SearchIcon } from "./icons";
+import { MenuIcon } from "./icons";
+import IssueSearchBox from "./IssueSearchBox";
 
 export default function LandingHeader() {
   const [navOpen, setNavOpen] = useState(false);
@@ -12,12 +13,10 @@ export default function LandingHeader() {
   const isManualScroll = useRef(false);
   const navigate = useNavigate();
 
-  const handleSearchKey = (e) => {
-    if (e.key === "Enter" && e.currentTarget.value.trim()) {
-      navigate(
-        `/browse-feed?q=${encodeURIComponent(e.currentTarget.value.trim())}`
-      );
-    }
+  // Enter, or picking a suggestion, opens the feed filtered by that text
+  // (same as the app header's search bar).
+  const handleSearchSubmit = (text) => {
+    navigate(`/browse-feed?q=${encodeURIComponent(text)}`);
   };
 
   useEffect(() => {
@@ -243,17 +242,13 @@ export default function LandingHeader() {
           </a>
         </nav>
 
-        {/* Search bar */}
-        <div className="flex flex-1 items-center gap-2 rounded-full border border-nagorik-line bg-nagorik-ink-soft/5 px-4 py-[9px] text-[13px] text-nagorik-muted max-w-[340px] max-[920px]:order-3 max-[920px]:w-full max-[920px]:basis-full max-[920px]:max-w-full dark:border-white/12 dark:bg-white/6 dark:text-white/60">
-          <SearchIcon size={15} />
-          <input
-            type="text"
-            placeholder="Search civic issues"
-            aria-label="Search civic issues"
-            onKeyDown={handleSearchKey}
-            className="w-full border-0 bg-transparent font-[inherit] text-[13px] text-inherit outline-none placeholder:text-inherit placeholder:opacity-80"
-          />
-        </div>
+        {/* Search bar: same suggestion dropdown as the other pages */}
+        <IssueSearchBox
+          variant="header"
+          placeholder="Search civic issues"
+          onSubmit={handleSearchSubmit}
+          className="flex-1 max-w-[340px] max-[920px]:order-3 max-[920px]:w-full max-[920px]:basis-full max-[920px]:max-w-full"
+        />
 
         {/* Auth buttons */}
         <div className={clsx(
