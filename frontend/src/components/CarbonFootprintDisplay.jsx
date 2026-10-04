@@ -17,7 +17,7 @@ const CarbonFootprintDisplay = () => {
                     border: '1px solid #ccc'
                 }}
             >
-                CO₂ Emission
+                CO₂ Footprint Calculation
             </button>
         );
     }
